@@ -84,3 +84,17 @@ export function markReacted(postId: string, type: string): void {
   }
   safeSetItem(REACTIONS_KEY, JSON.stringify(map));
 }
+
+export function unmarkReacted(postId: string, type: string): void {
+  const raw = localStorage.getItem(REACTIONS_KEY);
+  let map: Record<string, string[]> = {};
+  try {
+    if (raw) map = JSON.parse(raw);
+  } catch {
+    /* ignore */
+  }
+  if (map[postId]) {
+    map[postId] = map[postId].filter((t) => t !== type);
+  }
+  safeSetItem(REACTIONS_KEY, JSON.stringify(map));
+}

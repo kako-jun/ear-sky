@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { REACTION_KEYS, ReactionKey } from "@/types";
-import { hasReacted, markReacted } from "@/lib/storage";
-import { likePost, reactToPost } from "@/lib/api";
+import { hasReacted, markReacted, unmarkReacted } from "@/lib/storage";
+import { likePost, unlikePost, reactToPost, unreactToPost } from "@/lib/api";
 import {
   Heart,
   Ear,
@@ -39,31 +39,43 @@ export default function Reactions({
   const [liked, setLiked] = useState(() => hasReacted(postId, "like"));
 
   const handleLike = useCallback(async () => {
-    if (liked) return;
-    setLiked(true);
-    markReacted(postId, "like");
-    const newCount = await likePost(postId);
-    setLikes(newCount);
+    if (liked) {
+      setLiked(false);
+      unmarkReacted(postId, "like");
+      const newCount = await unlikePost(postId);
+      setLikes(newCount);
+    } else {
+      setLiked(true);
+      markReacted(postId, "like");
+      const newCount = await likePost(postId);
+      setLikes(newCount);
+    }
   }, [postId, liked]);
 
   const handleReaction = useCallback(
     async (key: string) => {
-      if (hasReacted(postId, key)) return;
-      markReacted(postId, key);
-      const newCount = await reactToPost(postId, key);
-      setReactions((prev) => ({ ...prev, [key]: newCount }));
+      const reacted = hasReacted(postId, key);
+      if (reacted) {
+        unmarkReacted(postId, key);
+        const newCount = await unreactToPost(postId, key);
+        setReactions((prev) => ({ ...prev, [key]: newCount }));
+      } else {
+        markReacted(postId, key);
+        const newCount = await reactToPost(postId, key);
+        setReactions((prev) => ({ ...prev, [key]: newCount }));
+      }
     },
     [postId]
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mt-4">
+    <div className="flex flex-wrap items-center gap-1.5 mt-4">
       <button
         onClick={handleLike}
-        disabled={liked}
         aria-label={`いいね ${likes}`}
+        aria-pressed={liked}
         className={`
-          flex items-center gap-1 px-3 py-1.5 rounded-full text-sm
+          flex items-center gap-1 min-w-[3.5rem] justify-center px-3 py-1.5 rounded-full text-sm
           transition-all border
           ${
             liked
@@ -73,7 +85,7 @@ export default function Reactions({
         `}
       >
         <Heart size={14} fill={liked ? "currentColor" : "none"} />
-        <span>{likes}</span>
+        <span className="min-w-[1ch] text-center">{likes}</span>
       </button>
 
       {REACTION_KEYS.map((key) => {
@@ -84,12 +96,11 @@ export default function Reactions({
           <button
             key={key}
             onClick={() => handleReaction(key)}
-            disabled={reacted}
             aria-label={label}
             aria-pressed={reacted}
             title={label}
             className={`
-              flex items-center gap-1 px-2.5 py-1.5 rounded-full text-sm
+              flex items-center gap-1 min-w-[2.5rem] justify-center px-2 py-1.5 rounded-full text-sm
               transition-all border
               ${
                 reacted
@@ -100,7 +111,7 @@ export default function Reactions({
           >
             <Icon size={14} />
             {count > 0 && (
-              <span className="text-white/50 text-xs">{count}</span>
+              <span className="text-white/50 text-xs min-w-[1ch] text-center">{count}</span>
             )}
           </button>
         );

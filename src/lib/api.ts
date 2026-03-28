@@ -69,9 +69,25 @@ export async function likePost(id: string): Promise<number> {
   return data.likes;
 }
 
+export async function unlikePost(id: string): Promise<number> {
+  const res = await fetch(`${API_BASE}/posts/${id}/like`, { method: "DELETE" });
+  const data = await parseJsonSafe(res);
+  return data.likes;
+}
+
 export async function reactToPost(id: string, key: string): Promise<number> {
   const res = await fetch(`${API_BASE}/posts/${id}/react`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key }),
+  });
+  const data = await parseJsonSafe(res);
+  return data.count;
+}
+
+export async function unreactToPost(id: string, key: string): Promise<number> {
+  const res = await fetch(`${API_BASE}/posts/${id}/react`, {
+    method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key }),
   });
