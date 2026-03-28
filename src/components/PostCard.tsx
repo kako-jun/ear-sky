@@ -69,12 +69,12 @@ export default function PostCard({ post, showPlayer = false }: Props) {
               </h3>
               <button
                 onClick={() => setRevealed(true)}
-                className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded text-xs
+                className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded text-sm
                            text-neon-blue/70 border border-neon-blue/20
                            hover:text-neon-blue hover:border-neon-blue/40 transition-all
                            focus-visible:outline-2 focus-visible:outline-neon-blue"
               >
-                <Eye size={12} />
+                <Eye size={14} />
                 {t.postCard.reveal}
               </button>
             </div>
