@@ -36,7 +36,6 @@ src/
 │   ├── NiconicoPlayer.tsx # Niconico embed segment playback
 │   ├── Subtitle.tsx     # Misheard text subtitle (karaoke sweep + black stroke)
 │   ├── Reactions.tsx    # Emoji picker + reaction badges (Slack-style, 1 per user)
-│   ├── CloudEarIcon.tsx # Cloud-cat-ear + headphones mascot SVG
 │   └── Toast.tsx        # Notification toast
 functions/
 ├── api/
@@ -79,7 +78,8 @@ migrations/
 
 - PostCard hides `misheardText` initially (shows "???")
 - Reveal triggers: (1) Video starts playing, or (2) "Show mishearing" button clicked
-- Karaoke-style subtitle still plays over video during playback
+- Karaoke-style subtitle appears when playback reaches the misheard segment (time-synced via onTimeUpdate)
+- Playback has pre-margin (5s) and post-margin (1s) around the segment
 - `animate-fade-in` CSS animation on reveal
 
 ## Pickup Corner
@@ -112,7 +112,8 @@ migrations/
 - Day-rotating background images (7 Gemini-generated night scenes, webp)
 - Accents: Neon Pink (#ff2d78), Neon Blue (#00d4ff), Neon Yellow (#ffe156)
 - Text: white/60+ (AA contrast)
-- Subtitle: Karaoke left→right sweep (white→yellow) + thick black stroke
+- Subtitle: Karaoke left→right sweep (white→yellow) + thick black stroke, duration matches segment length
+- Icon: Copilot-generated cloud-cat-ear mascot (public/icon-*.png), used in Header and EmptyState
 - prefers-reduced-motion supported
 - Mobile background: `100lvh` to prevent jitter from address bar toggle
 

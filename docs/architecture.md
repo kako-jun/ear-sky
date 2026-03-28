@@ -24,22 +24,23 @@
 
 ### Playback (YouTube)
 1. Tap play button on PostCard
-2. YouTube IFrame API initializes player (start/end specified)
-3. Playback starts at segment beginning
-4. Subtitle fades in 0.5s after playback with karaoke sweep (white→yellow)
-5. Auto-stops at end second
+2. YouTube IFrame API initializes player with margins (start - 5s, end + 1s)
+3. Playback starts 5 seconds before the misheard segment
+4. onTimeUpdate tracks current time; subtitle appears when time reaches segment start
+5. Karaoke sweep duration matches segment length (endSec - startSec)
+6. Auto-stops 1 second after segment end
 
 ### Playback (Niconico)
 1. embed.nicovideo.jp iframe (commentLayerMode=0, comments OFF)
-2. postMessage API for seek+play control
-3. Timer-based segment end detection
-4. Same Subtitle overlay as YouTube
+2. postMessage API for seek+play control, same pre/post margins as YouTube
+3. Simulated time updates (Date.now-based) for subtitle sync
+4. Timer-based segment end detection
 
 ### Spoiler/Reveal
-1. PostCard initially hides misheard text (shows "???")
-2. Reveal triggers: video starts playing OR "Show mishearing" button
+1. PostCard initially hides misheard text (shows "???" with inline reveal button)
+2. Reveal triggers: playback reaches segment start OR "Show mishearing" button
 3. Text appears with fade-in animation
-4. Karaoke subtitle still plays separately during video playback
+4. Karaoke subtitle plays during segment with time-synced sweep
 
 ### Reactions (Emoji Picker)
 1. User taps "+" button → emoji picker popover with 16 curated emoji

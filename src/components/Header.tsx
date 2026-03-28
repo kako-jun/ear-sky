@@ -1,5 +1,4 @@
 import { useI18n } from "@/i18n";
-import CloudEarIcon from "./CloudEarIcon";
 
 export default function Header() {
   const t = useI18n();
@@ -14,7 +13,7 @@ export default function Header() {
       />
 
       <div className="flex items-center justify-center gap-3 mb-2">
-        <CloudEarIcon size={36} className="opacity-60" />
+        <img src="/icon-192.png" alt="" width={36} height={36} className="rounded-lg opacity-80" aria-hidden="true" />
         <h1 className="text-2xl md:text-3xl font-bold neon-text tracking-wider">
           Ear in the Sky Diamond
         </h1>

@@ -3,13 +3,15 @@ import { useEffect, useState } from "react";
 interface Props {
   text: string;
   visible: boolean;
+  durationSec?: number;
 }
 
 /**
  * 空耳テロップ — 番組風に下部からフェードイン
  * 白→黄色のカラオケ風スイープ + 太い黒縁取り
  */
-export default function Subtitle({ text, visible }: Props) {
+export default function Subtitle({ text, visible, durationSec }: Props) {
+  const sweepDuration = durationSec ? Math.max(1, durationSec - 0.5) : 3;
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -46,6 +48,7 @@ export default function Subtitle({ text, visible }: Props) {
         className={`text-3xl md:text-4xl font-black tracking-wider relative ${show ? "subtitle-sweep" : ""}`}
         style={{
           textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
+          animationDuration: show ? `${sweepDuration}s` : undefined,
         }}
       >
         {text}

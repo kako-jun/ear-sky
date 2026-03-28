@@ -8,6 +8,9 @@ declare global {
   }
 }
 
+const PRE_MARGIN = 5; // seconds before the misheard segment
+const POST_MARGIN = 1; // seconds after the misheard segment
+
 interface Props {
   videoId: string;
   startSec: number;
@@ -55,18 +58,28 @@ export default function YouTubePlayer({
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
 
+  const onTimeUpdateRef = useRef(onTimeUpdate);
+  onTimeUpdateRef.current = onTimeUpdate;
+  const onStateChangeRef = useRef(onStateChange);
+  onStateChangeRef.current = onStateChange;
+  const endSecRef = useRef(endSec);
+  endSecRef.current = endSec;
+
+  const playStart = Math.max(0, startSec - PRE_MARGIN);
+  const playEnd = endSec + POST_MARGIN;
+
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       if (!playerRef.current) return;
       const t = playerRef.current.getCurrentTime();
-      onTimeUpdate?.(t);
-      if (t >= endSec) {
+      onTimeUpdateRef.current?.(t);
+      if (t >= endSecRef.current + POST_MARGIN) {
         playerRef.current.pauseVideo();
         if (timerRef.current) clearInterval(timerRef.current);
       }
     }, 100);
-  }, [endSec, onTimeUpdate]);
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -85,8 +98,8 @@ export default function YouTubePlayer({
       playerRef.current = new window.YT.Player(div.id, {
         videoId,
         playerVars: {
-          start: Math.floor(startSec),
-          end: Math.ceil(endSec),
+          start: Math.floor(playStart),
+          end: Math.ceil(playEnd),
           controls: 1,
           modestbranding: 1,
           rel: 0,
@@ -94,7 +107,7 @@ export default function YouTubePlayer({
         events: {
           onReady: () => setReady(true),
           onStateChange: (e: YT.OnStateChangeEvent) => {
-            onStateChange?.(e.data);
+            onStateChangeRef.current?.(e.data);
             if (e.data === window.YT.PlayerState.PLAYING) {
               startTimer();
             } else if (timerRef.current) {
@@ -116,13 +129,13 @@ export default function YouTubePlayer({
         }
       }
     };
-  }, [videoId, startSec, endSec, onStateChange, startTimer]);
+  }, [videoId, startSec, endSec, startTimer]);
 
   const handlePlay = useCallback(() => {
     if (!playerRef.current) return;
-    playerRef.current.seekTo(startSec, true);
+    playerRef.current.seekTo(playStart, true);
     playerRef.current.playVideo();
-  }, [startSec]);
+  }, [playStart]);
 
   if (error) {
     return (

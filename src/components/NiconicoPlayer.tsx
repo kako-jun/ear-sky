@@ -2,10 +2,14 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { useI18n } from "@/i18n";
 import { Play } from "lucide-react";
 
+const PRE_MARGIN = 5;
+const POST_MARGIN = 1;
+
 interface Props {
   videoId: string;
   startSec: number;
   endSec: number;
+  onTimeUpdate?: (currentTime: number) => void;
   onStateChange?: (state: "playing" | "paused" | "ended") => void;
 }
 
@@ -13,15 +17,21 @@ export default function NiconicoPlayer({
   videoId,
   startSec,
   endSec,
+  onTimeUpdate,
   onStateChange,
 }: Props) {
   const t = useI18n();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const playStartTimeRef = useRef<number>(0);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
 
-  const embedUrl = `https://embed.nicovideo.jp/watch/${videoId}?from=${Math.floor(startSec)}&autoplay=0&mute=0&commentLayerMode=0`;
+  const playStart = Math.max(0, startSec - PRE_MARGIN);
+  const playEnd = endSec + POST_MARGIN;
+
+  const embedUrl = `https://embed.nicovideo.jp/watch/${videoId}?from=${Math.floor(playStart)}&autoplay=0&mute=0&commentLayerMode=0`;
 
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
@@ -53,13 +63,14 @@ export default function NiconicoPlayer({
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
   const handlePlay = useCallback(() => {
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ eventName: "seek", data: { time: startSec } }),
+        JSON.stringify({ eventName: "seek", data: { time: playStart } }),
         "https://embed.nicovideo.jp"
       );
       iframeRef.current.contentWindow.postMessage(
@@ -68,14 +79,24 @@ export default function NiconicoPlayer({
       );
       onStateChange?.("playing");
 
+      // Simulated time updates (niconico embed doesn't expose currentTime)
+      playStartTimeRef.current = Date.now();
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(() => {
+        const elapsed = (Date.now() - playStartTimeRef.current) / 1000;
+        const currentTime = playStart + elapsed;
+        onTimeUpdate?.(currentTime);
+      }, 100);
+
       // Timer-based end detection
       if (timerRef.current) clearTimeout(timerRef.current);
-      const duration = (endSec - startSec) * 1000;
+      const duration = (playEnd - playStart) * 1000;
       timerRef.current = setTimeout(() => {
         onStateChange?.("ended");
+        if (intervalRef.current) clearInterval(intervalRef.current);
       }, duration);
     }
-  }, [startSec, endSec, onStateChange]);
+  }, [playStart, playEnd, onStateChange, onTimeUpdate]);
 
   if (error) {
     return (

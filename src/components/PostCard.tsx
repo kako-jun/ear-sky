@@ -19,20 +19,33 @@ export default function PostCard({ post, showPlayer = false }: Props) {
   const [expanded, setExpanded] = useState(showPlayer);
   const [revealed, setRevealed] = useState(false);
 
-  const handleYTStateChange = useCallback((state: number) => {
-    if (state === 1) {
+  const handleYTTimeUpdate = useCallback((currentTime: number) => {
+    if (currentTime >= post.startSec && currentTime < post.endSec) {
       setRevealed(true);
-      setTimeout(() => setShowSubtitle(true), 500);
-    } else if (state === 0 || state === 2) {
+      setShowSubtitle(true);
+    } else {
+      setShowSubtitle(false);
+    }
+  }, [post.startSec, post.endSec]);
+
+  const handleYTStateChange = useCallback((state: number) => {
+    // 0 = ended, 2 = paused
+    if (state === 0 || state === 2) {
       setShowSubtitle(false);
     }
   }, []);
 
-  const handleNicoStateChange = useCallback((state: "playing" | "paused" | "ended") => {
-    if (state === "playing") {
+  const handleNicoTimeUpdate = useCallback((currentTime: number) => {
+    if (currentTime >= post.startSec && currentTime < post.endSec) {
       setRevealed(true);
-      setTimeout(() => setShowSubtitle(true), 500);
+      setShowSubtitle(true);
     } else {
+      setShowSubtitle(false);
+    }
+  }, [post.startSec, post.endSec]);
+
+  const handleNicoStateChange = useCallback((state: "playing" | "paused" | "ended") => {
+    if (state === "paused" || state === "ended") {
       setShowSubtitle(false);
     }
   }, []);
@@ -50,9 +63,21 @@ export default function PostCard({ post, showPlayer = false }: Props) {
               {post.misheardText}
             </h3>
           ) : (
-            <h3 className="text-lg font-bold text-white/20 truncate select-none">
-              {t.postCard.spoilerPlaceholder}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-bold text-white/20 select-none">
+                {t.postCard.spoilerPlaceholder}
+              </h3>
+              <button
+                onClick={() => setRevealed(true)}
+                className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded text-xs
+                           text-neon-blue/70 border border-neon-blue/20
+                           hover:text-neon-blue hover:border-neon-blue/40 transition-all
+                           focus-visible:outline-2 focus-visible:outline-neon-blue"
+              >
+                <Eye size={12} />
+                {t.postCard.reveal}
+              </button>
+            </div>
           )}
           <p className="text-sm text-white/50 truncate">
             {post.artistName} — {post.songTitle}
@@ -68,20 +93,6 @@ export default function PostCard({ post, showPlayer = false }: Props) {
         </span>
       </div>
 
-      {/* Reveal button (before player expansion) */}
-      {!revealed && (
-        <button
-          onClick={() => setRevealed(true)}
-          className="flex items-center gap-1.5 mb-3 px-3 py-1.5 rounded-lg text-sm
-                     text-neon-blue/70 border border-neon-blue/20
-                     hover:text-neon-blue hover:border-neon-blue/40 transition-all
-                     focus-visible:outline-2 focus-visible:outline-neon-blue"
-        >
-          <Eye size={14} />
-          {t.postCard.reveal}
-        </button>
-      )}
-
       {/* Player area */}
       {expanded ? (
         <div className="mb-3">
@@ -90,6 +101,7 @@ export default function PostCard({ post, showPlayer = false }: Props) {
               videoId={post.videoId}
               startSec={post.startSec}
               endSec={post.endSec}
+              onTimeUpdate={handleYTTimeUpdate}
               onStateChange={handleYTStateChange}
             />
           )}
@@ -98,6 +110,7 @@ export default function PostCard({ post, showPlayer = false }: Props) {
               videoId={post.videoId}
               startSec={post.startSec}
               endSec={post.endSec}
+              onTimeUpdate={handleNicoTimeUpdate}
               onStateChange={handleNicoStateChange}
             />
           )}
@@ -119,7 +132,7 @@ export default function PostCard({ post, showPlayer = false }: Props) {
               </div>
             );
           })()}
-          <Subtitle text={post.misheardText} visible={showSubtitle} />
+          <Subtitle text={post.misheardText} visible={showSubtitle} durationSec={post.endSec - post.startSec} />
         </div>
       ) : (
         <button

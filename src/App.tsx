@@ -9,7 +9,6 @@ import Toast from "@/components/Toast";
 import PickupCorner from "@/components/PickupCorner";
 import NightBackground from "@/components/NightBackground";
 import { Share2, Sparkles, Award, PenLine, ChevronDown, Heart, ExternalLink } from "lucide-react";
-import CloudEarIcon from "@/components/CloudEarIcon";
 
 type Tab = "feed" | "fame" | "post";
 type ToastState = { message: string; type: "success" | "error" } | null;
@@ -203,7 +202,7 @@ function EmptyState({ onPost }: { onPost: () => void }) {
   const t = useI18n();
   return (
     <div className="text-center py-16 space-y-4">
-      <CloudEarIcon size={64} className="mx-auto" />
+      <img src="/icon-192.png" alt="" width={64} height={64} className="mx-auto rounded-xl opacity-80" aria-hidden="true" />
       <p className="text-white/50">{t.feed.empty}</p>
       <button
         onClick={onPost}
