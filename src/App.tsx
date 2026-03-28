@@ -7,20 +7,18 @@ import Header from "@/components/Header";
 import Toast from "@/components/Toast";
 import PickupCorner from "@/components/PickupCorner";
 import NightBackground from "@/components/NightBackground";
-import { Link as LinkIcon, Heart, Sparkles, Trophy, Award, PenLine } from "lucide-react";
+import { Link as LinkIcon, Heart, Sparkles, Award, PenLine } from "lucide-react";
 import CloudEarIcon from "@/components/CloudEarIcon";
 
-type Tab = "feed" | "ranking" | "fame" | "post";
+type Tab = "feed" | "fame" | "post";
 type ToastState = { message: string; type: "success" | "error" } | null;
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("feed");
   const [feedPosts, setFeedPosts] = useState<Post[]>([]);
-  const [rankingPosts, setRankingPosts] = useState<Post[]>([]);
   const [famePosts, setFamePosts] = useState<Post[]>([]);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [rankingLoading, setRankingLoading] = useState(false);
   const [fameLoading, setFameLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
@@ -33,15 +31,6 @@ export default function App() {
     const posts = await fetchPosts("new");
     setFeedPosts(posts);
     setLoading(false);
-  }, []);
-
-  const loadRanking = useCallback(async () => {
-    setRankingLoading(true);
-    const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const posts = await fetchPosts("new", month);
-    setRankingPosts(posts);
-    setRankingLoading(false);
   }, []);
 
   const loadFame = useCallback(async () => {
@@ -79,9 +68,8 @@ export default function App() {
   }, [loadFeed]);
 
   useEffect(() => {
-    if (tab === "ranking") loadRanking();
     if (tab === "fame") loadFame();
-  }, [tab, loadRanking, loadFame]);
+  }, [tab, loadFame]);
 
   const handlePublished = useCallback(
     async (data: Omit<Post, "id" | "likes" | "createdAt" | "reactions"> & { deleteKey?: string }) => {
@@ -113,10 +101,6 @@ export default function App() {
     }
   }, [showToast]);
 
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
-
   return (
     <div className="bar-bg min-h-dvh">
       <NightBackground />
@@ -131,7 +115,6 @@ export default function App() {
           {(
             [
               ["feed", "新着", Sparkles],
-              ["ranking", "ランキング", Trophy],
               ["fame", "殿堂", Award],
               ["post", "投稿する", PenLine],
             ] as const
@@ -177,19 +160,6 @@ export default function App() {
                   </div>
                 ))}
               </>
-            )}
-          </>
-        )}
-
-        {tab === "ranking" && (
-          <>
-            <h2 className="text-lg font-bold neon-text-blue">
-              {currentYear}年{currentMonth}月のランキング
-            </h2>
-            {rankingLoading ? (
-              <p className="text-center text-white/40 py-8">読み込み中...</p>
-            ) : (
-              <RankingList posts={rankingPosts} handleShare={handleShare} highlightId={highlightId} />
             )}
           </>
         )}
