@@ -47,3 +47,28 @@ export const REACTION_KEYS = [
 ] as const;
 
 export type ReactionKey = (typeof REACTION_KEYS)[number];
+
+export interface BanterLine {
+  speaker: "master" | "regular";
+  text: string;
+}
+
+export interface PickupEntry {
+  postId?: string;
+  misheardText: string;
+  originalText?: string;
+  artistName: string;
+  songTitle: string;
+  year: number;
+  videoUrl: string;
+  startSec: number;
+  endSec: number;
+  banter: BanterLine[];
+}
+
+export interface Pickup {
+  id: string;
+  title: string;
+  publishedAt: string;
+  picks: PickupEntry[];
+}

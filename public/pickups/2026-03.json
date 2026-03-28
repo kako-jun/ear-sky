@@ -1,0 +1,49 @@
+{
+  "id": "2026-03",
+  "title": "3月のピックアップ",
+  "publishedAt": "2026-03-29",
+  "picks": [
+    {
+      "artistName": "The Beatles",
+      "songTitle": "Lucy in the Sky with Diamonds",
+      "year": 1967,
+      "videoUrl": "https://www.youtube.com/watch?v=naoknj1auNE",
+      "startSec": 55,
+      "endSec": 62,
+      "misheardText": "お刺身食べたい",
+      "originalText": "Oh, she may be waiting",
+      "banter": [
+        { "speaker": "regular", "text": "ルーシーの曲なのにお刺身!?" },
+        { "speaker": "master", "text": "空耳に悪意はないんですよ。本能ですから。" }
+      ]
+    },
+    {
+      "artistName": "Radiohead",
+      "songTitle": "Just",
+      "year": 1995,
+      "videoUrl": "https://www.youtube.com/watch?v=oIFLtNYI3Ls",
+      "startSec": 30,
+      "endSec": 35,
+      "misheardText": "だんごっ鼻",
+      "originalText": "Don't go there",
+      "banter": [
+        { "speaker": "regular", "text": "映像と合ってるのがまた罪深い。" },
+        { "speaker": "master", "text": "もう元に戻れませんね。" }
+      ]
+    },
+    {
+      "artistName": "Eagles",
+      "songTitle": "Take It Easy",
+      "year": 1972,
+      "videoUrl": "https://www.youtube.com/watch?v=4v8KEIQOaEY",
+      "startSec": 12,
+      "endSec": 18,
+      "misheardText": "コマネチ",
+      "originalText": "Come on and take it",
+      "banter": [
+        { "speaker": "regular", "text": "聴くたびにポーズ取っちゃうよ。" },
+        { "speaker": "master", "text": "Take it easyに聴こえなくなったら、立派な空耳リスナーです。" }
+      ]
+    }
+  ]
+}

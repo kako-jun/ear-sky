@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { Post } from "@/types";
 import { formatTime } from "@/lib/video";
 import YouTubePlayer from "./YouTubePlayer";
+import NiconicoPlayer from "./NiconicoPlayer";
 import Subtitle from "./Subtitle";
 import Reactions from "./Reactions";
 import { Play } from "lucide-react";
@@ -15,11 +16,19 @@ export default function PostCard({ post, showPlayer = false }: Props) {
   const [showSubtitle, setShowSubtitle] = useState(false);
   const [expanded, setExpanded] = useState(showPlayer);
 
-  const handleStateChange = useCallback((state: number) => {
+  const handleYTStateChange = useCallback((state: number) => {
     // YT.PlayerState.PLAYING = 1, PAUSED = 2, ENDED = 0
     if (state === 1) {
       setTimeout(() => setShowSubtitle(true), 500);
     } else if (state === 0 || state === 2) {
+      setShowSubtitle(false);
+    }
+  }, []);
+
+  const handleNicoStateChange = useCallback((state: "playing" | "paused" | "ended") => {
+    if (state === "playing") {
+      setTimeout(() => setShowSubtitle(true), 500);
+    } else {
       setShowSubtitle(false);
     }
   }, []);
@@ -51,20 +60,16 @@ export default function PostCard({ post, showPlayer = false }: Props) {
               videoId={post.videoId}
               startSec={post.startSec}
               endSec={post.endSec}
-              onStateChange={handleStateChange}
+              onStateChange={handleYTStateChange}
             />
           )}
           {post.platform === "niconico" && (
-            <div className="aspect-video bg-black/30 rounded-lg flex items-center justify-center text-white/40 text-sm">
-              <a
-                href={`https://www.nicovideo.jp/watch/${post.videoId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-white/60"
-              >
-                ニコニコ動画で再生 →
-              </a>
-            </div>
+            <NiconicoPlayer
+              videoId={post.videoId}
+              startSec={post.startSec}
+              endSec={post.endSec}
+              onStateChange={handleNicoStateChange}
+            />
           )}
           {post.platform === "other" && (() => {
             let safeHref: string | null = null;
@@ -89,9 +94,11 @@ export default function PostCard({ post, showPlayer = false }: Props) {
       ) : (
         <button
           onClick={() => setExpanded(true)}
+          aria-label={`${post.misheardText} を再生`}
           className="w-full mb-3 py-8 rounded-lg bg-black/30 border border-white/10
                      text-white/40 hover:text-white/60 hover:border-white/20 transition-all
-                     flex flex-col items-center gap-1"
+                     flex flex-col items-center gap-1
+                     focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
           <Play size={28} />
           <span className="text-xs">

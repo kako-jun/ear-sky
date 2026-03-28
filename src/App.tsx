@@ -5,6 +5,7 @@ import PostEditor from "@/components/PostEditor";
 import PostCard from "@/components/PostCard";
 import Header from "@/components/Header";
 import Toast from "@/components/Toast";
+import PickupCorner from "@/components/PickupCorner";
 import { Link as LinkIcon, Heart, Sparkles, Trophy, Award, PenLine } from "lucide-react";
 import CloudEarIcon from "@/components/CloudEarIcon";
 
@@ -101,7 +102,7 @@ export default function App() {
   );
 
   const handleShare = useCallback((postId: string) => {
-    const url = `${window.location.origin}${window.location.pathname}#post-${postId}`;
+    const url = `${window.location.origin}/share/${postId}`;
     if (navigator.share) {
       navigator.share({ title: "イヤスカ — 空耳投稿", url });
     } else {
@@ -154,17 +155,26 @@ export default function App() {
       <main className="max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4 py-6 space-y-4" role="tabpanel">
         {tab === "feed" && (
           <>
+            <PickupCorner />
+
             {loading ? (
               <p className="text-center text-white/40 py-8">読み込み中...</p>
             ) : feedPosts.length === 0 ? (
               <EmptyState onPost={() => setTab("post")} />
             ) : (
-              feedPosts.map((post) => (
-                <div key={post.id} id={`post-${post.id}`}>
-                  <PostCard post={post} showPlayer={highlightId === post.id} />
-                  <ShareButton onShare={() => handleShare(post.id)} />
+              <>
+                <div className="flex items-center gap-3 pt-2">
+                  <div className="flex-1 border-t border-white/10" />
+                  <span className="text-xs text-white/25">新着投稿</span>
+                  <div className="flex-1 border-t border-white/10" />
                 </div>
-              ))
+                {feedPosts.map((post) => (
+                  <div key={post.id} id={`post-${post.id}`}>
+                    <PostCard post={post} showPlayer={highlightId === post.id} />
+                    <ShareButton onShare={() => handleShare(post.id)} />
+                  </div>
+                ))}
+              </>
             )}
           </>
         )}

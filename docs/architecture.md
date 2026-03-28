@@ -4,10 +4,12 @@
 
 ```
 [ブラウザ] → [CF Pages (静的SPA)] → [Pages Functions (Hono API)] → [D1 (SQLite)]
-                                   ↕
-                          [YouTube/ニコニコ 埋め込み]
-                          [Nostalgic Counter API]
-                          [noembed.com (oEmbed proxy)]
+                                  ↕
+                         [YouTube/ニコニコ 埋め込みプレイヤー]
+                         [Nostalgic Counter API]
+                         [noembed.com (oEmbed proxy)]
+                         [/share/:id → 動的OGP (ボット用メタタグ)]
+                         [/pickups/*.json → 静的ピックアップデータ]
 ```
 
 ## データフロー
@@ -20,18 +22,36 @@
 5. POST /api/posts → D1に保存（IPハッシュ付き）
 6. フィードに即反映
 
-### 再生
+### 再生（YouTube）
 1. PostCardの再生ボタンをタップ
 2. YouTube IFrame APIでプレーヤーを初期化（start/end指定）
 3. 「この部分を再生」で区間の先頭にseek+play
-4. 再生開始0.5秒後にSubtitleコンポーネントがフェードイン（backdrop-blur付き）
+4. 再生開始0.5秒後にSubtitleがカラオケ風スイープ（白→黄色）でフェードイン
 5. 終了秒に達したら自動停止
+
+### 再生（ニコニコ）
+1. embed.nicovideo.jp のiframeで埋め込み（commentLayerMode=0 でコメントOFF）
+2. postMessage APIでseek+play制御
+3. タイマーベースで区間終了を検出
+4. YouTube同様のSubtitleオーバーレイ表示
 
 ### リアクション
 1. いいね/リアクションボタンをタップ
 2. localStorage で重複チェック（クライアント側UI即時反映）
 3. API呼び出し（サーバー側IPハッシュで重複防止）
 4. カウント更新
+
+### ピックアップコーナー
+1. `public/pickups/index.json` から利用可能なIDリストを取得
+2. 最新のピックアップJSONを読み込み
+3. 空耳アワー風に表示: マスター曲紹介 → 動画再生 → ネタバレボタン → 掛け合い
+4. 過去のピックアップはオンデマンドで遅延読み込み
+
+### 動的OGP
+1. `/share/:id` にアクセス
+2. User-Agentでボット判定
+3. ボット: D1から投稿データ取得 → OGPメタタグ付きHTML返却
+4. ブラウザ: `/#post-{id}` にリダイレクト
 
 ## テーブル設計
 
