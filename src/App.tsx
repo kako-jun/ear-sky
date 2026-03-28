@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Post } from "@/types";
-import { getAllPosts, getMonthlyRanking, getHallOfFame } from "@/lib/storage";
+import { fetchPosts, createPost } from "@/lib/api";
 import PostEditor from "@/components/PostEditor";
 import PostCard from "@/components/PostCard";
 import Header from "@/components/Header";
@@ -11,37 +11,58 @@ type Tab = "feed" | "ranking" | "fame" | "post";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("feed");
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [feedPosts, setFeedPosts] = useState<Post[]>([]);
+  const [rankingPosts, setRankingPosts] = useState<Post[]>([]);
+  const [famePosts, setFamePosts] = useState<Post[]>([]);
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const refreshPosts = useCallback(() => {
-    setPosts(getAllPosts());
+  const loadFeed = useCallback(async () => {
+    setLoading(true);
+    const posts = await fetchPosts("new");
+    setFeedPosts(posts);
+    setLoading(false);
+  }, []);
+
+  const loadRanking = useCallback(async () => {
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const posts = await fetchPosts("new", month);
+    setRankingPosts(posts);
+  }, []);
+
+  const loadFame = useCallback(async () => {
+    const posts = await fetchPosts("likes");
+    setFamePosts(posts);
   }, []);
 
   useEffect(() => {
-    refreshPosts();
-
-    // Handle hash-based deep link (#post-xxxx)
+    loadFeed();
     const hash = window.location.hash;
     if (hash.startsWith("#post-")) {
-      const id = hash.slice(6);
+      setHighlightId(hash.slice(6));
+      setTimeout(() => {
+        document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth" });
+      }, 500);
+    }
+  }, [loadFeed]);
+
+  useEffect(() => {
+    if (tab === "ranking") loadRanking();
+    if (tab === "fame") loadFame();
+  }, [tab, loadRanking, loadFame]);
+
+  const handlePublished = useCallback(
+    async (data: Omit<Post, "id" | "likes" | "createdAt" | "reactions">) => {
+      const id = await createPost(data);
+      setTab("feed");
+      await loadFeed();
       setHighlightId(id);
       setTimeout(() => {
         document.getElementById(`post-${id}`)?.scrollIntoView({ behavior: "smooth" });
-      }, 300);
-    }
-  }, [refreshPosts]);
-
-  const handlePublished = useCallback(
-    (post: Post) => {
-      setTab("feed");
-      refreshPosts();
-      setHighlightId(post.id);
-      setTimeout(() => {
-        document.getElementById(`post-${post.id}`)?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
+      }, 200);
     },
-    [refreshPosts]
+    [loadFeed]
   );
 
   const handleShare = useCallback((postId: string) => {
@@ -61,7 +82,6 @@ export default function App() {
     <div className="bar-bg min-h-dvh">
       <Header />
 
-      {/* Tab navigation */}
       <nav className="sticky top-0 z-30 bg-night-deep/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-lg mx-auto flex">
           {(
@@ -87,27 +107,18 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Content */}
       <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
         {tab === "feed" && (
           <>
-            {posts.length === 0 ? (
+            {loading ? (
+              <p className="text-center text-white/30 py-8">読み込み中...</p>
+            ) : feedPosts.length === 0 ? (
               <EmptyState onPost={() => setTab("post")} />
             ) : (
-              posts.map((post) => (
+              feedPosts.map((post) => (
                 <div key={post.id} id={`post-${post.id}`}>
-                  <PostCard
-                    post={post}
-                    showPlayer={highlightId === post.id}
-                  />
-                  <div className="flex justify-end mt-1">
-                    <button
-                      onClick={() => handleShare(post.id)}
-                      className="text-xs text-white/30 hover:text-white/50"
-                    >
-                      <LinkIcon size={12} className="inline mr-1" />シェア
-                    </button>
-                  </div>
+                  <PostCard post={post} showPlayer={highlightId === post.id} />
+                  <ShareButton onShare={() => handleShare(post.id)} />
                 </div>
               ))
             )}
@@ -119,29 +130,20 @@ export default function App() {
             <h2 className="text-lg font-bold neon-text-blue">
               {currentYear}年{currentMonth}月のランキング
             </h2>
-            <RankingList
-              posts={getMonthlyRanking(currentYear, currentMonth)}
-              handleShare={handleShare}
-              highlightId={highlightId}
-            />
+            <RankingList posts={rankingPosts} handleShare={handleShare} highlightId={highlightId} />
           </>
         )}
 
         {tab === "fame" && (
           <>
             <h2 className="text-lg font-bold neon-text">殿堂入り</h2>
-            <RankingList
-              posts={getHallOfFame()}
-              handleShare={handleShare}
-              highlightId={highlightId}
-            />
+            <RankingList posts={famePosts} handleShare={handleShare} highlightId={highlightId} />
           </>
         )}
 
         {tab === "post" && <PostEditor onPublished={handlePublished} />}
       </main>
 
-      {/* Footer */}
       <footer className="text-center text-xs text-white/20 py-8 px-4">
         <p>Ear in the Sky Diamond — イヤスカ</p>
         <p className="mt-1">
@@ -169,6 +171,16 @@ function EmptyState({ onPost }: { onPost: () => void }) {
   );
 }
 
+function ShareButton({ onShare }: { onShare: () => void }) {
+  return (
+    <div className="flex justify-end mt-1">
+      <button onClick={onShare} className="text-xs text-white/30 hover:text-white/50">
+        <LinkIcon size={12} className="inline mr-1" />シェア
+      </button>
+    </div>
+  );
+}
+
 function RankingList({
   posts,
   handleShare,
@@ -186,24 +198,15 @@ function RankingList({
       {posts.map((post, i) => (
         <div key={post.id}>
           <div className="flex items-center gap-2 mb-1">
-            <span
-              className={`text-sm font-bold ${
-                i < 3 ? "neon-text" : "text-white/40"
-              }`}
-            >
+            <span className={`text-sm font-bold ${i < 3 ? "neon-text" : "text-white/40"}`}>
               #{i + 1}
             </span>
-            <span className="text-xs text-white/30 flex items-center gap-0.5"><Heart size={10} /> {post.likes}</span>
+            <span className="text-xs text-white/30 flex items-center gap-0.5">
+              <Heart size={10} /> {post.likes}
+            </span>
           </div>
           <PostCard post={post} showPlayer={highlightId === post.id} />
-          <div className="flex justify-end mt-1">
-            <button
-              onClick={() => handleShare(post.id)}
-              className="text-xs text-white/30 hover:text-white/50"
-            >
-              🔗 シェア
-            </button>
-          </div>
+          <ShareButton onShare={() => handleShare(post.id)} />
         </div>
       ))}
     </div>

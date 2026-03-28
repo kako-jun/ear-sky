@@ -1,77 +1,9 @@
 import { Post, Draft } from "@/types";
 
-const POSTS_KEY = "eyasuka-posts";
-const DRAFTS_KEY = "eyasuka-drafts";
-const REACTIONS_KEY = "eyasuka-reactions";
+const DRAFTS_KEY = "ear-sky-drafts";
+const REACTIONS_KEY = "ear-sky-reactions";
 
-// --- Posts ---
-
-export function getAllPosts(): Post[] {
-  if (typeof window === "undefined") return [];
-  const raw = localStorage.getItem(POSTS_KEY);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw) as Post[];
-  } catch {
-    return [];
-  }
-}
-
-export function getPost(id: string): Post | undefined {
-  return getAllPosts().find((p) => p.id === id);
-}
-
-export function savePost(
-  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions">
-): Post {
-  const posts = getAllPosts();
-  const post: Post = {
-    ...data,
-    id: crypto.randomUUID(),
-    likes: 0,
-    createdAt: new Date().toISOString(),
-    reactions: {},
-  };
-  posts.unshift(post);
-  localStorage.setItem(POSTS_KEY, JSON.stringify(posts));
-  return post;
-}
-
-export function incrementLike(id: string): number {
-  const posts = getAllPosts();
-  const post = posts.find((p) => p.id === id);
-  if (!post) return 0;
-  post.likes += 1;
-  localStorage.setItem(POSTS_KEY, JSON.stringify(posts));
-  return post.likes;
-}
-
-export function addReaction(id: string, emoji: string): number {
-  const posts = getAllPosts();
-  const post = posts.find((p) => p.id === id);
-  if (!post) return 0;
-  post.reactions[emoji] = (post.reactions[emoji] || 0) + 1;
-  localStorage.setItem(POSTS_KEY, JSON.stringify(posts));
-  return post.reactions[emoji];
-}
-
-export function getMonthlyRanking(year: number, month: number): Post[] {
-  const posts = getAllPosts();
-  return posts
-    .filter((p) => {
-      const d = new Date(p.createdAt);
-      return d.getFullYear() === year && d.getMonth() + 1 === month;
-    })
-    .sort((a, b) => b.likes - a.likes);
-}
-
-export function getHallOfFame(limit = 20): Post[] {
-  return getAllPosts()
-    .sort((a, b) => b.likes - a.likes)
-    .slice(0, limit);
-}
-
-// --- Drafts ---
+// --- Drafts (local only) ---
 
 export function getAllDrafts(): Draft[] {
   if (typeof window === "undefined") return [];
@@ -116,7 +48,7 @@ export function deleteDraft(id: string): void {
   localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
 }
 
-// --- Reaction tracking (prevent duplicate reactions per session) ---
+// --- Reaction tracking (prevent duplicate reactions per browser) ---
 
 export function hasReacted(postId: string, type: string): boolean {
   if (typeof window === "undefined") return false;

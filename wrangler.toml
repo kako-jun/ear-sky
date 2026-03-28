@@ -1,0 +1,9 @@
+name = "ear-sky"
+compatibility_date = "2024-12-01"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ear-sky-db"
+database_id = "fcbfc739-0198-4d71-a2a7-915411fdb563"
+migrations_dir = "migrations"

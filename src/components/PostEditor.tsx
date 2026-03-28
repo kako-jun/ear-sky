@@ -1,12 +1,14 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { LANGUAGES, Post } from "@/types";
 import { parseVideoUrl, formatTime, parseTime } from "@/lib/video";
-import { savePost, saveDraft, getAllDrafts, deleteDraft } from "@/lib/storage";
+import { saveDraft, getAllDrafts, deleteDraft } from "@/lib/storage";
 import YouTubePlayer from "./YouTubePlayer";
 import Subtitle from "./Subtitle";
 
+type PostData = Omit<Post, "id" | "likes" | "createdAt" | "reactions">;
+
 interface Props {
-  onPublished: (post: Post) => void;
+  onPublished: (data: PostData) => void;
   initialDraftId?: string;
 }
 
@@ -87,9 +89,8 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
   const handleSubmit = useCallback(() => {
     const data = buildData();
     if (!data) return;
-    const post = savePost(data);
     if (draftId) deleteDraft(draftId);
-    onPublished(post);
+    onPublished(data);
   }, [buildData, draftId, onPublished]);
 
   const handleStateChange = useCallback((state: number) => {

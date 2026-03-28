@@ -1,11 +1,7 @@
 import { useState, useCallback } from "react";
 import { REACTION_KEYS, ReactionKey } from "@/types";
-import {
-  incrementLike,
-  addReaction,
-  hasReacted,
-  markReacted,
-} from "@/lib/storage";
+import { hasReacted, markReacted } from "@/lib/storage";
+import { likePost, reactToPost } from "@/lib/api";
 import {
   Heart,
   Ear,
@@ -42,20 +38,20 @@ export default function Reactions({
   );
   const [liked, setLiked] = useState(() => hasReacted(postId, "like"));
 
-  const handleLike = useCallback(() => {
+  const handleLike = useCallback(async () => {
     if (liked) return;
-    const newCount = incrementLike(postId);
-    setLikes(newCount);
     setLiked(true);
     markReacted(postId, "like");
+    const newCount = await likePost(postId);
+    setLikes(newCount);
   }, [postId, liked]);
 
   const handleReaction = useCallback(
-    (key: string) => {
+    async (key: string) => {
       if (hasReacted(postId, key)) return;
-      const newCount = addReaction(postId, key);
-      setReactions((prev) => ({ ...prev, [key]: newCount }));
       markReacted(postId, key);
+      const newCount = await reactToPost(postId, key);
+      setReactions((prev) => ({ ...prev, [key]: newCount }));
     },
     [postId]
   );
