@@ -5,7 +5,7 @@ import PostEditor from "@/components/PostEditor";
 import PostCard from "@/components/PostCard";
 import Header from "@/components/Header";
 import Toast from "@/components/Toast";
-import { Link as LinkIcon, Heart } from "lucide-react";
+import { Link as LinkIcon, Heart, Sparkles, Trophy, Award, PenLine } from "lucide-react";
 import CloudEarIcon from "@/components/CloudEarIcon";
 
 type Tab = "feed" | "ranking" | "fame" | "post";
@@ -127,25 +127,25 @@ export default function App() {
         <div className="max-w-lg md:max-w-xl lg:max-w-2xl mx-auto flex" role="tablist">
           {(
             [
-              ["feed", "新着"],
-              ["ranking", "ランキング"],
-              ["fame", "殿堂"],
-              ["post", "投稿する"],
+              ["feed", "新着", Sparkles],
+              ["ranking", "ランキング", Trophy],
+              ["fame", "殿堂", Award],
+              ["post", "投稿する", PenLine],
             ] as const
-          ).map(([key, label]) => (
+          ).map(([key, label, Icon]) => (
             <button
               key={key}
               role="tab"
               aria-selected={tab === key}
               onClick={() => setTab(key)}
-              className={`flex-1 py-3 text-sm font-bold transition-colors
+              className={`flex-1 py-3 text-sm font-bold transition-colors flex items-center justify-center gap-1
                 focus-visible:outline-2 focus-visible:outline-neon-blue focus-visible:outline-offset-[-2px]
                 ${tab === key
                   ? "text-neon-pink border-b-2 border-neon-pink"
                   : "text-white/40 hover:text-white/60"
                 }`}
             >
-              {label}
+              <Icon size={14} />{label}
             </button>
           ))}
         </div>

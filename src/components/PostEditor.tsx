@@ -2,8 +2,10 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { LANGUAGES, Post } from "@/types";
 import { parseVideoUrl, formatTime, parseTime } from "@/lib/video";
 import { saveDraft, getAllDrafts, deleteDraft } from "@/lib/storage";
+import { fetchVideoTitle, splitArtistTitle } from "@/lib/oembed";
 import YouTubePlayer from "./YouTubePlayer";
 import Subtitle from "./Subtitle";
+import { Save, Send, Eye, EyeOff } from "lucide-react";
 
 type PostData = Omit<Post, "id" | "likes" | "createdAt" | "reactions">;
 
@@ -22,7 +24,9 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
   const [songTitle, setSongTitle] = useState("");
   const [sourceLang, setSourceLang] = useState("en");
   const [targetLang, setTargetLang] = useState("ja");
-  const [nickname, setNickname] = useState("");
+  const [nickname, setNickname] = useState(() => {
+    try { return localStorage.getItem("ear-sky-nickname") || ""; } catch { return ""; }
+  });
   const [deleteKey, setDeleteKey] = useState("");
   const [draftId, setDraftId] = useState<string | undefined>(initialDraftId);
   const [showPreview, setShowPreview] = useState(false);
@@ -37,6 +41,20 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
   const canPreview =
     parsed !== null && startSec !== null && endSec !== null && endSec > startSec;
   const canSubmit = canPreview && misheardText.trim().length > 0;
+
+  // Auto-fetch video title when URL changes
+  useEffect(() => {
+    if (!parsed || parsed.platform === "other") return;
+    if (artistName || songTitle) return; // Don't overwrite user input
+    let cancelled = false;
+    fetchVideoTitle(parsed.platform, parsed.videoId).then((title) => {
+      if (cancelled || !title) return;
+      const { artist, song } = splitArtistTitle(title);
+      if (!artistName) setArtistName(artist);
+      if (!songTitle) setSongTitle(song);
+    });
+    return () => { cancelled = true; };
+  }, [parsed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load draft on mount
   useEffect(() => {
@@ -92,8 +110,10 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     const data = buildData();
     if (!data) return;
     if (draftId) deleteDraft(draftId);
+    // Remember nickname for next time
+    try { localStorage.setItem("ear-sky-nickname", nickname.trim()); } catch { /* ignore */ }
     onPublished(data);
-  }, [buildData, draftId, onPublished]);
+  }, [buildData, draftId, onPublished, nickname]);
 
   const handleStateChange = useCallback((state: number) => {
     if (state === 1) {
@@ -314,7 +334,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             onClick={() => setShowPreview(!showPreview)}
             className="text-sm text-neon-blue hover:underline"
           >
-            {showPreview ? "▼ プレビューを閉じる" : "▶ プレビューで確認"}
+            {showPreview ? <><EyeOff size={14} className="inline mr-1" />プレビューを閉じる</> : <><Eye size={14} className="inline mr-1" />プレビューで確認</>}
           </button>
 
           {showPreview && parsed?.platform === "youtube" && (
@@ -345,16 +365,17 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
                      hover:border-white/40 hover:text-white/80 transition-all
                      disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          下書き保存
+          <Save size={14} className="inline mr-1" />下書き保存
         </button>
         <button
           onClick={handleSubmit}
           disabled={!canSubmit}
           className="flex-1 py-3 rounded-lg bg-neon-pink text-white font-bold
                      hover:brightness-110 active:scale-[0.98] transition-all
-                     disabled:opacity-30 disabled:cursor-not-allowed"
+                     disabled:opacity-30 disabled:cursor-not-allowed
+                     focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
-          投稿する
+          <Send size={14} className="inline mr-1" />投稿する
         </button>
       </div>
 
