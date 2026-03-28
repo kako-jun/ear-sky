@@ -7,7 +7,7 @@ import Header from "@/components/Header";
 import Toast from "@/components/Toast";
 import PickupCorner from "@/components/PickupCorner";
 import NightBackground from "@/components/NightBackground";
-import { Link as LinkIcon, Heart, Sparkles, Award, PenLine } from "lucide-react";
+import { Share2, Heart, Sparkles, Award, PenLine } from "lucide-react";
 import CloudEarIcon from "@/components/CloudEarIcon";
 
 type Tab = "feed" | "fame" | "post";
@@ -223,7 +223,7 @@ function ShareButton({ onShare }: { onShare: () => void }) {
                    min-h-[44px] px-3
                    focus-visible:outline-2 focus-visible:outline-neon-blue"
       >
-        <LinkIcon size={12} />シェア
+        <Share2 size={12} />シェア
       </button>
     </div>
   );

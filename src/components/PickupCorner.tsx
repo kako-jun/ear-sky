@@ -3,7 +3,7 @@ import type { Pickup, PickupEntry, BanterLine } from "@/types";
 import { parseVideoUrl } from "@/lib/video";
 import YouTubePlayer from "@/components/YouTubePlayer";
 import NiconicoPlayer from "@/components/NiconicoPlayer";
-import { Mic, Wine, ChevronDown, ChevronUp, Eye, Link as LinkIcon } from "lucide-react";
+import { Mic, Wine, ChevronDown, ChevronUp, Eye, Share2 } from "lucide-react";
 
 export default function PickupCorner() {
   const [allIds, setAllIds] = useState<string[]>([]);
@@ -227,7 +227,7 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
                          min-h-[44px] px-3
                          focus-visible:outline-2 focus-visible:outline-neon-blue"
             >
-              <LinkIcon size={12} />
+              <Share2 size={12} />
               {copied ? "コピーしました" : "シェア"}
             </button>
           </div>
