@@ -59,7 +59,7 @@ export default function YouTubePlayer({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [ended, setEnded] = useState(false);
+  const [hasPlayed, setHasPlayed] = useState(false);
   const [error, setError] = useState(false);
 
   const onTimeUpdateRef = useRef(onTimeUpdate);
@@ -80,7 +80,6 @@ export default function YouTubePlayer({
       onTimeUpdateRef.current?.(t);
       if (t >= endSecRef.current + POST_MARGIN) {
         playerRef.current.pauseVideo();
-        setEnded(true);
         if (timerRef.current) clearInterval(timerRef.current);
       }
     }, 100);
@@ -105,7 +104,7 @@ export default function YouTubePlayer({
         playerVars: {
           start: Math.floor(playStart),
           end: Math.ceil(playEnd),
-          controls: 0,
+          controls: 1,
           disablekb: 1,
           modestbranding: 1,
           rel: 0,
@@ -118,7 +117,7 @@ export default function YouTubePlayer({
             onStateChangeRef.current?.(e.data);
             if (e.data === window.YT.PlayerState.PLAYING) {
               setPlaying(true);
-              setEnded(false);
+              setHasPlayed(true);
               startTimer();
             } else {
               setPlaying(false);
@@ -163,21 +162,25 @@ export default function YouTubePlayer({
           ref={containerRef}
           className="aspect-video w-full rounded-lg overflow-hidden bg-black/50"
         />
-        {/* Block all interaction with the YouTube iframe */}
-        <div className="absolute inset-0 rounded-lg" aria-hidden="true" />
+        {/* Block iframe interaction after first play to prevent free-roaming */}
+        {hasPlayed && !playing && (
+          <div className="absolute inset-0 rounded-lg bg-black/60 flex items-center justify-center cursor-pointer"
+               onClick={handlePlay}
+               role="button"
+               aria-label={t.youtube.replay}
+          >
+            <RotateCcw size={40} className="text-white/70" />
+          </div>
+        )}
       </div>
-      {ready && !playing && (
+      {ready && !hasPlayed && !playing && (
         <button
           onClick={handlePlay}
           className="mt-3 w-full py-2 rounded-lg bg-neon-pink text-white font-bold
                      hover:brightness-110 active:scale-[0.98] transition-all
                      focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
-          {ended ? (
-            <><RotateCcw size={16} className="inline mr-1" />{t.youtube.replay}</>
-          ) : (
-            <><Play size={16} className="inline mr-1" />{t.youtube.playSegment}</>
-          )}
+          <Play size={16} className="inline mr-1" />{t.youtube.playSegment}
         </button>
       )}
     </div>

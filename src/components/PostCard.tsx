@@ -138,15 +138,26 @@ export default function PostCard({ post, showPlayer = false }: Props) {
         <button
           onClick={() => setExpanded(true)}
           aria-label={t.postCard.play}
-          className="w-full mb-3 py-8 rounded-lg bg-black/30 border border-white/10
-                     text-white/40 hover:text-white/60 hover:border-white/20 transition-all
-                     flex flex-col items-center gap-1
+          className="relative w-full mb-3 rounded-lg overflow-hidden border border-white/10
+                     hover:border-white/20 transition-all
                      focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
-          <Play size={28} />
-          <span className="text-xs">
-            {formatTime(post.startSec)} 〜 {formatTime(post.endSec)}
-          </span>
+          {post.platform === "youtube" ? (
+            <img
+              src={`https://img.youtube.com/vi/${post.videoId}/mqdefault.jpg`}
+              alt=""
+              className="w-full aspect-video object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full aspect-video bg-black/30" />
+          )}
+          <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white transition-colors">
+            <Play size={36} />
+            <span className="text-xs text-white/60">
+              {formatTime(post.startSec)} 〜 {formatTime(post.endSec)}
+            </span>
+          </div>
         </button>
       )}
 

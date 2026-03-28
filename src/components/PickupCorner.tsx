@@ -4,6 +4,7 @@ import { parseVideoUrl } from "@/lib/video";
 import { useI18n } from "@/i18n";
 import YouTubePlayer from "@/components/YouTubePlayer";
 import NiconicoPlayer from "@/components/NiconicoPlayer";
+import Subtitle from "@/components/Subtitle";
 import { Mic, Wine, ChevronDown, ChevronUp, Eye, Share2 } from "lucide-react";
 
 function interpolate(template: string, vars: Record<string, string | number>): string {
@@ -132,8 +133,18 @@ function PickupContent({ pickup }: { pickup: Pickup }) {
 function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: number; pickupId: string }) {
   const t = useI18n();
   const [revealed, setRevealed] = useState(false);
+  const [showSubtitle, setShowSubtitle] = useState(false);
   const [copied, setCopied] = useState(false);
   const parsed = parseVideoUrl(pick.videoUrl);
+
+  const handleTimeUpdate = useCallback((currentTime: number) => {
+    if (currentTime >= pick.startSec && currentTime < pick.endSec) {
+      setRevealed(true);
+      setShowSubtitle(true);
+    } else {
+      setShowSubtitle(false);
+    }
+  }, [pick.startSec, pick.endSec]);
 
   const handleShare = () => {
     const url = `${window.location.origin}${window.location.pathname}#pickup-${pickupId}-${index}`;
@@ -181,17 +192,25 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
 
       {/* Video player */}
       {parsed?.platform === "youtube" ? (
-        <YouTubePlayer
-          videoId={parsed.videoId}
-          startSec={pick.startSec}
-          endSec={pick.endSec}
-        />
+        <>
+          <YouTubePlayer
+            videoId={parsed.videoId}
+            startSec={pick.startSec}
+            endSec={pick.endSec}
+            onTimeUpdate={handleTimeUpdate}
+          />
+          <Subtitle text={pick.misheardText} visible={showSubtitle} durationSec={pick.endSec - pick.startSec} />
+        </>
       ) : parsed?.platform === "niconico" ? (
-        <NiconicoPlayer
-          videoId={parsed.videoId}
-          startSec={pick.startSec}
-          endSec={pick.endSec}
-        />
+        <>
+          <NiconicoPlayer
+            videoId={parsed.videoId}
+            startSec={pick.startSec}
+            endSec={pick.endSec}
+            onTimeUpdate={handleTimeUpdate}
+          />
+          <Subtitle text={pick.misheardText} visible={showSubtitle} durationSec={pick.endSec - pick.startSec} />
+        </>
       ) : (
         <a
           href={pick.videoUrl}
