@@ -157,7 +157,7 @@ function AppInner() {
 
             {/* New Posts section header — matches PickupCorner style */}
             <div id="new-posts" className="text-center space-y-1 pt-4">
-              <h2 className="text-lg font-bold neon-text flex items-center justify-center gap-2">
+              <h2 className="text-lg font-bold neon-text-blue flex items-center justify-center gap-2">
                 <Sparkles size={18} aria-hidden="true" />
                 {t.feed.newPosts}
               </h2>
