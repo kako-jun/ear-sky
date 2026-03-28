@@ -9,7 +9,7 @@ export default function Header() {
         — イヤスカ —
       </p>
       <p className="text-sm text-white/50 mt-3">
-        あの歌、こう聞こえない？
+        あの歌、こう聴こえない？
       </p>
     </header>
   );

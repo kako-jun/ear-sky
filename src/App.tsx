@@ -144,12 +144,13 @@ export default function App() {
         {tab === "post" && <PostEditor onPublished={handlePublished} />}
       </main>
 
-      <footer className="text-center text-xs text-white/20 py-8 px-4">
+      <footer className="text-center text-xs text-white/20 py-8 px-4 space-y-2">
         <p>Ear in the Sky Diamond — イヤスカ</p>
-        <p className="mt-1">
+        <p>
           動画・音声は各プラットフォームの埋め込みを利用しています。
           当サイトはコンテンツを一切ホスティングしていません。
         </p>
+        <p className="text-white/10">v{__BUILD_DATE__}</p>
       </footer>
     </div>
   );

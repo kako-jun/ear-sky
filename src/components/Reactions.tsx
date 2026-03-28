@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 const REACTION_ICONS: Record<ReactionKey, { icon: typeof Heart; label: string }> = {
-  ear: { icon: Ear, label: "聞こえた" },
+  ear: { icon: Ear, label: "聴こえた" },
   laugh: { icon: Laugh, label: "笑った" },
   clap: { icon: HandMetal, label: "すごい" },
   party: { icon: PartyPopper, label: "最高" },

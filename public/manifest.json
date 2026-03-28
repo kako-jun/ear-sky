@@ -1,0 +1,13 @@
+{
+  "name": "Ear in the Sky Diamond",
+  "short_name": "イヤスカ",
+  "description": "あの歌、こう聞こえない？ 世界中の空耳を投稿・再生・共有するサイト",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

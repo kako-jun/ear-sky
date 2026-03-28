@@ -209,7 +209,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           </select>
         </fieldset>
         <fieldset className="space-y-1">
-          <label className="block text-sm text-white/60">こう聞こえる</label>
+          <label className="block text-sm text-white/60">こう聴こえる</label>
           <select
             value={targetLang}
             onChange={(e) => setTargetLang(e.target.value)}
@@ -227,7 +227,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
 
       {/* Misheard text */}
       <fieldset className="space-y-1">
-        <label className="block text-sm text-white/60">こう聞こえる！（空耳テキスト）</label>
+        <label className="block text-sm text-white/60">こう聴こえる！（空耳テキスト）</label>
         <input
           type="text"
           value={misheardText}
