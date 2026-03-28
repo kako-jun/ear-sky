@@ -32,7 +32,7 @@ src/
 │   ├── PostEditor.tsx   # Post form (preview + drafts + auto-complete + era/comment)
 │   ├── PostCard.tsx     # Post card (spoiler/reveal + player + subtitle + reactions)
 │   ├── PickupCorner.tsx # Pickup corner (master & regular banter)
-│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls disabled, DOM-only buttons)
+│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, post-play overlay+replay)
 │   ├── NiconicoPlayer.tsx # Niconico embed segment playback
 │   ├── Subtitle.tsx     # Misheard text subtitle (karaoke sweep + black stroke)
 │   ├── Reactions.tsx    # Emoji picker + reaction badges (Slack-style, 1 per user)

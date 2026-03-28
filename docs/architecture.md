@@ -23,13 +23,13 @@
 6. Immediately appears in feed
 
 ### Playback (YouTube)
-1. Tap play button on PostCard
-2. YouTube IFrame API initializes with controls disabled (controls:0, disablekb:1)
-3. Transparent overlay blocks all iframe interaction; playback is DOM-button-only
-4. Playback starts with margins (start - 5s, end + 1s)
-5. onTimeUpdate tracks current time; subtitle appears when time reaches segment start
-6. Karaoke sweep duration matches segment length (endSec - startSec)
-7. Auto-stops 1 second after segment end; button changes to "Play again" (replay)
+1. PostCard shows YouTube thumbnail (mqdefault.jpg) before expansion
+2. Tap thumbnail → iframe loads; first play via iframe's built-in controls (autoplay policy)
+3. YouTube IFrame API with margins (start - 5s, end + 1s), disablekb:1
+4. onTimeUpdate tracks current time; subtitle appears when time reaches segment start
+5. Karaoke sweep duration matches segment length (endSec - startSec)
+6. Auto-stops 1 second after segment end
+7. After first play: overlay with replay icon blocks iframe, forces replay via API
 
 ### Playback (Niconico)
 1. embed.nicovideo.jp iframe (commentLayerMode=0, comments OFF)
@@ -56,7 +56,8 @@
 1. Fetch `public/pickups/index.json` for available pickup IDs
 2. Load latest pickup JSON
 3. Display in talk-show format: master intro → video → reveal → banter
-4. Past pickups lazy-loaded on demand
+4. Karaoke subtitle synced via onTimeUpdate (same as PostCard)
+5. Past pickups lazy-loaded on demand
 
 ### Dynamic OGP
 1. Access `/share/:id`
