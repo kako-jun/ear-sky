@@ -109,6 +109,11 @@ export default function YouTubePlayer({
           onStateChange: (e: YT.OnStateChangeEvent) => {
             onStateChangeRef.current?.(e.data);
             if (e.data === window.YT.PlayerState.PLAYING) {
+              // Guard against YouTube's built-in replay starting from 0:00
+              const cur = playerRef.current?.getCurrentTime() ?? 0;
+              if (cur < playStart - 1) {
+                playerRef.current?.seekTo(playStart, true);
+              }
               startTimer();
             } else if (timerRef.current) {
               clearInterval(timerRef.current);
