@@ -44,10 +44,9 @@ body {
     inset 0 0 8px rgba(255, 45, 120, 0.05);
 }
 
-/* 横丁の路地的なテクスチャ感 */
+/* 横丁の路地的なテクスチャ感（背景画像がある場合は透過） */
 .bar-bg {
-  background:
-    linear-gradient(180deg, var(--color-night-deep) 0%, var(--color-bar-wall) 30%, var(--color-bar-counter) 100%);
+  background: transparent;
   position: relative;
 }
 
