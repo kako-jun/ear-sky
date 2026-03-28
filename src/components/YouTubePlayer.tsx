@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useI18n } from "@/i18n";
-import { Play, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 
 declare global {
   interface Window {
@@ -57,7 +57,6 @@ export default function YouTubePlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YT.Player | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [hasPlayed, setHasPlayed] = useState(false);
   const [error, setError] = useState(false);
@@ -112,7 +111,7 @@ export default function YouTubePlayer({
           iv_load_policy: 3,
         },
         events: {
-          onReady: () => setReady(true),
+          onReady: () => {},
           onStateChange: (e: YT.OnStateChangeEvent) => {
             onStateChangeRef.current?.(e.data);
             if (e.data === window.YT.PlayerState.PLAYING) {
@@ -162,27 +161,18 @@ export default function YouTubePlayer({
           ref={containerRef}
           className="aspect-video w-full rounded-lg overflow-hidden bg-black/50"
         />
-        {/* Block iframe interaction after first play to prevent free-roaming */}
+        {/* After first play: overlay blocks iframe and shows replay button */}
         {hasPlayed && !playing && (
-          <div className="absolute inset-0 rounded-lg bg-black/60 flex items-center justify-center cursor-pointer"
-               onClick={handlePlay}
-               role="button"
-               aria-label={t.youtube.replay}
+          <button
+            onClick={handlePlay}
+            className="absolute inset-0 z-10 rounded-lg bg-black/60 flex items-center justify-center cursor-pointer
+                       hover:bg-black/50 transition-colors"
+            aria-label={t.youtube.replay}
           >
             <RotateCcw size={40} className="text-white/70" />
-          </div>
+          </button>
         )}
       </div>
-      {ready && !hasPlayed && !playing && (
-        <button
-          onClick={handlePlay}
-          className="mt-3 w-full py-2 rounded-lg bg-neon-pink text-white font-bold
-                     hover:brightness-110 active:scale-[0.98] transition-all
-                     focus-visible:outline-2 focus-visible:outline-neon-blue"
-        >
-          <Play size={16} className="inline mr-1" />{t.youtube.playSegment}
-        </button>
-      )}
     </div>
   );
 }
