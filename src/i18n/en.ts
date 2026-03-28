@@ -53,7 +53,7 @@ const en = {
     submitting: "Posting...",
     previewOpen: "Preview",
     previewClose: "Close preview",
-    previewUnsupported: "Preview is available for YouTube videos only",
+    previewUnsupported: "Preview is available for YouTube and Niconico videos",
     delete: "Delete",
   },
   pickup: {
@@ -64,7 +64,7 @@ const en = {
     closing: "See you next month at the counter",
     reveal: "Show the mishearing",
     copied: "Link copied!",
-    intro: 'Next up: "{songTitle}" by {artistName}, {year}',
+    intro: 'Next up: "{songTitle}" by {artistName}, {year}.',
     watchVideo: "Watch the video",
   },
   footer: {

@@ -41,7 +41,7 @@
 1. PostCard initially hides misheard text (shows "???" with inline reveal button)
 2. Reveal triggers: playback reaches segment start OR "Show mishearing" button
 3. Text appears with fade-in animation
-4. Karaoke subtitle plays during segment with time-synced sweep
+4. Karaoke subtitle plays during segment with time-synced sweep, stays visible after sweep
 
 ### Reactions (Emoji Picker)
 1. User taps "+" button → emoji picker popover with 16 curated emoji

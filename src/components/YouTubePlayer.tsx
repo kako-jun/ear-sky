@@ -58,7 +58,7 @@ export default function YouTubePlayer({
   const playerRef = useRef<YT.Player | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [hasPlayed, setHasPlayed] = useState(false);
+  const [segmentEnded, setSegmentEnded] = useState(false);
   const [error, setError] = useState(false);
 
   const onTimeUpdateRef = useRef(onTimeUpdate);
@@ -79,6 +79,7 @@ export default function YouTubePlayer({
       onTimeUpdateRef.current?.(t);
       if (t >= endSecRef.current + POST_MARGIN) {
         playerRef.current.pauseVideo();
+        setSegmentEnded(true);
         if (timerRef.current) clearInterval(timerRef.current);
       }
     }, 100);
@@ -116,7 +117,7 @@ export default function YouTubePlayer({
             onStateChangeRef.current?.(e.data);
             if (e.data === window.YT.PlayerState.PLAYING) {
               setPlaying(true);
-              setHasPlayed(true);
+              setSegmentEnded(false);
               startTimer();
             } else {
               setPlaying(false);
@@ -161,8 +162,8 @@ export default function YouTubePlayer({
           ref={containerRef}
           className="aspect-video w-full rounded-lg overflow-hidden bg-black/50"
         />
-        {/* After first play: overlay blocks iframe and shows replay button */}
-        {hasPlayed && !playing && (
+        {/* After segment ends: overlay blocks iframe and shows replay button */}
+        {segmentEnded && !playing && (
           <button
             onClick={handlePlay}
             className="absolute inset-0 z-10 rounded-lg bg-black/60 flex items-center justify-center cursor-pointer

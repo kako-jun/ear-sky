@@ -55,7 +55,7 @@ const ja: Messages = {
     submitting: "投稿中...",
     previewOpen: "プレビューで確認",
     previewClose: "プレビューを閉じる",
-    previewUnsupported: "プレビューはYouTube動画のみ対応しています",
+    previewUnsupported: "プレビューはYouTube・ニコニコ動画に対応しています",
     delete: "削除",
   },
   pickup: {
@@ -66,7 +66,7 @@ const ja: Messages = {
     closing: "また来月、カウンターで",
     reveal: "空耳を見る",
     copied: "リンクをコピーしました！",
-    intro: "続いては{artistName}、{year}年の「{songTitle}」です",
+    intro: "続いては{artistName}、{year}年の「{songTitle}」です。",
     watchVideo: "動画を見る",
   },
   footer: {

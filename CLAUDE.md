@@ -78,8 +78,10 @@ migrations/
 
 - PostCard hides `misheardText` initially (shows "???")
 - Reveal triggers: (1) Video starts playing, or (2) "Show mishearing" button clicked
-- Karaoke-style subtitle appears when playback reaches the misheard segment (time-synced via onTimeUpdate)
+- Karaoke-style subtitle appears when playback reaches the misheard segment (time-synced via onTimeUpdate), stays visible after sweep (番組風)
 - Playback has pre-margin (5s) and post-margin (1s) around the segment
+- YouTube: segment end triggers replay overlay (RotateCcw); user pause does not
+- Niconico: pause postMessage sent at segment end; replay overlay same as YouTube
 - `animate-fade-in` CSS animation on reveal
 
 ## Pickup Corner

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   text: string;
@@ -13,13 +13,19 @@ interface Props {
 export default function Subtitle({ text, visible, durationSec }: Props) {
   const sweepDuration = durationSec ? Math.max(1, durationSec - 0.5) : 3;
   const [show, setShow] = useState(false);
+  const prevVisibleRef = useRef(false);
 
   useEffect(() => {
-    if (visible) {
-      const timer = setTimeout(() => setShow(true), 300);
-      return () => clearTimeout(timer);
-    } else {
+    if (visible && !prevVisibleRef.current) {
+      // Rising edge: visible went false→true, start new sweep
       setShow(false);
+      const timer = setTimeout(() => setShow(true), 300);
+      prevVisibleRef.current = true;
+      return () => clearTimeout(timer);
+    }
+    if (!visible) {
+      prevVisibleRef.current = false;
+      // Don't hide — subtitle stays visible after sweep
     }
   }, [visible]);
 

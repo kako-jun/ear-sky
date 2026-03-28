@@ -125,10 +125,23 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     onPublished(data);
   }, [buildData, draftId, onPublished, nickname, submitting]);
 
-  const handleStateChange = useCallback((state: number) => {
-    if (state === 1) {
-      setTimeout(() => setShowSubtitle(true), 500);
+  const handleTimeUpdate = useCallback((currentTime: number) => {
+    if (startSec !== null && endSec !== null && currentTime >= startSec && currentTime < endSec) {
+      setShowSubtitle(true);
     } else {
+      setShowSubtitle(false);
+    }
+  }, [startSec, endSec]);
+
+  const handleStateChange = useCallback((state: number) => {
+    // 0 = ended, 2 = paused
+    if (state === 0 || state === 2) {
+      setShowSubtitle(false);
+    }
+  }, []);
+
+  const handleNicoStateChange = useCallback((state: "playing" | "paused" | "ended") => {
+    if (state === "paused" || state === "ended") {
       setShowSubtitle(false);
     }
   }, []);
@@ -381,6 +394,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
                 videoId={parsed.videoId}
                 startSec={startSec!}
                 endSec={endSec!}
+                onTimeUpdate={handleTimeUpdate}
                 onStateChange={handleStateChange}
               />
               <Subtitle text={misheardText} visible={showSubtitle} durationSec={endSec! - startSec!} />
@@ -392,6 +406,8 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
                 videoId={parsed.videoId}
                 startSec={startSec!}
                 endSec={endSec!}
+                onTimeUpdate={handleTimeUpdate}
+                onStateChange={handleNicoStateChange}
               />
               <Subtitle text={misheardText} visible={showSubtitle} durationSec={endSec! - startSec!} />
             </div>
