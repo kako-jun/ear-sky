@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+/* === Eyasuka — 深夜の飲み屋街テーマ === */
+
+@theme {
+  --color-neon-pink: #ff2d78;
+  --color-neon-blue: #00d4ff;
+  --color-neon-yellow: #ffe156;
+  --color-neon-green: #39ff14;
+  --color-night-sky: #0a0a1a;
+  --color-night-deep: #050510;
+  --color-bar-wall: #1a1520;
+  --color-bar-counter: #251e2e;
+}
+
+body {
+  background: var(--color-night-sky);
+  color: #e0d8e8;
+  font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif;
+  min-height: 100dvh;
+}
+
+/* ネオンテキスト */
+.neon-text {
+  color: var(--color-neon-pink);
+  text-shadow:
+    0 0 7px var(--color-neon-pink),
+    0 0 20px rgba(255, 45, 120, 0.4),
+    0 0 40px rgba(255, 45, 120, 0.2);
+}
+
+.neon-text-blue {
+  color: var(--color-neon-blue);
+  text-shadow:
+    0 0 7px var(--color-neon-blue),
+    0 0 20px rgba(0, 212, 255, 0.4);
+}
+
+/* ネオン看板風ボーダー */
+.neon-border {
+  border: 1px solid rgba(255, 45, 120, 0.3);
+  box-shadow:
+    0 0 8px rgba(255, 45, 120, 0.15),
+    inset 0 0 8px rgba(255, 45, 120, 0.05);
+}
+
+/* 横丁の路地的なテクスチャ感 */
+.bar-bg {
+  background:
+    linear-gradient(180deg, var(--color-night-deep) 0%, var(--color-bar-wall) 30%, var(--color-bar-counter) 100%);
+}
+
+/* セレクトボックスのoption背景（ダーク） */
+select option {
+  background: var(--color-bar-wall);
+  color: #e0d8e8;
+}

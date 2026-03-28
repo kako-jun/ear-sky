@@ -1,0 +1,146 @@
+import { Post, Draft } from "@/types";
+
+const POSTS_KEY = "eyasuka-posts";
+const DRAFTS_KEY = "eyasuka-drafts";
+const REACTIONS_KEY = "eyasuka-reactions";
+
+// --- Posts ---
+
+export function getAllPosts(): Post[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem(POSTS_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as Post[];
+  } catch {
+    return [];
+  }
+}
+
+export function getPost(id: string): Post | undefined {
+  return getAllPosts().find((p) => p.id === id);
+}
+
+export function savePost(
+  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions">
+): Post {
+  const posts = getAllPosts();
+  const post: Post = {
+    ...data,
+    id: crypto.randomUUID(),
+    likes: 0,
+    createdAt: new Date().toISOString(),
+    reactions: {},
+  };
+  posts.unshift(post);
+  localStorage.setItem(POSTS_KEY, JSON.stringify(posts));
+  return post;
+}
+
+export function incrementLike(id: string): number {
+  const posts = getAllPosts();
+  const post = posts.find((p) => p.id === id);
+  if (!post) return 0;
+  post.likes += 1;
+  localStorage.setItem(POSTS_KEY, JSON.stringify(posts));
+  return post.likes;
+}
+
+export function addReaction(id: string, emoji: string): number {
+  const posts = getAllPosts();
+  const post = posts.find((p) => p.id === id);
+  if (!post) return 0;
+  post.reactions[emoji] = (post.reactions[emoji] || 0) + 1;
+  localStorage.setItem(POSTS_KEY, JSON.stringify(posts));
+  return post.reactions[emoji];
+}
+
+export function getMonthlyRanking(year: number, month: number): Post[] {
+  const posts = getAllPosts();
+  return posts
+    .filter((p) => {
+      const d = new Date(p.createdAt);
+      return d.getFullYear() === year && d.getMonth() + 1 === month;
+    })
+    .sort((a, b) => b.likes - a.likes);
+}
+
+export function getHallOfFame(limit = 20): Post[] {
+  return getAllPosts()
+    .sort((a, b) => b.likes - a.likes)
+    .slice(0, limit);
+}
+
+// --- Drafts ---
+
+export function getAllDrafts(): Draft[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem(DRAFTS_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as Draft[];
+  } catch {
+    return [];
+  }
+}
+
+export function saveDraft(
+  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions">,
+  existingId?: string
+): Draft {
+  const drafts = getAllDrafts();
+  if (existingId) {
+    const idx = drafts.findIndex((d) => d.id === existingId);
+    if (idx >= 0) {
+      drafts[idx] = {
+        id: existingId,
+        data,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+      return drafts[idx];
+    }
+  }
+  const draft: Draft = {
+    id: crypto.randomUUID(),
+    data,
+    updatedAt: new Date().toISOString(),
+  };
+  drafts.unshift(draft);
+  localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+  return draft;
+}
+
+export function deleteDraft(id: string): void {
+  const drafts = getAllDrafts().filter((d) => d.id !== id);
+  localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+}
+
+// --- Reaction tracking (prevent duplicate reactions per session) ---
+
+export function hasReacted(postId: string, type: string): boolean {
+  if (typeof window === "undefined") return false;
+  const raw = localStorage.getItem(REACTIONS_KEY);
+  if (!raw) return false;
+  try {
+    const map = JSON.parse(raw) as Record<string, string[]>;
+    return (map[postId] || []).includes(type);
+  } catch {
+    return false;
+  }
+}
+
+export function markReacted(postId: string, type: string): void {
+  const raw = localStorage.getItem(REACTIONS_KEY);
+  let map: Record<string, string[]> = {};
+  try {
+    if (raw) map = JSON.parse(raw);
+  } catch {
+    /* ignore */
+  }
+  if (!map[postId]) map[postId] = [];
+  if (!map[postId].includes(type)) {
+    map[postId].push(type);
+  }
+  localStorage.setItem(REACTIONS_KEY, JSON.stringify(map));
+}
