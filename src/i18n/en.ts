@@ -88,6 +88,11 @@ const en = {
     fallbackLink: "Watch on Niconico",
     playSegment: "Play this part",
   },
+  youtube: {
+    playSegment: "Play this part",
+    replay: "Play again",
+    cannotPlay: "This video cannot be played",
+  },
   platform: {
     youtube: "YouTube",
     niconico: "Niconico",

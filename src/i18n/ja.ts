@@ -90,6 +90,11 @@ const ja: Messages = {
     fallbackLink: "ニコニコ動画で再生",
     playSegment: "この部分を再生",
   },
+  youtube: {
+    playSegment: "この部分を再生",
+    replay: "もう一度再生",
+    cannotPlay: "この動画は再生できません",
+  },
   platform: {
     youtube: "YouTube",
     niconico: "ニコニコ動画",

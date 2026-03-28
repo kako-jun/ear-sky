@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { Play } from "lucide-react";
+import { useI18n } from "@/i18n";
+import { Play, RotateCcw } from "lucide-react";
 
 declare global {
   interface Window {
@@ -52,10 +53,13 @@ export default function YouTubePlayer({
   onTimeUpdate,
   onStateChange,
 }: Props) {
+  const t = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YT.Player | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [ready, setReady] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [ended, setEnded] = useState(false);
   const [error, setError] = useState(false);
 
   const onTimeUpdateRef = useRef(onTimeUpdate);
@@ -76,6 +80,7 @@ export default function YouTubePlayer({
       onTimeUpdateRef.current?.(t);
       if (t >= endSecRef.current + POST_MARGIN) {
         playerRef.current.pauseVideo();
+        setEnded(true);
         if (timerRef.current) clearInterval(timerRef.current);
       }
     }, 100);
@@ -100,23 +105,24 @@ export default function YouTubePlayer({
         playerVars: {
           start: Math.floor(playStart),
           end: Math.ceil(playEnd),
-          controls: 1,
+          controls: 0,
+          disablekb: 1,
           modestbranding: 1,
           rel: 0,
+          fs: 0,
+          iv_load_policy: 3,
         },
         events: {
           onReady: () => setReady(true),
           onStateChange: (e: YT.OnStateChangeEvent) => {
             onStateChangeRef.current?.(e.data);
             if (e.data === window.YT.PlayerState.PLAYING) {
-              // Guard against YouTube's built-in replay starting from 0:00
-              const cur = playerRef.current?.getCurrentTime() ?? 0;
-              if (cur < playStart - 1) {
-                playerRef.current?.seekTo(playStart, true);
-              }
+              setPlaying(true);
+              setEnded(false);
               startTimer();
-            } else if (timerRef.current) {
-              clearInterval(timerRef.current);
+            } else {
+              setPlaying(false);
+              if (timerRef.current) clearInterval(timerRef.current);
             }
           },
           onError: () => setError(true),
@@ -145,25 +151,33 @@ export default function YouTubePlayer({
   if (error) {
     return (
       <div className="aspect-video w-full rounded-lg bg-black/30 flex items-center justify-center text-white/40 text-sm">
-        この動画は再生できません
+        {t.youtube.cannotPlay}
       </div>
     );
   }
 
   return (
     <div className="w-full">
-      <div
-        ref={containerRef}
-        className="aspect-video w-full rounded-lg overflow-hidden bg-black/50"
-      />
-      {ready && (
+      <div className="relative">
+        <div
+          ref={containerRef}
+          className="aspect-video w-full rounded-lg overflow-hidden bg-black/50"
+        />
+        {/* Block all interaction with the YouTube iframe */}
+        <div className="absolute inset-0 rounded-lg" aria-hidden="true" />
+      </div>
+      {ready && !playing && (
         <button
           onClick={handlePlay}
           className="mt-3 w-full py-2 rounded-lg bg-neon-pink text-white font-bold
                      hover:brightness-110 active:scale-[0.98] transition-all
                      focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
-          <Play size={16} className="inline mr-1" />この部分を再生
+          {ended ? (
+            <><RotateCcw size={16} className="inline mr-1" />{t.youtube.replay}</>
+          ) : (
+            <><Play size={16} className="inline mr-1" />{t.youtube.playSegment}</>
+          )}
         </button>
       )}
     </div>
