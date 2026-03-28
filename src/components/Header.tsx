@@ -13,7 +13,7 @@ export default function Header() {
       />
 
       <div className="flex items-center justify-center gap-3 mb-2">
-        <img src="/icon-192.png" alt="" width={36} height={36} className="rounded-lg opacity-80" aria-hidden="true" />
+        <img src="/icon-192.png" alt="" width={48} height={48} className="rounded-lg opacity-80" aria-hidden="true" />
         <h1 className="text-2xl md:text-3xl font-bold neon-text tracking-wider">
           Ear in the Sky Diamond
         </h1>
