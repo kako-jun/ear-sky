@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Post } from "@/types";
-import { fetchPosts, createPost, ApiError } from "@/lib/api";
+import { fetchPosts, fetchPost, createPost, ApiError } from "@/lib/api";
 import PostEditor from "@/components/PostEditor";
 import PostCard from "@/components/PostCard";
 import Header from "@/components/Header";
@@ -18,6 +18,8 @@ export default function App() {
   const [famePosts, setFamePosts] = useState<Post[]>([]);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rankingLoading, setRankingLoading] = useState(false);
+  const [fameLoading, setFameLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
   const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
@@ -32,26 +34,46 @@ export default function App() {
   }, []);
 
   const loadRanking = useCallback(async () => {
+    setRankingLoading(true);
     const now = new Date();
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const posts = await fetchPosts("new", month);
     setRankingPosts(posts);
+    setRankingLoading(false);
   }, []);
 
   const loadFame = useCallback(async () => {
+    setFameLoading(true);
     const posts = await fetchPosts("likes");
     setFamePosts(posts);
+    setFameLoading(false);
   }, []);
 
   useEffect(() => {
-    loadFeed();
-    const hash = window.location.hash;
-    if (hash.startsWith("#post-")) {
-      setHighlightId(hash.slice(6));
-      setTimeout(() => {
-        document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth" });
-      }, 500);
-    }
+    const init = async () => {
+      await loadFeed();
+      const hash = window.location.hash;
+      if (hash.startsWith("#post-")) {
+        const targetId = hash.slice(6);
+        setHighlightId(targetId);
+        // If post not in feed, fetch individually and prepend
+        setTimeout(async () => {
+          const el = document.getElementById(`post-${targetId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth" });
+          } else {
+            const post = await fetchPost(targetId);
+            if (post) {
+              setFeedPosts((prev) => [post, ...prev]);
+              setTimeout(() => {
+                document.getElementById(`post-${targetId}`)?.scrollIntoView({ behavior: "smooth" });
+              }, 100);
+            }
+          }
+        }, 300);
+      }
+    };
+    init();
   }, [loadFeed]);
 
   useEffect(() => {
@@ -102,7 +124,7 @@ export default function App() {
       )}
 
       <nav className="sticky top-0 z-30 bg-night-deep/80 backdrop-blur-md border-b border-white/10" aria-label="メインナビゲーション">
-        <div className="max-w-lg mx-auto flex" role="tablist">
+        <div className="max-w-lg md:max-w-xl lg:max-w-2xl mx-auto flex" role="tablist">
           {(
             [
               ["feed", "新着"],
@@ -129,7 +151,7 @@ export default function App() {
         </div>
       </nav>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-4" role="tabpanel">
+      <main className="max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4 py-6 space-y-4" role="tabpanel">
         {tab === "feed" && (
           <>
             {loading ? (
@@ -152,14 +174,22 @@ export default function App() {
             <h2 className="text-lg font-bold neon-text-blue">
               {currentYear}年{currentMonth}月のランキング
             </h2>
-            <RankingList posts={rankingPosts} handleShare={handleShare} highlightId={highlightId} />
+            {rankingLoading ? (
+              <p className="text-center text-white/40 py-8">読み込み中...</p>
+            ) : (
+              <RankingList posts={rankingPosts} handleShare={handleShare} highlightId={highlightId} />
+            )}
           </>
         )}
 
         {tab === "fame" && (
           <>
             <h2 className="text-lg font-bold neon-text">殿堂入り</h2>
-            <RankingList posts={famePosts} handleShare={handleShare} highlightId={highlightId} />
+            {fameLoading ? (
+              <p className="text-center text-white/40 py-8">読み込み中...</p>
+            ) : (
+              <RankingList posts={famePosts} handleShare={handleShare} highlightId={highlightId} />
+            )}
           </>
         )}
 

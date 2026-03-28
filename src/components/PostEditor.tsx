@@ -142,7 +142,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
       )}
 
       {/* URL input */}
-      <fieldset className="space-y-1">
+      <div className="space-y-1">
         <label className="block text-sm text-white/60">動画URL</label>
         <input
           type="url"
@@ -165,11 +165,11 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             — {parsed.platform === "other" ? new URL(parsed.videoId).hostname : parsed.videoId}
           </p>
         )}
-      </fieldset>
+      </div>
 
       {/* Time range */}
       <div className="grid grid-cols-2 gap-3">
-        <fieldset className="space-y-1">
+        <div className="space-y-1">
           <label className="block text-sm text-white/60">開始</label>
           <input
             type="text"
@@ -179,8 +179,8 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
                        placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
           />
-        </fieldset>
-        <fieldset className="space-y-1">
+        </div>
+        <div className="space-y-1">
           <label className="block text-sm text-white/60">終了</label>
           <input
             type="text"
@@ -190,13 +190,13 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
                        placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
           />
-        </fieldset>
+        </div>
       </div>
 
       {/* Language pair */}
       <div className="grid grid-cols-2 gap-3">
-        <fieldset className="space-y-1">
-          <label className="block text-sm text-white/60">原語</label>
+        <div className="space-y-1">
+          <label className="block text-sm text-white/60">オリジナル言語</label>
           <select
             value={sourceLang}
             onChange={(e) => setSourceLang(e.target.value)}
@@ -209,8 +209,8 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
               </option>
             ))}
           </select>
-        </fieldset>
-        <fieldset className="space-y-1">
+        </div>
+        <div className="space-y-1">
           <label className="block text-sm text-white/60">こう聴こえる</label>
           <select
             value={targetLang}
@@ -224,11 +224,11 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
               </option>
             ))}
           </select>
-        </fieldset>
+        </div>
       </div>
 
       {/* Misheard text */}
-      <fieldset className="space-y-1">
+      <div className="space-y-1">
         <label className="block text-sm text-white/60">こう聴こえる！（空耳テキスト）</label>
         <input
           type="text"
@@ -238,11 +238,11 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white text-lg
                      placeholder:text-white/20 focus:border-neon-pink/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
-      </fieldset>
+      </div>
 
       {/* Song info */}
       <div className="grid grid-cols-2 gap-3">
-        <fieldset className="space-y-1">
+        <div className="space-y-1">
           <label className="block text-sm text-white/60">アーティスト</label>
           <input
             type="text"
@@ -252,8 +252,8 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
                        placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
           />
-        </fieldset>
-        <fieldset className="space-y-1">
+        </div>
+        <div className="space-y-1">
           <label className="block text-sm text-white/60">曲名</label>
           <input
             type="text"
@@ -263,11 +263,11 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
                        placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
           />
-        </fieldset>
+        </div>
       </div>
 
       {/* Original text (optional) */}
-      <fieldset className="space-y-1">
+      <div className="space-y-1">
         <label className="block text-sm text-white/60">
           元の歌詞（わかれば）
         </label>
@@ -279,10 +279,10 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
                      placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
-      </fieldset>
+      </div>
 
       {/* Nickname */}
-      <fieldset className="space-y-1">
+      <div className="space-y-1">
         <label className="block text-sm text-white/60">ニックネーム（任意）</label>
         <input
           type="text"
@@ -292,10 +292,10 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
                      placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
-      </fieldset>
+      </div>
 
       {/* Delete key */}
-      <fieldset className="space-y-1">
+      <div className="space-y-1">
         <label className="block text-sm text-white/60">削除キー（任意・投稿を消したいとき用）</label>
         <input
           type="text"
@@ -305,7 +305,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
                      placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
-      </fieldset>
+      </div>
 
       {/* Preview */}
       {canPreview && (
@@ -327,6 +327,11 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
               />
               <Subtitle text={misheardText} visible={showSubtitle} />
             </div>
+          )}
+          {showPreview && parsed?.platform !== "youtube" && (
+            <p className="mt-3 text-sm text-white/40 text-center">
+              プレビューはYouTube動画のみ対応しています
+            </p>
           )}
         </div>
       )}
@@ -406,7 +411,8 @@ function DraftsList({
               onDelete(draft.id);
               setDrafts((prev) => prev.filter((d) => d.id !== draft.id));
             }}
-            className="text-white/30 hover:text-red-400 shrink-0"
+            className="text-white/30 hover:text-red-400 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center
+                       focus-visible:outline-2 focus-visible:outline-neon-blue"
             aria-label="削除"
           >
             ✕

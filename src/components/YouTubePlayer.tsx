@@ -53,6 +53,7 @@ export default function YouTubePlayer({
   const playerRef = useRef<YT.Player | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [ready, setReady] = useState(false);
+  const [error, setError] = useState(false);
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -100,6 +101,7 @@ export default function YouTubePlayer({
               clearInterval(timerRef.current);
             }
           },
+          onError: () => setError(true),
         },
       });
     });
@@ -122,6 +124,14 @@ export default function YouTubePlayer({
     playerRef.current.playVideo();
   }, [startSec]);
 
+  if (error) {
+    return (
+      <div className="aspect-video w-full rounded-lg bg-black/30 flex items-center justify-center text-white/40 text-sm">
+        この動画は再生できません
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       <div
@@ -132,7 +142,8 @@ export default function YouTubePlayer({
         <button
           onClick={handlePlay}
           className="mt-3 w-full py-2 rounded-lg bg-neon-pink text-white font-bold
-                     hover:brightness-110 active:scale-[0.98] transition-all"
+                     hover:brightness-110 active:scale-[0.98] transition-all
+                     focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
           <Play size={16} className="inline mr-1" />この部分を再生
         </button>
