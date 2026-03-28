@@ -23,6 +23,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
   const [sourceLang, setSourceLang] = useState("en");
   const [targetLang, setTargetLang] = useState("ja");
   const [nickname, setNickname] = useState("");
+  const [deleteKey, setDeleteKey] = useState("");
   const [draftId, setDraftId] = useState<string | undefined>(initialDraftId);
   const [showPreview, setShowPreview] = useState(false);
   const [showSubtitle, setShowSubtitle] = useState(false);
@@ -71,6 +72,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
       sourceLang,
       targetLang,
       nickname: nickname.trim() || "名無し",
+      deleteKey: deleteKey.trim() || undefined,
     };
   }, [
     url, parsed, startSec, endSec, misheardText, originalText,
@@ -148,7 +150,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://youtube.com/watch?v=... or nicovideo.jp/watch/sm..."
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                     placeholder:text-white/20 focus:border-neon-blue/50 focus:outline-none"
+                     placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
         {url && !parsed && (
           <p className="text-xs text-red-400">有効なURLを入力してください</p>
@@ -175,7 +177,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             onChange={(e) => setStartTime(e.target.value)}
             placeholder="1:23 or 83"
             className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                       placeholder:text-white/20 focus:border-neon-blue/50 focus:outline-none"
+                       placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
           />
         </fieldset>
         <fieldset className="space-y-1">
@@ -186,7 +188,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             onChange={(e) => setEndTime(e.target.value)}
             placeholder="1:30 or 90"
             className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                       placeholder:text-white/20 focus:border-neon-blue/50 focus:outline-none"
+                       placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
           />
         </fieldset>
       </div>
@@ -199,7 +201,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             value={sourceLang}
             onChange={(e) => setSourceLang(e.target.value)}
             className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                       focus:border-neon-blue/50 focus:outline-none"
+                       focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
           >
             {LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>
@@ -214,7 +216,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             value={targetLang}
             onChange={(e) => setTargetLang(e.target.value)}
             className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                       focus:border-neon-blue/50 focus:outline-none"
+                       focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
           >
             {LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>
@@ -234,7 +236,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           onChange={(e) => setMisheardText(e.target.value)}
           placeholder="コンドルが関取に見えたので"
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white text-lg
-                     placeholder:text-white/20 focus:border-neon-pink/50 focus:outline-none"
+                     placeholder:text-white/20 focus:border-neon-pink/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
       </fieldset>
 
@@ -248,7 +250,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             onChange={(e) => setArtistName(e.target.value)}
             placeholder="Queen"
             className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                       placeholder:text-white/20 focus:border-neon-blue/50 focus:outline-none"
+                       placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
           />
         </fieldset>
         <fieldset className="space-y-1">
@@ -259,7 +261,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             onChange={(e) => setSongTitle(e.target.value)}
             placeholder="Bohemian Rhapsody"
             className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                       placeholder:text-white/20 focus:border-neon-blue/50 focus:outline-none"
+                       placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
           />
         </fieldset>
       </div>
@@ -275,7 +277,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           onChange={(e) => setOriginalText(e.target.value)}
           placeholder=""
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                     placeholder:text-white/20 focus:border-neon-blue/50 focus:outline-none"
+                     placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
       </fieldset>
 
@@ -288,7 +290,20 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           onChange={(e) => setNickname(e.target.value)}
           placeholder="名無し"
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                     placeholder:text-white/20 focus:border-neon-blue/50 focus:outline-none"
+                     placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+        />
+      </fieldset>
+
+      {/* Delete key */}
+      <fieldset className="space-y-1">
+        <label className="block text-sm text-white/60">削除キー（任意・投稿を消したいとき用）</label>
+        <input
+          type="text"
+          value={deleteKey}
+          onChange={(e) => setDeleteKey(e.target.value)}
+          placeholder=""
+          className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
+                     placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
       </fieldset>
 

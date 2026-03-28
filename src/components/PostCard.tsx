@@ -66,18 +66,24 @@ export default function PostCard({ post, showPlayer = false }: Props) {
               </a>
             </div>
           )}
-          {post.platform === "other" && (
-            <div className="py-6 bg-black/30 rounded-lg flex items-center justify-center text-white/40 text-sm">
-              <a
-                href={post.videoId}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-white/60"
-              >
-                {formatTime(post.startSec)}〜{formatTime(post.endSec)} を聴いてみて →
-              </a>
-            </div>
-          )}
+          {post.platform === "other" && (() => {
+            let safeHref: string | null = null;
+            try {
+              const u = new URL(post.videoId);
+              if (u.protocol === "https:" || u.protocol === "http:") safeHref = u.href;
+            } catch { /* invalid */ }
+            return (
+              <div className="py-6 bg-black/30 rounded-lg flex items-center justify-center text-white/40 text-sm">
+                {safeHref ? (
+                  <a href={safeHref} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/60">
+                    {formatTime(post.startSec)}〜{formatTime(post.endSec)} を聴いてみて →
+                  </a>
+                ) : (
+                  <span>{formatTime(post.startSec)}〜{formatTime(post.endSec)}</span>
+                )}
+              </div>
+            );
+          })()}
           <Subtitle text={post.misheardText} visible={showSubtitle} />
         </div>
       ) : (
@@ -97,7 +103,7 @@ export default function PostCard({ post, showPlayer = false }: Props) {
       {/* Meta */}
       <div className="flex items-center justify-between text-xs text-white/30 mb-2">
         <span>{post.nickname || "名無し"}</span>
-        <time>{new Date(post.createdAt).toLocaleDateString("ja-JP")}</time>
+        <time dateTime={post.createdAt}>{new Date(post.createdAt).toLocaleDateString("ja-JP")}</time>
       </div>
 
       {/* Reactions */}

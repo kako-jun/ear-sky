@@ -55,3 +55,16 @@ select option {
   background: var(--color-bar-wall);
   color: #e0d8e8;
 }
+
+/* prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .neon-text, .neon-text-blue {
+    text-shadow: none;
+  }
+}

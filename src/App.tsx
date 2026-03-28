@@ -1,13 +1,15 @@
 import { useState, useCallback, useEffect } from "react";
 import { Post } from "@/types";
-import { fetchPosts, createPost } from "@/lib/api";
+import { fetchPosts, createPost, ApiError } from "@/lib/api";
 import PostEditor from "@/components/PostEditor";
 import PostCard from "@/components/PostCard";
 import Header from "@/components/Header";
+import Toast from "@/components/Toast";
 import { Link as LinkIcon, Heart } from "lucide-react";
 import CloudEarIcon from "@/components/CloudEarIcon";
 
 type Tab = "feed" | "ranking" | "fame" | "post";
+type ToastState = { message: string; type: "success" | "error" } | null;
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("feed");
@@ -16,6 +18,11 @@ export default function App() {
   const [famePosts, setFamePosts] = useState<Post[]>([]);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<ToastState>(null);
+
+  const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+  }, []);
 
   const loadFeed = useCallback(async () => {
     setLoading(true);
@@ -53,16 +60,22 @@ export default function App() {
   }, [tab, loadRanking, loadFame]);
 
   const handlePublished = useCallback(
-    async (data: Omit<Post, "id" | "likes" | "createdAt" | "reactions">) => {
-      const id = await createPost(data);
-      setTab("feed");
-      await loadFeed();
-      setHighlightId(id);
-      setTimeout(() => {
-        document.getElementById(`post-${id}`)?.scrollIntoView({ behavior: "smooth" });
-      }, 200);
+    async (data: Omit<Post, "id" | "likes" | "createdAt" | "reactions"> & { deleteKey?: string }) => {
+      try {
+        const id = await createPost(data);
+        showToast("投稿しました");
+        setTab("feed");
+        await loadFeed();
+        setHighlightId(id);
+        setTimeout(() => {
+          document.getElementById(`post-${id}`)?.scrollIntoView({ behavior: "smooth" });
+        }, 200);
+      } catch (e) {
+        const msg = e instanceof ApiError ? e.message : "投稿に失敗しました";
+        showToast(msg, "error");
+      }
     },
-    [loadFeed]
+    [loadFeed, showToast]
   );
 
   const handleShare = useCallback((postId: string) => {
@@ -70,9 +83,11 @@ export default function App() {
     if (navigator.share) {
       navigator.share({ title: "イヤスカ — 空耳投稿", url });
     } else {
-      navigator.clipboard.writeText(url);
+      navigator.clipboard.writeText(url).then(() => {
+        showToast("URLをコピーしました");
+      });
     }
-  }, []);
+  }, [showToast]);
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -82,8 +97,12 @@ export default function App() {
     <div className="bar-bg min-h-dvh">
       <Header />
 
-      <nav className="sticky top-0 z-30 bg-night-deep/80 backdrop-blur-md border-b border-white/10">
-        <div className="max-w-lg mx-auto flex">
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
+
+      <nav className="sticky top-0 z-30 bg-night-deep/80 backdrop-blur-md border-b border-white/10" aria-label="メインナビゲーション">
+        <div className="max-w-lg mx-auto flex" role="tablist">
           {(
             [
               ["feed", "新着"],
@@ -94,12 +113,15 @@ export default function App() {
           ).map(([key, label]) => (
             <button
               key={key}
+              role="tab"
+              aria-selected={tab === key}
               onClick={() => setTab(key)}
-              className={`flex-1 py-3 text-sm font-bold transition-colors ${
-                tab === key
+              className={`flex-1 py-3 text-sm font-bold transition-colors
+                focus-visible:outline-2 focus-visible:outline-neon-blue focus-visible:outline-offset-[-2px]
+                ${tab === key
                   ? "text-neon-pink border-b-2 border-neon-pink"
                   : "text-white/40 hover:text-white/60"
-              }`}
+                }`}
             >
               {label}
             </button>
@@ -107,11 +129,11 @@ export default function App() {
         </div>
       </nav>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
+      <main className="max-w-lg mx-auto px-4 py-6 space-y-4" role="tabpanel">
         {tab === "feed" && (
           <>
             {loading ? (
-              <p className="text-center text-white/30 py-8">読み込み中...</p>
+              <p className="text-center text-white/40 py-8">読み込み中...</p>
             ) : feedPosts.length === 0 ? (
               <EmptyState onPost={() => setTab("post")} />
             ) : (
@@ -168,7 +190,8 @@ function EmptyState({ onPost }: { onPost: () => void }) {
       <button
         onClick={onPost}
         className="px-6 py-2 rounded-lg bg-neon-pink text-white font-bold
-                   hover:brightness-110 transition-all"
+                   hover:brightness-110 transition-all
+                   focus-visible:outline-2 focus-visible:outline-neon-blue focus-visible:outline-offset-2"
       >
         最初の空耳を投稿する
       </button>
@@ -179,8 +202,13 @@ function EmptyState({ onPost }: { onPost: () => void }) {
 function ShareButton({ onShare }: { onShare: () => void }) {
   return (
     <div className="flex justify-end mt-1">
-      <button onClick={onShare} className="text-xs text-white/30 hover:text-white/50">
-        <LinkIcon size={12} className="inline mr-1" />シェア
+      <button
+        onClick={onShare}
+        className="flex items-center gap-1 text-xs text-white/30 hover:text-white/50
+                   min-h-[44px] px-3
+                   focus-visible:outline-2 focus-visible:outline-neon-blue"
+      >
+        <LinkIcon size={12} />シェア
       </button>
     </div>
   );
@@ -196,7 +224,7 @@ function RankingList({
   highlightId: string | null;
 }) {
   if (posts.length === 0) {
-    return <p className="text-center text-white/30 py-8">まだデータがありません</p>;
+    return <p className="text-center text-white/40 py-8">まだデータがありません</p>;
   }
   return (
     <div className="space-y-4">
@@ -206,7 +234,7 @@ function RankingList({
             <span className={`text-sm font-bold ${i < 3 ? "neon-text" : "text-white/40"}`}>
               #{i + 1}
             </span>
-            <span className="text-xs text-white/30 flex items-center gap-0.5">
+            <span className="text-xs text-white/40 flex items-center gap-0.5">
               <Heart size={10} /> {post.likes}
             </span>
           </div>

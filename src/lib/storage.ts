@@ -1,5 +1,13 @@
 import { Post, Draft } from "@/types";
 
+function safeSetItem(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* quota exceeded or private browsing */
+  }
+}
+
 const DRAFTS_KEY = "ear-sky-drafts";
 const REACTIONS_KEY = "ear-sky-reactions";
 
@@ -29,7 +37,7 @@ export function saveDraft(
         data,
         updatedAt: new Date().toISOString(),
       };
-      localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+      safeSetItem(DRAFTS_KEY, JSON.stringify(drafts));
       return drafts[idx];
     }
   }
@@ -39,13 +47,13 @@ export function saveDraft(
     updatedAt: new Date().toISOString(),
   };
   drafts.unshift(draft);
-  localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+  safeSetItem(DRAFTS_KEY, JSON.stringify(drafts));
   return draft;
 }
 
 export function deleteDraft(id: string): void {
   const drafts = getAllDrafts().filter((d) => d.id !== id);
-  localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+  safeSetItem(DRAFTS_KEY, JSON.stringify(drafts));
 }
 
 // --- Reaction tracking (prevent duplicate reactions per browser) ---
@@ -74,5 +82,5 @@ export function markReacted(postId: string, type: string): void {
   if (!map[postId].includes(type)) {
     map[postId].push(type);
   }
-  localStorage.setItem(REACTIONS_KEY, JSON.stringify(map));
+  safeSetItem(REACTIONS_KEY, JSON.stringify(map));
 }
