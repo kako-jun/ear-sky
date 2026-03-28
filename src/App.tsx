@@ -6,6 +6,7 @@ import PostCard from "@/components/PostCard";
 import Header from "@/components/Header";
 import Toast from "@/components/Toast";
 import PickupCorner from "@/components/PickupCorner";
+import NightBackground from "@/components/NightBackground";
 import { Link as LinkIcon, Heart, Sparkles, Trophy, Award, PenLine } from "lucide-react";
 import CloudEarIcon from "@/components/CloudEarIcon";
 
@@ -118,6 +119,7 @@ export default function App() {
 
   return (
     <div className="bar-bg min-h-dvh">
+      <NightBackground />
       <Header />
 
       {toast && (
@@ -206,13 +208,14 @@ export default function App() {
         {tab === "post" && <PostEditor onPublished={handlePublished} />}
       </main>
 
-      <footer className="text-center text-xs text-white/20 py-8 px-4 space-y-2">
-        <p>Ear in the Sky Diamond — イヤスカ</p>
-        <p>
-          動画・音声は各プラットフォームの埋め込みを利用しています。
+      <footer className="text-center text-xs text-white/20 py-12 px-4 space-y-3">
+        <div className="mx-auto max-w-xs h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-4" aria-hidden="true" />
+        <p className="text-white/25 font-bold tracking-wider">Ear in the Sky Diamond — イヤスカ</p>
+        <p className="leading-relaxed">
+          動画・音声は各プラットフォームの埋め込みを利用しています。<br />
           当サイトはコンテンツを一切ホスティングしていません。
         </p>
-        <div className="flex items-center justify-center gap-4 text-white/10">
+        <div className="flex items-center justify-center gap-4 text-white/10 pt-2">
           {/* @ts-expect-error nostalgic-counter is a Web Component */}
           <nostalgic-counter id="ear-sky-eaae1797" type="total" format="text" />
           <span>v{__BUILD_DATE__}</span>

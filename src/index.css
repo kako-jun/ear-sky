@@ -48,6 +48,35 @@ body {
 .bar-bg {
   background:
     linear-gradient(180deg, var(--color-night-deep) 0%, var(--color-bar-wall) 30%, var(--color-bar-counter) 100%);
+  position: relative;
+}
+
+/* 背景画像レイヤー（ぼやけた夜景） */
+.bar-bg-image {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(2px) brightness(0.3) saturate(1.4);
+  transform: scale(1.05); /* blur edge bleed prevention */
+}
+
+.bar-bg-image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg,
+      rgba(5,5,16,0.85) 0%,
+      rgba(26,21,32,0.7) 40%,
+      rgba(37,30,46,0.8) 100%);
+}
+
+.bar-bg > *:not(.bar-bg-image) {
+  position: relative;
+  z-index: 1;
 }
 
 /* セレクトボックスのoption背景（ダーク） */
