@@ -65,6 +65,12 @@ function truncate(s: string, max: number): string {
   return s.slice(0, max);
 }
 
+async function hashDeleteKey(key: string): Promise<string> {
+  const data = new TextEncoder().encode(key);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
 async function getReactionCounts(db: D1Database, postId: string): Promise<Record<string, number>> {
   const { results } = await db.prepare(
     "SELECT reaction_key, COUNT(*) as cnt FROM reactions WHERE post_id = ? GROUP BY reaction_key"
@@ -166,13 +172,17 @@ app.post("/posts", async (c) => {
   try { body = await c.req.json(); } catch { return c.json({ error: "invalid body" }, 400); }
   const { videoUrl, platform, videoId, startSec, endSec, misheardText, originalText, artistName, songTitle, sourceLang, targetLang, nickname, deleteKey, era, comment } = body;
 
-  // Validate required fields
-  if (!videoUrl || !platform || !videoId || !misheardText) {
+  // Validate required fields exist and are strings
+  if (
+    typeof videoUrl !== "string" || typeof platform !== "string" ||
+    typeof videoId !== "string" || typeof misheardText !== "string" ||
+    !videoUrl || !platform || !videoId || !misheardText.trim()
+  ) {
     return c.json({ error: "missing required fields" }, 400);
   }
 
   // Validate platform
-  if (!VALID_PLATFORMS.includes(platform)) {
+  if (!VALID_PLATFORMS.includes(platform as typeof VALID_PLATFORMS[number])) {
     return c.json({ error: "invalid platform" }, 400);
   }
 
@@ -196,7 +206,8 @@ app.post("/posts", async (c) => {
   }
 
   const id = crypto.randomUUID();
-  const safeDeleteKey = typeof deleteKey === "string" ? truncate(deleteKey.trim(), 64) : null;
+  const rawDeleteKey = typeof deleteKey === "string" ? deleteKey.trim() : "";
+  const safeDeleteKey = rawDeleteKey ? await hashDeleteKey(rawDeleteKey) : null;
 
   await c.env.DB.prepare(
     `INSERT INTO posts (id, video_url, platform, video_id, start_sec, end_sec, misheard_text, original_text, artist_name, song_title, source_lang, target_lang, nickname, ip_hash, delete_key, era, comment)
@@ -208,17 +219,17 @@ app.post("/posts", async (c) => {
     truncate(platform === "other" ? sanitizeUrl(videoId)! : videoId, MAX_URL),
     start,
     end,
-    truncate(misheardText.trim(), MAX_TEXT),
-    originalText ? truncate(originalText.trim(), MAX_TEXT) : null,
-    truncate((artistName || "").trim(), MAX_NAME * 3),
-    truncate((songTitle || "").trim(), MAX_NAME * 3),
-    truncate(sourceLang || "en", 10),
-    truncate(targetLang || "ja", 10),
-    truncate((nickname || "").trim(), MAX_NAME) || "Anonymous",
+    truncate(String(misheardText).trim(), MAX_TEXT),
+    typeof originalText === "string" && originalText.trim() ? truncate(originalText.trim(), MAX_TEXT) : null,
+    truncate(String(artistName || "").trim(), MAX_NAME * 3),
+    truncate(String(songTitle || "").trim(), MAX_NAME * 3),
+    truncate(String(sourceLang || "en"), 10),
+    truncate(String(targetLang || "ja"), 10),
+    truncate(String(nickname || "").trim(), MAX_NAME) || "Anonymous",
     ipHash,
     safeDeleteKey,
-    era ? truncate(era.trim(), MAX_ERA) : null,
-    comment ? truncate(comment.trim(), MAX_TEXT) : null,
+    typeof era === "string" && era.trim() ? truncate(era.trim(), MAX_ERA) : null,
+    typeof comment === "string" && comment.trim() ? truncate(comment.trim(), MAX_TEXT) : null,
   ).run();
 
   return c.json({ id }, 201);
@@ -238,7 +249,9 @@ app.delete("/posts/:id", async (c) => {
   ).bind(id).first();
 
   if (!post) return c.json({ error: "not found" }, 404);
-  if (!post.delete_key || post.delete_key !== deleteKey) {
+  if (!post.delete_key) return c.json({ error: "Delete key mismatch" }, 403);
+  const hashedInput = await hashDeleteKey(deleteKey);
+  if (post.delete_key !== hashedInput) {
     return c.json({ error: "Delete key mismatch" }, 403);
   }
 

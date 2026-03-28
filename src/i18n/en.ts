@@ -50,6 +50,7 @@ const en = {
     saveDraft: "Save draft",
     draftSaved: "Draft saved",
     submit: "Post",
+    submitting: "Posting...",
     previewOpen: "Preview",
     previewClose: "Close preview",
     previewUnsupported: "Preview is available for YouTube videos only",

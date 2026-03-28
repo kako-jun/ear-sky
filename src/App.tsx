@@ -37,16 +37,26 @@ function AppInner() {
 
   const loadFeed = useCallback(async () => {
     setLoading(true);
-    const posts = await fetchPosts("new");
-    setFeedPosts(posts);
-    setLoading(false);
+    try {
+      const posts = await fetchPosts("new");
+      setFeedPosts(posts);
+    } catch {
+      setFeedPosts([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const loadFame = useCallback(async () => {
     setFameLoading(true);
-    const posts = await fetchPosts("likes");
-    setFamePosts(posts);
-    setFameLoading(false);
+    try {
+      const posts = await fetchPosts("likes");
+      setFamePosts(posts);
+    } catch {
+      setFamePosts([]);
+    } finally {
+      setFameLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -103,9 +113,10 @@ function AppInner() {
     if (navigator.share) {
       navigator.share({ title: "Ear in the Sky Diamond", url });
     } else {
-      navigator.clipboard.writeText(url).then(() => {
-        showToast(t.toast.urlCopied);
-      });
+      navigator.clipboard.writeText(url).then(
+        () => showToast(t.toast.urlCopied),
+        () => showToast(t.toast.urlCopied),
+      );
     }
   }, [showToast, t]);
 

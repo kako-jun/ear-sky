@@ -25,6 +25,10 @@ export default function NiconicoPlayer({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const playStartTimeRef = useRef<number>(0);
+  const onStateChangeRef = useRef(onStateChange);
+  onStateChangeRef.current = onStateChange;
+  const onTimeUpdateRef = useRef(onTimeUpdate);
+  onTimeUpdateRef.current = onTimeUpdate;
   const [ready, setReady] = useState(false);
   const [error, setError] = useState(false);
 
@@ -40,11 +44,11 @@ export default function NiconicoPlayer({
         const data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
         if (data.eventName === "playerStatusChange") {
           if (data.data?.playerStatus === 2) {
-            onStateChange?.("playing");
+            onStateChangeRef.current?.("playing");
           } else if (data.data?.playerStatus === 3) {
-            onStateChange?.("paused");
+            onStateChangeRef.current?.("paused");
           } else if (data.data?.playerStatus === 4) {
-            onStateChange?.("ended");
+            onStateChangeRef.current?.("ended");
           }
         }
       } catch {
@@ -54,7 +58,7 @@ export default function NiconicoPlayer({
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [onStateChange]);
+  }, []);
 
   const handleIframeLoad = useCallback(() => {
     setReady(true);
@@ -77,7 +81,7 @@ export default function NiconicoPlayer({
         JSON.stringify({ eventName: "play" }),
         "https://embed.nicovideo.jp"
       );
-      onStateChange?.("playing");
+      onStateChangeRef.current?.("playing");
 
       // Simulated time updates (niconico embed doesn't expose currentTime)
       playStartTimeRef.current = Date.now();
@@ -85,18 +89,18 @@ export default function NiconicoPlayer({
       intervalRef.current = setInterval(() => {
         const elapsed = (Date.now() - playStartTimeRef.current) / 1000;
         const currentTime = playStart + elapsed;
-        onTimeUpdate?.(currentTime);
+        onTimeUpdateRef.current?.(currentTime);
       }, 100);
 
       // Timer-based end detection
       if (timerRef.current) clearTimeout(timerRef.current);
       const duration = (playEnd - playStart) * 1000;
       timerRef.current = setTimeout(() => {
-        onStateChange?.("ended");
+        onStateChangeRef.current?.("ended");
         if (intervalRef.current) clearInterval(intervalRef.current);
       }, duration);
     }
-  }, [playStart, playEnd, onStateChange, onTimeUpdate]);
+  }, [playStart, playEnd]);
 
   if (error) {
     return (

@@ -3,8 +3,9 @@ import { LANGUAGES, Post } from "@/types";
 import { parseVideoUrl, formatTime, parseTime } from "@/lib/video";
 import { saveDraft, getAllDrafts, deleteDraft } from "@/lib/storage";
 import { fetchVideoTitle, splitArtistTitle } from "@/lib/oembed";
-import { useI18n } from "@/i18n";
+import { useI18n, getLocale } from "@/i18n";
 import YouTubePlayer from "./YouTubePlayer";
+import NiconicoPlayer from "./NiconicoPlayer";
 import Subtitle from "./Subtitle";
 import { Save, Send, Eye, EyeOff } from "lucide-react";
 
@@ -37,6 +38,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
   const [showSubtitle, setShowSubtitle] = useState(false);
   const [showDrafts, setShowDrafts] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const parsed = useMemo(() => parseVideoUrl(url), [url]);
   const startSec = useMemo(() => parseTime(startTime), [startTime]);
@@ -49,16 +51,15 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
   // Auto-fetch video title when URL changes
   useEffect(() => {
     if (!parsed || parsed.platform === "other") return;
-    if (artistName || songTitle) return;
     let cancelled = false;
     fetchVideoTitle(parsed.platform, parsed.videoId).then((title) => {
       if (cancelled || !title) return;
       const { artist, song } = splitArtistTitle(title);
-      if (!artistName) setArtistName(artist);
-      if (!songTitle) setSongTitle(song);
+      setArtistName((prev) => prev || artist);
+      setSongTitle((prev) => prev || song);
     });
     return () => { cancelled = true; };
-  }, [parsed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [parsed]);
 
   // Load draft on mount
   useEffect(() => {
@@ -117,11 +118,12 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
 
   const handleSubmit = useCallback(() => {
     const data = buildData();
-    if (!data) return;
+    if (!data || submitting) return;
+    setSubmitting(true);
     if (draftId) deleteDraft(draftId);
     try { localStorage.setItem("ear-sky-nickname", nickname.trim()); } catch { /* ignore */ }
     onPublished(data);
-  }, [buildData, draftId, onPublished, nickname]);
+  }, [buildData, draftId, onPublished, nickname, submitting]);
 
   const handleStateChange = useCallback((state: number) => {
     if (state === 1) {
@@ -381,10 +383,20 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
                 endSec={endSec!}
                 onStateChange={handleStateChange}
               />
-              <Subtitle text={misheardText} visible={showSubtitle} />
+              <Subtitle text={misheardText} visible={showSubtitle} durationSec={endSec! - startSec!} />
             </div>
           )}
-          {showPreview && parsed?.platform !== "youtube" && (
+          {showPreview && parsed?.platform === "niconico" && (
+            <div className="mt-3 p-4 bg-black/30 rounded-xl border border-white/10">
+              <NiconicoPlayer
+                videoId={parsed.videoId}
+                startSec={startSec!}
+                endSec={endSec!}
+              />
+              <Subtitle text={misheardText} visible={showSubtitle} durationSec={endSec! - startSec!} />
+            </div>
+          )}
+          {showPreview && parsed?.platform === "other" && (
             <p className="mt-3 text-sm text-white/40 text-center">
               {t.editor.previewUnsupported}
             </p>
@@ -405,13 +417,13 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
         </button>
         <button
           onClick={handleSubmit}
-          disabled={!canSubmit}
+          disabled={!canSubmit || submitting}
           className="flex-1 py-3 rounded-lg bg-neon-pink text-white font-bold
                      hover:brightness-110 active:scale-[0.98] transition-all
                      disabled:opacity-30 disabled:cursor-not-allowed
                      focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
-          <Send size={14} className="inline mr-1" />{t.editor.submit}
+          <Send size={14} className="inline mr-1" />{submitting ? t.editor.submitting : t.editor.submit}
         </button>
       </div>
 
@@ -461,7 +473,7 @@ function DraftsList({
           >
             {draft.data.misheardText || draft.data.videoUrl || "(untitled)"}
             <span className="text-white/30 text-xs ml-2">
-              {new Date(draft.updatedAt).toLocaleDateString("ja-JP")}
+              {new Date(draft.updatedAt).toLocaleDateString(getLocale())}
             </span>
           </button>
           <button

@@ -52,6 +52,7 @@ const ja: Messages = {
     saveDraft: "下書き保存",
     draftSaved: "下書き保存しました",
     submit: "投稿する",
+    submitting: "投稿中...",
     previewOpen: "プレビューで確認",
     previewClose: "プレビューを閉じる",
     previewUnsupported: "プレビューはYouTube動画のみ対応しています",
