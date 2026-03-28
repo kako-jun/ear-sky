@@ -1,92 +1,124 @@
-# Ear in the Sky Diamond — 開発ガイド
+# Ear in the Sky Diamond — Development Guide
 
-## 設計思想
+## Design Philosophy
 
-- **コンテンツ非ホスティング**: 動画・音声は外部プラットフォームの埋め込みのみ。著作権リスクを回避
-- **匿名・軽量**: ユーザー登録なし、個人情報なし。投稿はURLとテキストだけ
-- **深夜番組トーン**: ネオン看板の夜の飲み屋街。おしゃれすぎない、庶民的
-- **モバイルファースト**: タップターゲット44px基準、スマホで全操作可能
+- **No content hosting**: Videos/audio via external platform embeds only. Copyright-safe
+- **Anonymous & lightweight**: No user registration, no personal info. Posts are just URLs and text
+- **Late-night TV tone**: Neon signs, night bar street. Not too polished, approachable
+- **Mobile-first**: 44px tap targets, all operations possible on phones
+- **English as default**: i18n with English base, Japanese as one of many translations
 
-## プロジェクト構成
+## Project Structure
 
 ```
 src/
-├── App.tsx              # メインSPA（タブ切替: 新着/ランキング/殿堂/投稿）
-├── main.tsx             # エントリポイント + SW登録
-├── index.css            # Tailwind + ネオンテーマ + カラオケスイープアニメ
+├── App.tsx              # Main SPA (tabs: New/Hall of Fame/Post)
+├── main.tsx             # Entry point + SW registration + localStorage migration
+├── index.css            # Tailwind + neon theme + karaoke sweep animation
 ├── types/
-│   ├── index.ts         # Post, Draft, Pickup, LANGUAGES, REACTION_KEYS
-│   └── youtube.d.ts     # YouTube IFrame API型定義
+│   ├── index.ts         # Post, Draft, Pickup, LANGUAGES, CURATED_EMOJI
+│   └── youtube.d.ts     # YouTube IFrame API type definitions
+├── i18n/
+│   ├── en.ts            # English strings (default)
+│   ├── ja.ts            # Japanese strings
+│   └── index.ts         # useI18n() hook, locale detection
 ├── lib/
-│   ├── api.ts           # D1 APIクライアント (fetch wrapper)
-│   ├── storage.ts       # localStorage (下書き + リアクション追跡)
-│   ├── video.ts         # URL解析, 時間フォーマット
-│   └── oembed.ts        # 動画タイトル自動取得 (oEmbed/noembed)
+│   ├── api.ts           # D1 API client (fetch wrapper)
+│   ├── storage.ts       # localStorage (drafts + reaction tracking)
+│   ├── video.ts         # URL parsing, time formatting
+│   └── oembed.ts        # Video title auto-fetch (oEmbed/noembed)
 ├── components/
-│   ├── Header.tsx       # ネオンタイトル
-│   ├── PostEditor.tsx   # 投稿フォーム（プレビュー+下書き+自動補完）
-│   ├── PostCard.tsx     # 投稿カード（再生+テロップ+リアクション）
-│   ├── PickupCorner.tsx # ピックアップコーナー（マスター＆常連の掛け合い）
-│   ├── YouTubePlayer.tsx # YouTube IFrame API区間再生
-│   ├── NiconicoPlayer.tsx # ニコニコ動画埋め込み区間再生
-│   ├── Subtitle.tsx     # 空耳テロップ（カラオケ風スイープ+黒縁取り）
-│   ├── Reactions.tsx    # いいね + 6種リアクション（Lucideアイコン）
-│   ├── CloudEarIcon.tsx # 雲猫耳+ヘッドフォン マスコットSVG
-│   └── Toast.tsx        # 通知トースト
+│   ├── Header.tsx       # Neon title
+│   ├── PostEditor.tsx   # Post form (preview + drafts + auto-complete + era/comment)
+│   ├── PostCard.tsx     # Post card (spoiler/reveal + player + subtitle + reactions)
+│   ├── PickupCorner.tsx # Pickup corner (master & regular banter)
+│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback
+│   ├── NiconicoPlayer.tsx # Niconico embed segment playback
+│   ├── Subtitle.tsx     # Misheard text subtitle (karaoke sweep + black stroke)
+│   ├── Reactions.tsx    # Emoji picker + reaction badges (Slack-style, 1 per user)
+│   ├── CloudEarIcon.tsx # Cloud-cat-ear + headphones mascot SVG
+│   └── Toast.tsx        # Notification toast
 functions/
 ├── api/
-│   └── [[route]].ts     # Hono APIルート (Pages Functions)
+│   └── [[route]].ts     # Hono API routes (Pages Functions)
 └── share/
-    └── [id].ts          # 動的OGP（ボット用メタタグ + ユーザーリダイレクト）
+    └── [id].ts          # Dynamic OGP (bot meta tags + user redirect)
 public/
-├── pickups/             # ピックアップJSON（ローカル生成→コミット）
-│   ├── index.json       # 利用可能なピックアップIDリスト
-│   └── {YYYY-MM}.json   # 月別ピックアップデータ
+├── pickups/             # Pickup JSONs (local generation → commit)
+│   ├── index.json       # Available pickup ID list
+│   └── {YYYY-MM}.json   # Monthly pickup data
+├── bg/                  # Night scene backgrounds (bg-0~6.webp, day rotation)
 migrations/
-├── 0001_init.sql        # posts + reactions テーブル
-└── 0002_security.sql    # ip_hash, delete_key カラム追加
+├── 0001_init.sql        # posts + reactions tables
+├── 0002_security.sql    # ip_hash, delete_key columns
+└── 0003_emoji_reactions.sql  # emoji reactions + era/comment columns
 ```
 
-## API エンドポイント
+## API Endpoints
 
-| メソッド | パス | 説明 |
+| Method | Path | Description |
 |---|---|---|
-| GET | /api/posts | 一覧取得 (?sort=new\|likes&month=YYYY-MM) |
-| GET | /api/posts/:id | 個別取得 |
-| POST | /api/posts | 投稿作成（レートリミット: 30秒/1件） |
-| DELETE | /api/posts/:id | 削除（deleteKey必須） |
-| POST | /api/posts/:id/like | いいね（IP重複防止） |
-| POST | /api/posts/:id/react | リアクション（key検証+IP重複防止） |
-| GET | /share/:id | 動的OGP（ボットにメタタグ、ブラウザにリダイレクト） |
+| GET | /api/posts | List posts (?sort=new\|likes&month=YYYY-MM&limit&offset) |
+| GET | /api/posts/:id | Get single post |
+| POST | /api/posts | Create post (rate limit: 30s/1 per IP) |
+| DELETE | /api/posts/:id | Delete post (deleteKey required) |
+| PUT | /api/posts/:id/reaction | Set/switch emoji reaction (1 per user per post) |
+| DELETE | /api/posts/:id/reaction | Remove your reaction |
+| GET | /share/:id | Dynamic OGP (meta tags for bots, redirect for browsers) |
 
-## ピックアップコーナー
+## Reaction System
 
-- **データ**: `public/pickups/` に月別JSON。ローカルで生成→gitコミット→デプロイ
-- **フォーマット**: 空耳アワー風。マスター（ワイン/青）が曲紹介 → 動画再生 → 「空耳を見る」ネタバレ → マスター＆常連（ジョッキ/黄）の掛け合い
-- **バックナンバー**: 最新号の下に「過去のピックアップ」展開ボタン
-- **JSON構造**: `{ id, title, publishedAt, picks: [{ artistName, songTitle, year, videoUrl, startSec, endSec, misheardText, originalText?, banter: [{speaker, text}] }] }`
-- **シェア**: 個別ピックのシェアリンク（Web Share API / URLコピー）
+- **Emoji picker**: 16 curated emoji, user picks ONE per post
+- **Server**: `UNIQUE(post_id, ip_hash)` constraint — one reaction per user per post
+- **Switching**: PUT with new emoji replaces the old one
+- **Removal**: DELETE removes the reaction entirely
+- **Client tracking**: localStorage stores `{ postId: emoji }` map
+- **Legacy migration**: Old array-based localStorage auto-migrated on load
 
-## セキュリティ
+## Spoiler/Reveal Mechanism
 
-- **入力バリデーション**: 全フィールドに型・長さ・enum検証。URLはhttps/httpのみ
-- **レートリミット**: IP hashベースで投稿30秒制限
-- **XSS防止**: other platformのURLをhref挿入前にプロトコルチェック。OGPのescapeHtml
-- **CORS**: 本番ドメインのみ許可
-- **いいね/リアクション重複防止**: サーバー側IP hash + クライアント側localStorage
-- **投稿削除**: 削除キーによる本人確認
-- **動的OGP**: UUIDバリデーション、HTMLエスケープ
+- PostCard hides `misheardText` initially (shows "???")
+- Reveal triggers: (1) Video starts playing, or (2) "Show mishearing" button clicked
+- Karaoke-style subtitle still plays over video during playback
+- `animate-fade-in` CSS animation on reveal
 
-## デザインテーマ
+## Pickup Corner
 
-- 背景: 夜の飲み屋街グラデーション (night-deep → bar-wall → bar-counter)
-- アクセント: ネオンピンク (#ff2d78), ネオンブルー (#00d4ff), ネオンイエロー (#ffe156)
-- テキスト: white/60 以上（AA コントラスト確保）
-- 字幕: カラオケ風左→右スイープ（白→黄色）+ 太い黒縁取り
-- prefers-reduced-motion 対応済み
+- **Data**: `public/pickups/` monthly JSONs. Generated locally → git commit → deploy
+- **Format**: Master (wine/blue) introduces song → video plays → "Show mishearing" reveal → master & regular (beer mug/yellow) banter
+- **Archive**: "Past picks" expandable below the latest
+- **JSON**: `{ id, title, publishedAt, picks: [{ artistName, songTitle, year, videoUrl, startSec, endSec, misheardText, originalText?, banter: [{speaker, text}] }] }`
 
-## Cloudflare設定
+## i18n
+
+- English is the default language, Japanese is one of many translations
+- `src/i18n/en.ts` defines the `Messages` type, `ja.ts` implements it
+- `useI18n()` hook returns messages based on `navigator.language`
+- Language toggle UI planned for future
+
+## Security
+
+- **Input validation**: Type/length/enum checks on all fields. URL protocol check (https/http only)
+- **Rate limiting**: IP hash-based, 30s cooldown between posts
+- **XSS prevention**: URL protocol check before href insertion. OGP escapeHtml
+- **CORS**: Production domains only
+- **Reaction dedup**: Server-side UNIQUE constraint + client-side localStorage
+- **Post deletion**: Delete key verification
+- **Dynamic OGP**: UUID validation, HTML escaping
+
+## Design Theme
+
+- Background: Night bar street gradient (night-deep → bar-wall → bar-counter)
+- Day-rotating background images (7 Gemini-generated night scenes, webp)
+- Accents: Neon Pink (#ff2d78), Neon Blue (#00d4ff), Neon Yellow (#ffe156)
+- Text: white/60+ (AA contrast)
+- Subtitle: Karaoke left→right sweep (white→yellow) + thick black stroke
+- prefers-reduced-motion supported
+- Mobile background: `100lvh` to prevent jitter from address bar toggle
+
+## Cloudflare Config
 
 - D1 database: ear-sky-db (fcbfc739-0198-4d71-a2a7-915411fdb563)
 - Nostalgic counter ID: ear-sky-eaae1797
-- カスタムドメイン: ear-sky.llll-ll.com
+- Custom domain: ear-sky.llll-ll.com
+- GitHub integration: auto-deploy on push

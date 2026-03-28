@@ -50,10 +50,14 @@ body {
   position: relative;
 }
 
-/* 背景画像レイヤー（ぼやけた夜景） */
+/* 背景画像レイヤー（ぼやけた夜景） — lvhでモバイルアドレスバー対策 */
 .bar-bg-image {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
   z-index: 0;
   background-size: cover;
   background-position: center;
@@ -108,6 +112,51 @@ select option {
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Emoji picker popover */
+.emoji-picker {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  background: rgba(26, 21, 32, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+}
+
+.emoji-picker-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  font-size: 1.25rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.emoji-picker-btn:hover,
+.emoji-picker-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.emoji-picker-btn[aria-pressed="true"] {
+  background: rgba(255, 45, 120, 0.2);
+  outline: 2px solid var(--color-neon-pink);
+  outline-offset: -2px;
 }
 
 /* prefers-reduced-motion */

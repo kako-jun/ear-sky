@@ -7,10 +7,15 @@ type Bindings = {
 };
 
 const VALID_PLATFORMS = ["youtube", "niconico", "other"] as const;
-const VALID_REACTIONS = ["ear", "laugh", "clap", "party", "sparkle", "melt"] as const;
+const VALID_EMOJI = new Set([
+  "👂", "🤣", "👏", "🎉", "✨", "🫠",
+  "❤️", "🔥", "😭", "🤯", "💀", "👀",
+  "🎵", "🙏", "😂", "🥹",
+]);
 const MAX_TEXT = 200;
 const MAX_NAME = 30;
 const MAX_URL = 2000;
+const MAX_ERA = 20;
 const MAX_SEGMENT_SEC = 300;
 
 const app = new Hono<{ Bindings: Bindings }>().basePath("/api");
@@ -18,10 +23,17 @@ const app = new Hono<{ Bindings: Bindings }>().basePath("/api");
 app.use(
   "*",
   cors({
-    origin: [
-      "https://ear-sky.pages.dev",
-      "https://ear-sky.llll-ll.com",
-    ],
+    origin: (origin) => {
+      const allowed = [
+        "https://ear-sky.pages.dev",
+        "https://ear-sky.llll-ll.com",
+      ];
+      // Allow localhost in development
+      if (origin && (allowed.includes(origin) || origin.startsWith("http://localhost:"))) {
+        return origin;
+      }
+      return allowed[0];
+    },
   })
 );
 
@@ -32,7 +44,6 @@ function getClientIp(c: { req: { raw: Request } }): string {
 }
 
 function hashIp(ip: string): string {
-  // Simple non-reversible hash for privacy
   let h = 0;
   for (let i = 0; i < ip.length; i++) {
     h = ((h << 5) - h + ip.charCodeAt(i)) | 0;
@@ -54,9 +65,22 @@ function truncate(s: string, max: number): string {
   return s.slice(0, max);
 }
 
+async function getReactionCounts(db: D1Database, postId: string): Promise<Record<string, number>> {
+  const { results } = await db.prepare(
+    "SELECT reaction_key, COUNT(*) as cnt FROM reactions WHERE post_id = ? GROUP BY reaction_key"
+  ).bind(postId).all();
+  const map: Record<string, number> = {};
+  for (const r of results || []) {
+    map[r.reaction_key as string] = r.cnt as number;
+  }
+  return map;
+}
+
 // --- Row mapper ---
 
 function mapRow(row: Record<string, unknown>) {
+  const reactions = row.reactions_json ? JSON.parse(row.reactions_json as string) : {};
+  const totalReactions = Object.values(reactions).reduce((sum: number, n) => sum + (n as number), 0);
   return {
     id: row.id,
     videoUrl: row.video_url,
@@ -74,7 +98,10 @@ function mapRow(row: Record<string, unknown>) {
     likes: row.likes,
     createdAt: row.created_at,
     deleteKey: undefined, // never expose
-    reactions: row.reactions_json ? JSON.parse(row.reactions_json as string) : {},
+    reactions,
+    totalReactions,
+    era: row.era || undefined,
+    comment: row.comment || undefined,
   };
 }
 
@@ -96,11 +123,11 @@ app.get("/posts", async (c) => {
   if (month && /^\d{4}-\d{2}$/.test(month)) {
     query = `SELECT p.*, ${REACTIONS_SUBQUERY} FROM posts p
       WHERE p.created_at LIKE ? || '%'
-      ORDER BY p.likes DESC, p.created_at DESC LIMIT ? OFFSET ?`;
+      ORDER BY (SELECT COUNT(*) FROM reactions WHERE post_id = p.id) DESC, p.created_at DESC LIMIT ? OFFSET ?`;
     params.push(month, limit, offset);
   } else if (sort === "likes") {
     query = `SELECT p.*, ${REACTIONS_SUBQUERY} FROM posts p
-      ORDER BY p.likes DESC, p.created_at DESC LIMIT ? OFFSET ?`;
+      ORDER BY (SELECT COUNT(*) FROM reactions WHERE post_id = p.id) DESC, p.created_at DESC LIMIT ? OFFSET ?`;
     params.push(limit, offset);
   } else {
     query = `SELECT p.*, ${REACTIONS_SUBQUERY} FROM posts p
@@ -132,11 +159,12 @@ app.post("/posts", async (c) => {
     "SELECT COUNT(*) as cnt FROM posts WHERE ip_hash = ? AND created_at > datetime('now', '-30 seconds')"
   ).bind(ipHash).first();
   if (recent && (recent.cnt as number) > 0) {
-    return c.json({ error: "投稿は30秒に1回までです" }, 429);
+    return c.json({ error: "Please wait 30 seconds between posts" }, 429);
   }
 
-  const body = await c.req.json();
-  const { videoUrl, platform, videoId, startSec, endSec, misheardText, originalText, artistName, songTitle, sourceLang, targetLang, nickname, deleteKey } = body;
+  let body: Record<string, unknown>;
+  try { body = await c.req.json(); } catch { return c.json({ error: "invalid body" }, 400); }
+  const { videoUrl, platform, videoId, startSec, endSec, misheardText, originalText, artistName, songTitle, sourceLang, targetLang, nickname, deleteKey, era, comment } = body;
 
   // Validate required fields
   if (!videoUrl || !platform || !videoId || !misheardText) {
@@ -171,8 +199,8 @@ app.post("/posts", async (c) => {
   const safeDeleteKey = typeof deleteKey === "string" ? truncate(deleteKey.trim(), 64) : null;
 
   await c.env.DB.prepare(
-    `INSERT INTO posts (id, video_url, platform, video_id, start_sec, end_sec, misheard_text, original_text, artist_name, song_title, source_lang, target_lang, nickname, ip_hash, delete_key)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO posts (id, video_url, platform, video_id, start_sec, end_sec, misheard_text, original_text, artist_name, song_title, source_lang, target_lang, nickname, ip_hash, delete_key, era, comment)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     id,
     truncate(safeUrl, MAX_URL),
@@ -186,9 +214,11 @@ app.post("/posts", async (c) => {
     truncate((songTitle || "").trim(), MAX_NAME * 3),
     truncate(sourceLang || "en", 10),
     truncate(targetLang || "ja", 10),
-    truncate((nickname || "").trim(), MAX_NAME) || "名無し",
+    truncate((nickname || "").trim(), MAX_NAME) || "Anonymous",
     ipHash,
     safeDeleteKey,
+    era ? truncate(era.trim(), MAX_ERA) : null,
+    comment ? truncate(comment.trim(), MAX_TEXT) : null,
   ).run();
 
   return c.json({ id }, 201);
@@ -197,9 +227,11 @@ app.post("/posts", async (c) => {
 // DELETE /api/posts/:id — requires deleteKey
 app.delete("/posts/:id", async (c) => {
   const id = c.req.param("id");
-  const { deleteKey } = await c.req.json();
+  let body: { deleteKey?: string };
+  try { body = await c.req.json(); } catch { return c.json({ error: "invalid body" }, 400); }
+  const { deleteKey } = body;
 
-  if (!deleteKey) return c.json({ error: "削除キーが必要です" }, 400);
+  if (!deleteKey) return c.json({ error: "Delete key required" }, 400);
 
   const post = await c.env.DB.prepare(
     "SELECT delete_key FROM posts WHERE id = ?"
@@ -207,7 +239,7 @@ app.delete("/posts/:id", async (c) => {
 
   if (!post) return c.json({ error: "not found" }, 404);
   if (!post.delete_key || post.delete_key !== deleteKey) {
-    return c.json({ error: "削除キーが一致しません" }, 403);
+    return c.json({ error: "Delete key mismatch" }, 403);
   }
 
   await c.env.DB.prepare("DELETE FROM reactions WHERE post_id = ?").bind(id).run();
@@ -216,60 +248,53 @@ app.delete("/posts/:id", async (c) => {
   return c.json({ success: true });
 });
 
-// POST /api/posts/:id/like — IP-based dedup
-app.post("/posts/:id/like", async (c) => {
+// PUT /api/posts/:id/reaction — set or switch reaction (1 per user per post)
+app.put("/posts/:id/reaction", async (c) => {
   const id = c.req.param("id");
+  let body: { emoji?: string };
+  try { body = await c.req.json(); } catch { return c.json({ error: "invalid body" }, 400); }
+  const { emoji } = body;
+
+  if (!emoji || !VALID_EMOJI.has(emoji)) {
+    return c.json({ error: "invalid emoji" }, 400);
+  }
+
   const ipHash = hashIp(getClientIp(c));
 
-  // Check if already liked
+  // Check if post exists
+  const post = await c.env.DB.prepare("SELECT id FROM posts WHERE id = ?").bind(id).first();
+  if (!post) return c.json({ error: "not found" }, 404);
+
+  // Upsert: INSERT OR REPLACE using the unique index on (post_id, ip_hash)
   const existing = await c.env.DB.prepare(
-    "SELECT 1 FROM reactions WHERE post_id = ? AND reaction_key = 'like' AND ip_hash = ?"
+    "SELECT id FROM reactions WHERE post_id = ? AND ip_hash = ?"
   ).bind(id, ipHash).first();
 
   if (existing) {
-    const row = await c.env.DB.prepare("SELECT likes FROM posts WHERE id = ?").bind(id).first();
-    return c.json({ likes: row?.likes || 0 });
-  }
-
-  await c.env.DB.prepare(
-    "INSERT INTO reactions (post_id, reaction_key, ip_hash) VALUES (?, 'like', ?)"
-  ).bind(id, ipHash).run();
-
-  await c.env.DB.prepare(
-    "UPDATE posts SET likes = likes + 1 WHERE id = ?"
-  ).bind(id).run();
-
-  const row = await c.env.DB.prepare("SELECT likes FROM posts WHERE id = ?").bind(id).first();
-  return c.json({ likes: row?.likes || 0 });
-});
-
-// POST /api/posts/:id/react — validated key + IP dedup
-app.post("/posts/:id/react", async (c) => {
-  const id = c.req.param("id");
-  const { key } = await c.req.json();
-
-  if (!key || !VALID_REACTIONS.includes(key)) {
-    return c.json({ error: "invalid reaction" }, 400);
-  }
-
-  const ipHash = hashIp(getClientIp(c));
-
-  // Check duplicate
-  const existing = await c.env.DB.prepare(
-    "SELECT 1 FROM reactions WHERE post_id = ? AND reaction_key = ? AND ip_hash = ?"
-  ).bind(id, key, ipHash).first();
-
-  if (!existing) {
+    await c.env.DB.prepare(
+      "UPDATE reactions SET reaction_key = ?, created_at = datetime('now') WHERE post_id = ? AND ip_hash = ?"
+    ).bind(emoji, id, ipHash).run();
+  } else {
     await c.env.DB.prepare(
       "INSERT INTO reactions (post_id, reaction_key, ip_hash) VALUES (?, ?, ?)"
-    ).bind(id, key, ipHash).run();
+    ).bind(id, emoji, ipHash).run();
   }
 
-  const row = await c.env.DB.prepare(
-    "SELECT COUNT(*) as cnt FROM reactions WHERE post_id = ? AND reaction_key = ?"
-  ).bind(id, key).first();
+  const reactions = await getReactionCounts(c.env.DB, id);
+  return c.json({ reactions, myEmoji: emoji });
+});
 
-  return c.json({ count: row?.cnt || 0 });
+// DELETE /api/posts/:id/reaction — remove your reaction
+app.delete("/posts/:id/reaction", async (c) => {
+  const id = c.req.param("id");
+  const ipHash = hashIp(getClientIp(c));
+
+  await c.env.DB.prepare(
+    "DELETE FROM reactions WHERE post_id = ? AND ip_hash = ?"
+  ).bind(id, ipHash).run();
+
+  const reactions = await getReactionCounts(c.env.DB, id);
+  return c.json({ reactions, myEmoji: null });
 });
 
 export const onRequest = handle(app);

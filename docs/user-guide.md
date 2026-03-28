@@ -1,52 +1,60 @@
-# ユーザーガイド
+# User Guide
 
-## 空耳を投稿する
+## Posting a Mishearing
 
-1. **「投稿する」タブ**をタップ
-2. **動画URL**を貼り付け（YouTube、ニコニコ動画、その他のURL）
-3. **開始と終了**を入力（`1:23` や `83` の形式。空耳が聴こえる部分だけ）
-4. **オリジナル言語**と**こう聴こえる**を選択（英語→日本語、など）
-5. **こう聴こえる！**に空耳テキストを入力
-6. アーティストと曲名は動画タイトルから自動補完されます（手動で修正も可能）
-7. **プレビューで確認** — YouTube動画なら、その場で区間再生＋テロップ表示を確認できます
-8. 納得したら**投稿する**！
+1. Tap the **Post** tab
+2. Paste a **video URL** (YouTube, Niconico, or any URL)
+3. Enter **start and end times** (format: `1:23` or `83` — just the part where you hear it)
+4. Select the **original language** and **sounds like** language
+5. Type what you hear in **"Sounds like this!"**
+6. Artist and song title are auto-filled from the video title (you can edit them)
+7. Optionally add the **era/year** (e.g. "1985", "90s") and a **one-liner comment**
+8. **Preview** — for YouTube videos, you can preview the segment + subtitle right there
+9. Hit **Post**!
 
-## 下書き
+## Drafts
 
-- 途中で**下書き保存**すると、ブラウザに保存されます
-- 次回「投稿する」タブを開いたとき、**下書き一覧**から再開できます
+- Tap **Save draft** to save your work in the browser
+- Reopen the **Post** tab later and load it from **Drafts**
 
-## 再生する
+## Playing
 
-- フィードの投稿カードにある**再生ボタン**をタップ
-- YouTube・ニコニコ動画ともにサイト内で埋め込み再生されます（ニコニコはコメントOFF）
-- **この部分を再生**で該当区間だけが再生されます
-- 再生中、空耳テキストが**カラオケ風テロップ**（左から右へ色が変わるスイープ）で動画の下に表示されます
+- Tap the **play button** on a post card
+- YouTube and Niconico videos play inline (Niconico with comments OFF)
+- The misheard text appears as a **karaoke-style subtitle** (color sweeps left to right) during playback
 
-## リアクション
+## Spoiler
 
-- **いいね**（ハート）と**6種のリアクション**で反応できます
-- 1投稿につき各1回まで。ポジティブ方向のみ
+- The misheard text is **hidden by default** — you see only the artist and song title
+- It reveals when you **play the video** or tap **"Show mishearing"**
+- This way you can listen first and see if you hear it too!
 
-## ピックアップコーナー
+## Reactions
 
-- トップページに毎月のピックアップが表示されます
-- **マスター**（ワイングラス）が曲を紹介 → **動画を再生** → **「空耳を見る」**で空耳テキストがネタバレ表示
-- マスターと**常連**（ジョッキ）の短い掛け合いが楽しめます
-- **過去のピックアップ**ボタンでバックナンバーも閲覧可能
+- Tap the **+** button to open the emoji picker
+- Choose ONE emoji per post — your reaction
+- Tap a different emoji to switch, or tap your current emoji to remove it
+- Reactions are shown as emoji badges with counts (like Slack)
 
-## ランキング
+## Pickup Corner
 
-- **ランキング**タブ: 今月のいいね数ランキング
-- **殿堂**タブ: 歴代のいいね数ランキング
+- Featured picks appear at the top of the feed
+- The **master** introduces each song → **play the video** → tap **"Show the mishearing"** to reveal
+- Enjoy the short banter between the master and a regular
+- Tap **Past picks** for archives
 
-## シェア
+## Hall of Fame
 
-- 投稿の**シェア**ボタンでURLをコピー（またはネイティブシェア）
-- SNSでシェアすると、空耳テキストと曲名がプレビューに表示されます
-- リンクを開くと、その投稿までスクロールして再生できます
+- The **Hall of Fame** tab shows posts ranked by total reactions
+- Top emoji are displayed next to each ranking
 
-## 投稿を削除する
+## Sharing
 
-- 投稿時に**削除キー**を設定しておくと、後から削除できます
-- 削除キーを設定しなかった場合、投稿は削除できません
+- Tap **Share** on any post to copy the URL (or use native share)
+- When shared to social media, the post shows a preview with the song info
+- Opening the link scrolls to that post
+
+## Deleting a Post
+
+- Set a **delete key** when posting to enable future deletion
+- Without a delete key, posts cannot be removed

@@ -15,11 +15,14 @@ export interface Post {
   likes: number;
   createdAt: string;
   reactions: Record<string, number>;
+  totalReactions: number;
+  era?: string;
+  comment?: string;
 }
 
 export interface Draft {
   id: string;
-  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions">;
+  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions">;
   updatedAt: string;
 }
 
@@ -37,16 +40,24 @@ export const LANGUAGES = [
   { code: "other", label: "その他 / Other", labelEn: "Other" },
 ] as const;
 
-export const REACTION_KEYS = [
-  "ear",
-  "laugh",
-  "clap",
-  "party",
-  "sparkle",
-  "melt",
+export const CURATED_EMOJI = [
+  { emoji: "👂", label: "聴こえた", labelEn: "Heard it" },
+  { emoji: "🤣", label: "笑った", labelEn: "Laughed" },
+  { emoji: "👏", label: "すごい", labelEn: "Amazing" },
+  { emoji: "🎉", label: "最高", labelEn: "Best" },
+  { emoji: "✨", label: "天才", labelEn: "Genius" },
+  { emoji: "🫠", label: "ヤバい", labelEn: "Crazy" },
+  { emoji: "❤️", label: "好き", labelEn: "Love" },
+  { emoji: "🔥", label: "激アツ", labelEn: "Fire" },
+  { emoji: "😭", label: "泣いた", labelEn: "Crying" },
+  { emoji: "🤯", label: "衝撃", labelEn: "Mind-blown" },
+  { emoji: "💀", label: "死んだ", labelEn: "Dead" },
+  { emoji: "👀", label: "気になる", labelEn: "Interesting" },
+  { emoji: "🎵", label: "ノリノリ", labelEn: "Groovy" },
+  { emoji: "🙏", label: "感謝", labelEn: "Thanks" },
+  { emoji: "😂", label: "ウケる", labelEn: "LOL" },
+  { emoji: "🥹", label: "エモい", labelEn: "Emotional" },
 ] as const;
-
-export type ReactionKey = (typeof REACTION_KEYS)[number];
 
 export interface BanterLine {
   speaker: "master" | "regular";

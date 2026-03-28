@@ -1,6 +1,9 @@
+import { useI18n } from "@/i18n";
 import CloudEarIcon from "./CloudEarIcon";
 
 export default function Header() {
+  const t = useI18n();
+
   return (
     <header className="text-center pt-8 pb-4 px-4 relative">
       {/* Subtle neon glow behind title */}
@@ -16,11 +19,13 @@ export default function Header() {
           Ear in the Sky Diamond
         </h1>
       </div>
-      <p className="text-xs text-white/40 tracking-widest">
-        — イヤスカ —
-      </p>
+      {t.header.alias && (
+        <p className="text-xs text-white/40 tracking-widest">
+          {t.header.alias}
+        </p>
+      )}
       <p className="text-sm text-white/50 mt-3">
-        あの歌、こう聴こえない？
+        {t.header.subtitle}
       </p>
 
       {/* Decorative neon line */}

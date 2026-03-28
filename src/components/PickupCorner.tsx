@@ -1,11 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Pickup, PickupEntry, BanterLine } from "@/types";
 import { parseVideoUrl } from "@/lib/video";
+import { useI18n } from "@/i18n";
 import YouTubePlayer from "@/components/YouTubePlayer";
 import NiconicoPlayer from "@/components/NiconicoPlayer";
 import { Mic, Wine, ChevronDown, ChevronUp, Eye, Share2 } from "lucide-react";
 
+function interpolate(template: string, vars: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => String(vars[key] ?? key));
+}
+
 export default function PickupCorner() {
+  const t = useI18n();
   const [allIds, setAllIds] = useState<string[]>([]);
   const [currentPickup, setCurrentPickup] = useState<Pickup | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -54,15 +60,15 @@ export default function PickupCorner() {
   }, [archiveOpen, allIds, loadArchivePickup]);
 
   if (loading) {
-    return <p className="text-center text-white/40 py-8">読み込み中...</p>;
+    return <p className="text-center text-white/40 py-8">{t.pickup.loading}</p>;
   }
 
   if (!currentPickup || currentPickup.picks.length === 0) {
     return (
       <div className="text-center py-16 space-y-3">
         <Mic size={48} className="mx-auto text-white/20" />
-        <p className="text-white/40">まだピックアップがありません</p>
-        <p className="text-xs text-white/25">投稿が集まったらマスターが選びます</p>
+        <p className="text-white/40">{t.pickup.empty}</p>
+        <p className="text-xs text-white/25">{t.pickup.emptyHint}</p>
       </div>
     );
   }
@@ -81,14 +87,14 @@ export default function PickupCorner() {
                        focus-visible:outline-2 focus-visible:outline-neon-blue"
           >
             {archiveOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            過去のピックアップ（{pastIds.length}件）
+            {t.pickup.archive} ({pastIds.length})
           </button>
 
           {archiveOpen && (
             <div className="space-y-8">
               {pastIds.map((id) => {
                 const p = archivePickups.get(id);
-                if (!p) return <p key={id} className="text-center text-white/20 text-xs py-4">読み込み中...</p>;
+                if (!p) return <p key={id} className="text-center text-white/20 text-xs py-4">{t.pickup.loading}</p>;
                 return <PickupContent key={id} pickup={p} />;
               })}
             </div>
@@ -100,6 +106,8 @@ export default function PickupCorner() {
 }
 
 function PickupContent({ pickup }: { pickup: Pickup }) {
+  const t = useI18n();
+
   return (
     <div className="space-y-6">
       <div className="text-center space-y-1">
@@ -115,13 +123,14 @@ function PickupContent({ pickup }: { pickup: Pickup }) {
       ))}
 
       <div className="text-center pt-2 pb-1">
-        <p className="text-xs text-white/25">— また来月、カウンターで —</p>
+        <p className="text-xs text-white/25">— {t.pickup.closing} —</p>
       </div>
     </div>
   );
 }
 
 function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: number; pickupId: string }) {
+  const t = useI18n();
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const parsed = parseVideoUrl(pick.videoUrl);
@@ -130,7 +139,7 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
     const url = `${window.location.origin}${window.location.pathname}#pickup-${pickupId}-${index}`;
     if (navigator.share) {
       navigator.share({
-        title: `「${pick.misheardText}」— ${pick.artistName}`,
+        title: `"${pick.misheardText}" — ${pick.artistName}`,
         url,
       });
     } else {
@@ -140,6 +149,12 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
       });
     }
   };
+
+  const introText = interpolate(t.pickup.intro, {
+    artistName: pick.artistName,
+    songTitle: pick.songTitle,
+    year: pick.year,
+  });
 
   return (
     <article className="space-y-3">
@@ -160,7 +175,7 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
           <Wine size={14} />
         </div>
         <div className="max-w-[80%] rounded-lg rounded-tl-none px-3 py-2 text-sm leading-relaxed bg-neon-blue/10 text-white/80">
-          続いては<span className="text-white font-bold">{pick.artistName}</span>、{pick.year}年の「{pick.songTitle}」です
+          {introText}
         </div>
       </div>
 
@@ -184,7 +199,7 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
           rel="noopener noreferrer"
           className="block text-center text-sm text-neon-blue hover:underline py-4"
         >
-          動画を見る
+          {t.pickup.watchVideo}
         </a>
       )}
 
@@ -198,7 +213,7 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
                      focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
           <Eye size={16} />
-          空耳を見る
+          {t.pickup.reveal}
         </button>
       ) : (
         <div className="space-y-3 animate-fade-in">
@@ -228,7 +243,7 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
                          focus-visible:outline-2 focus-visible:outline-neon-blue"
             >
               <Share2 size={12} />
-              {copied ? "コピーしました" : "シェア"}
+              {copied ? t.pickup.copied : t.share}
             </button>
           </div>
         </div>

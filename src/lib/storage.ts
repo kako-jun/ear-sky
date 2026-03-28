@@ -11,6 +11,17 @@ function safeSetItem(key: string, value: string): void {
 const DRAFTS_KEY = "ear-sky-drafts";
 const REACTIONS_KEY = "ear-sky-reactions";
 
+// Old key→emoji mapping for localStorage migration
+const OLD_KEY_TO_EMOJI: Record<string, string> = {
+  like: "❤️",
+  ear: "👂",
+  laugh: "🤣",
+  clap: "👏",
+  party: "🎉",
+  sparkle: "✨",
+  melt: "🫠",
+};
+
 // --- Drafts (local only) ---
 
 export function getAllDrafts(): Draft[] {
@@ -25,7 +36,7 @@ export function getAllDrafts(): Draft[] {
 }
 
 export function saveDraft(
-  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions">,
+  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions">,
   existingId?: string
 ): Draft {
   const drafts = getAllDrafts();
@@ -56,45 +67,59 @@ export function deleteDraft(id: string): void {
   safeSetItem(DRAFTS_KEY, JSON.stringify(drafts));
 }
 
-// --- Reaction tracking (prevent duplicate reactions per browser) ---
+// --- Reaction tracking (1 emoji per post per browser) ---
 
-export function hasReacted(postId: string, type: string): boolean {
-  if (typeof window === "undefined") return false;
+function getReactionsMap(): Record<string, string> {
+  if (typeof window === "undefined") return {};
   const raw = localStorage.getItem(REACTIONS_KEY);
-  if (!raw) return false;
+  if (!raw) return {};
   try {
-    const map = JSON.parse(raw) as Record<string, string[]>;
-    return (map[postId] || []).includes(type);
+    return JSON.parse(raw) as Record<string, string>;
   } catch {
-    return false;
+    return {};
   }
 }
 
-export function markReacted(postId: string, type: string): void {
-  const raw = localStorage.getItem(REACTIONS_KEY);
-  let map: Record<string, string[]> = {};
-  try {
-    if (raw) map = JSON.parse(raw);
-  } catch {
-    /* ignore */
-  }
-  if (!map[postId]) map[postId] = [];
-  if (!map[postId].includes(type)) {
-    map[postId].push(type);
-  }
+export function getMyReaction(postId: string): string | null {
+  const map = getReactionsMap();
+  return map[postId] || null;
+}
+
+export function setMyReaction(postId: string, emoji: string): void {
+  const map = getReactionsMap();
+  map[postId] = emoji;
   safeSetItem(REACTIONS_KEY, JSON.stringify(map));
 }
 
-export function unmarkReacted(postId: string, type: string): void {
-  const raw = localStorage.getItem(REACTIONS_KEY);
-  let map: Record<string, string[]> = {};
-  try {
-    if (raw) map = JSON.parse(raw);
-  } catch {
-    /* ignore */
-  }
-  if (map[postId]) {
-    map[postId] = map[postId].filter((t) => t !== type);
-  }
+export function clearMyReaction(postId: string): void {
+  const map = getReactionsMap();
+  delete map[postId];
   safeSetItem(REACTIONS_KEY, JSON.stringify(map));
+}
+
+// --- Migration from old array format ---
+
+export function migrateReactionsStorage(): void {
+  if (typeof window === "undefined") return;
+  const raw = localStorage.getItem(REACTIONS_KEY);
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw);
+    // Detect old format: values are arrays of strings
+    const firstValue = Object.values(parsed)[0];
+    if (!Array.isArray(firstValue)) return; // Already new format
+
+    const newMap: Record<string, string> = {};
+    for (const [postId, types] of Object.entries(parsed)) {
+      const arr = types as string[];
+      if (arr.length === 0) continue;
+      // Take the first reaction and map it to emoji
+      const oldKey = arr[0];
+      newMap[postId] = OLD_KEY_TO_EMOJI[oldKey] || "❤️";
+    }
+    safeSetItem(REACTIONS_KEY, JSON.stringify(newMap));
+  } catch {
+    // Corrupted data, clear it
+    localStorage.removeItem(REACTIONS_KEY);
+  }
 }

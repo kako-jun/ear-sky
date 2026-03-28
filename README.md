@@ -1,44 +1,53 @@
-# Ear in the Sky Diamond — イヤスカ
+# Ear in the Sky Diamond
 
-あの歌、こう聴こえない？
+Does that song sound different to you?
 
-世界中の「空耳」を投稿・再生・共有できるサイトです。
+A site to post, play, and share "misheard lyrics" from any language to any language.
 
 https://ear-sky.llll-ll.com
 
-## どんなサイト？
+## What is this?
 
-外国語の歌が別の言葉に聴こえる — そんな発見を共有する場所です。
+A foreign song sounds like words in your language — share that discovery here.
 
-YouTubeやニコニコ動画のURLと「何秒から何秒」を指定すると、その部分だけ再生されて、あなたの空耳テキストがテロップとして表示されます。あの番組のように。
+Paste a YouTube or Niconico URL with a time range, and your misheard text appears as a karaoke-style subtitle over the video. Just like that TV show.
 
-## 使い方
+## How to use
 
-1. 「投稿する」タブを開く
-2. 動画URLを貼って、聴こえる部分の開始〜終了を入力
-3. 「こう聴こえる！」にテキストを入力
-4. プレビューで確認して、投稿
+1. Open the **Post** tab
+2. Paste a video URL, enter start and end times
+3. Type what you hear in **"Sounds like this!"**
+4. Optionally add the era/year and a one-liner comment
+5. Preview and post
 
-アーティスト名と曲名は動画タイトルから自動で入ります。
+Artist and song title are auto-filled from the video title.
 
-## 多言語対応
+## Multilingual
 
-英語→日本語だけじゃありません。
+Not just English→Japanese.
 
-- 日本語→英語（日本語の歌が英語に聴こえる）
-- 英語→英語（いわゆる mondegreen）
-- 韓国語、中国語、フランス語…あらゆる言語の組み合わせ
+- Japanese→English (Japanese songs that sound like English)
+- English→English (classic mondegreens)
+- Korean, Chinese, French... any language combination
 
-## リアクション
+## Spoiler experience
 
-いいねと6種類のリアクションで盛り上がれます。ポジティブな反応だけ。
+Misheard text is hidden by default. Play the video or tap "Show mishearing" to reveal — listen first, then see if you hear it too!
 
-## ランキング
+## Reactions
 
-月間ランキングで今月の名作を、殿堂で歴代の傑作を楽しめます。
+Pick one emoji per post from 16 curated options. Positive vibes only.
 
-## プライバシー
+## Hall of Fame
 
-- ユーザー登録は不要
-- 個人情報は一切保存しません
-- 動画・音声はYouTube等の埋め込みで再生するだけ。このサイトにはコンテンツを保存していません
+Posts ranked by total reactions. See the all-time best mishearings.
+
+## Privacy
+
+- No registration required
+- No personal information stored
+- Videos play via YouTube/Niconico embeds only — this site hosts no content
+
+## Made by
+
+[kako-jun](https://llll-ll.com) · [GitHub](https://github.com/kako-jun/ear-sky) · [Sponsor](https://github.com/sponsors/kako-jun)

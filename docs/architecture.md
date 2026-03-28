@@ -1,86 +1,107 @@
-# アーキテクチャ
+# Architecture
 
-## 全体構成
+## Overview
 
 ```
-[ブラウザ] → [CF Pages (静的SPA)] → [Pages Functions (Hono API)] → [D1 (SQLite)]
-                                  ↕
-                         [YouTube/ニコニコ 埋め込みプレイヤー]
-                         [Nostalgic Counter API]
-                         [noembed.com (oEmbed proxy)]
-                         [/share/:id → 動的OGP (ボット用メタタグ)]
-                         [/pickups/*.json → 静的ピックアップデータ]
+[Browser] → [CF Pages (static SPA)] → [Pages Functions (Hono API)] → [D1 (SQLite)]
+                                   ↕
+                          [YouTube/Niconico embedded players]
+                          [Nostalgic Counter API]
+                          [noembed.com (oEmbed proxy)]
+                          [/share/:id → Dynamic OGP (bot meta tags)]
+                          [/pickups/*.json → Static pickup data]
 ```
 
-## データフロー
+## Data Flow
 
-### 投稿
-1. ユーザーがURL+区間+空耳テキストを入力
-2. URLからplatform/videoIdを解析 (`video.ts`)
-3. oEmbed経由で動画タイトルを自動取得 → アーティスト・曲名に分割
-4. プレビューで確認（YouTube区間再生+テロップ）
-5. POST /api/posts → D1に保存（IPハッシュ付き）
-6. フィードに即反映
+### Posting
+1. User enters URL + time range + misheard text
+2. URL parsed to extract platform/videoId (`video.ts`)
+3. Video title auto-fetched via oEmbed → split into artist/song
+4. Preview with YouTube segment playback + subtitle
+5. POST /api/posts → saved to D1 (with IP hash, optional era/comment)
+6. Immediately appears in feed
 
-### 再生（YouTube）
-1. PostCardの再生ボタンをタップ
-2. YouTube IFrame APIでプレーヤーを初期化（start/end指定）
-3. 「この部分を再生」で区間の先頭にseek+play
-4. 再生開始0.5秒後にSubtitleがカラオケ風スイープ（白→黄色）でフェードイン
-5. 終了秒に達したら自動停止
+### Playback (YouTube)
+1. Tap play button on PostCard
+2. YouTube IFrame API initializes player (start/end specified)
+3. Playback starts at segment beginning
+4. Subtitle fades in 0.5s after playback with karaoke sweep (white→yellow)
+5. Auto-stops at end second
 
-### 再生（ニコニコ）
-1. embed.nicovideo.jp のiframeで埋め込み（commentLayerMode=0 でコメントOFF）
-2. postMessage APIでseek+play制御
-3. タイマーベースで区間終了を検出
-4. YouTube同様のSubtitleオーバーレイ表示
+### Playback (Niconico)
+1. embed.nicovideo.jp iframe (commentLayerMode=0, comments OFF)
+2. postMessage API for seek+play control
+3. Timer-based segment end detection
+4. Same Subtitle overlay as YouTube
 
-### リアクション
-1. いいね/リアクションボタンをタップ
-2. localStorage で重複チェック（クライアント側UI即時反映）
-3. API呼び出し（サーバー側IPハッシュで重複防止）
-4. カウント更新
+### Spoiler/Reveal
+1. PostCard initially hides misheard text (shows "???")
+2. Reveal triggers: video starts playing OR "Show mishearing" button
+3. Text appears with fade-in animation
+4. Karaoke subtitle still plays separately during video playback
 
-### ピックアップコーナー
-1. `public/pickups/index.json` から利用可能なIDリストを取得
-2. 最新のピックアップJSONを読み込み
-3. 空耳アワー風に表示: マスター曲紹介 → 動画再生 → ネタバレボタン → 掛け合い
-4. 過去のピックアップはオンデマンドで遅延読み込み
+### Reactions (Emoji Picker)
+1. User taps "+" button → emoji picker popover with 16 curated emoji
+2. Each user (IP) can pick exactly ONE emoji per post
+3. Clicking a different emoji switches the reaction
+4. Clicking the current emoji removes it (toggle off)
+5. Optimistic UI update + server sync via PUT/DELETE /api/posts/:id/reaction
+6. localStorage tracks the user's emoji per post
+7. Server enforces UNIQUE(post_id, ip_hash) constraint
 
-### 動的OGP
-1. `/share/:id` にアクセス
-2. User-Agentでボット判定
-3. ボット: D1から投稿データ取得 → OGPメタタグ付きHTML返却
-4. ブラウザ: `/#post-{id}` にリダイレクト
+### Pickup Corner
+1. Fetch `public/pickups/index.json` for available pickup IDs
+2. Load latest pickup JSON
+3. Display in talk-show format: master intro → video → reveal → banter
+4. Past pickups lazy-loaded on demand
 
-## テーブル設計
+### Dynamic OGP
+1. Access `/share/:id`
+2. Bot detection via User-Agent
+3. Bot: fetch post from D1 → return HTML with OGP meta tags
+4. Browser: redirect to `/#post-{id}`
+
+## i18n
+
+- English is the default language
+- Japanese detected via `navigator.language`
+- All UI strings externalized in `src/i18n/en.ts` and `src/i18n/ja.ts`
+- `useI18n()` hook provides messages to components
+- Language toggle UI planned for future
+
+## Table Schema
 
 ### posts
-| カラム | 型 | 説明 |
+| Column | Type | Description |
 |---|---|---|
 | id | TEXT PK | UUID |
-| video_url | TEXT | 元の動画URL |
+| video_url | TEXT | Original video URL |
 | platform | TEXT | youtube / niconico / other |
-| video_id | TEXT | プラットフォーム別ID |
-| start_sec | REAL | 開始秒 |
-| end_sec | REAL | 終了秒 |
-| misheard_text | TEXT | 空耳テキスト |
-| original_text | TEXT? | 元の歌詞 |
-| artist_name | TEXT | アーティスト名 |
-| song_title | TEXT | 曲名 |
-| source_lang | TEXT | オリジナル言語 |
-| target_lang | TEXT | 聴こえる言語 |
-| nickname | TEXT | 投稿者名 |
-| likes | INTEGER | いいね数 |
-| ip_hash | TEXT | 投稿者IPハッシュ |
-| delete_key | TEXT? | 削除キー |
-| created_at | TEXT | 投稿日時 |
+| video_id | TEXT | Platform-specific ID |
+| start_sec | REAL | Start second |
+| end_sec | REAL | End second |
+| misheard_text | TEXT | Misheard text |
+| original_text | TEXT? | Original lyrics |
+| artist_name | TEXT | Artist name |
+| song_title | TEXT | Song title |
+| source_lang | TEXT | Original language |
+| target_lang | TEXT | Target language |
+| nickname | TEXT | Poster nickname |
+| likes | INTEGER | Legacy (unused, kept for compat) |
+| ip_hash | TEXT | Poster IP hash |
+| delete_key | TEXT? | Deletion key |
+| era | TEXT? | Era/year (e.g. "1985", "90s") |
+| comment | TEXT? | One-liner comment |
+| created_at | TEXT | Created timestamp |
 
 ### reactions
-| カラム | 型 | 説明 |
+| Column | Type | Description |
 |---|---|---|
-| id | INTEGER PK | 連番 |
-| post_id | TEXT FK | 投稿ID |
-| reaction_key | TEXT | like / ear / laugh / clap / party / sparkle / melt |
-| ip_hash | TEXT | リアクション者IPハッシュ |
-| created_at | TEXT | 日時 |
+| id | INTEGER PK | Auto-increment |
+| post_id | TEXT FK | Post ID |
+| reaction_key | TEXT | Emoji character (e.g. "👂", "🤣", "❤️") |
+| ip_hash | TEXT | Reactor IP hash |
+| created_at | TEXT | Timestamp |
+
+**Constraints:** UNIQUE(post_id, ip_hash) — one reaction per user per post.

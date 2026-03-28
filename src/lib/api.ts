@@ -15,7 +15,7 @@ async function parseJsonSafe(res: Response) {
   try {
     return await res.json();
   } catch {
-    throw new ApiError("サーバーエラーが発生しました", res.status);
+    throw new ApiError("Server error", res.status);
   }
 }
 
@@ -39,7 +39,7 @@ export async function fetchPost(id: string): Promise<Post | null> {
 }
 
 export async function createPost(
-  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions"> & { deleteKey?: string }
+  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions"> & { deleteKey?: string }
 ): Promise<string> {
   const res = await fetch(`${API_BASE}/posts`, {
     method: "POST",
@@ -47,7 +47,7 @@ export async function createPost(
     body: JSON.stringify(data),
   });
   const result = await parseJsonSafe(res);
-  if (!res.ok) throw new ApiError(result.error || "投稿に失敗しました", res.status);
+  if (!res.ok) throw new ApiError(result.error || "Failed to post", res.status);
   return result.id;
 }
 
@@ -59,38 +59,31 @@ export async function deletePost(id: string, deleteKey: string): Promise<void> {
   });
   if (!res.ok) {
     const result = await parseJsonSafe(res);
-    throw new ApiError(result.error || "削除に失敗しました", res.status);
+    throw new ApiError(result.error || "Failed to delete", res.status);
   }
 }
 
-export async function likePost(id: string): Promise<number> {
-  const res = await fetch(`${API_BASE}/posts/${id}/like`, { method: "POST" });
-  const data = await parseJsonSafe(res);
-  return data.likes;
-}
-
-export async function unlikePost(id: string): Promise<number> {
-  const res = await fetch(`${API_BASE}/posts/${id}/like`, { method: "DELETE" });
-  const data = await parseJsonSafe(res);
-  return data.likes;
-}
-
-export async function reactToPost(id: string, key: string): Promise<number> {
-  const res = await fetch(`${API_BASE}/posts/${id}/react`, {
-    method: "POST",
+export async function setReaction(
+  postId: string,
+  emoji: string
+): Promise<{ reactions: Record<string, number>; myEmoji: string }> {
+  const res = await fetch(`${API_BASE}/posts/${postId}/reaction`, {
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key }),
+    body: JSON.stringify({ emoji }),
   });
   const data = await parseJsonSafe(res);
-  return data.count;
+  if (!res.ok) throw new ApiError(data.error || "Failed to react", res.status);
+  return data;
 }
 
-export async function unreactToPost(id: string, key: string): Promise<number> {
-  const res = await fetch(`${API_BASE}/posts/${id}/react`, {
+export async function removeReaction(
+  postId: string
+): Promise<{ reactions: Record<string, number>; myEmoji: null }> {
+  const res = await fetch(`${API_BASE}/posts/${postId}/reaction`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key }),
   });
   const data = await parseJsonSafe(res);
-  return data.count;
+  if (!res.ok) throw new ApiError(data.error || "Failed to remove reaction", res.status);
+  return data;
 }

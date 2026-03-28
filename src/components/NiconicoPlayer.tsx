@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
+import { useI18n } from "@/i18n";
 import { Play } from "lucide-react";
 
 interface Props {
@@ -14,6 +15,7 @@ export default function NiconicoPlayer({
   endSec,
   onStateChange,
 }: Props) {
+  const t = useI18n();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [ready, setReady] = useState(false);
@@ -84,7 +86,7 @@ export default function NiconicoPlayer({
           rel="noopener noreferrer"
           className="underline hover:text-white/60"
         >
-          ニコニコ動画で再生
+          {t.niconico.fallbackLink}
         </a>
       </div>
     );
@@ -99,7 +101,7 @@ export default function NiconicoPlayer({
           className="w-full h-full"
           allow="autoplay; fullscreen"
           allowFullScreen
-          title={`${videoId} — ニコニコ動画`}
+          title={`${videoId} — Niconico`}
           onLoad={handleIframeLoad}
           onError={() => setError(true)}
         />
@@ -111,7 +113,7 @@ export default function NiconicoPlayer({
                      hover:brightness-110 active:scale-[0.98] transition-all
                      focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
-          <Play size={16} className="inline mr-1" />この部分を再生
+          <Play size={16} className="inline mr-1" />{t.niconico.playSegment}
         </button>
       )}
     </div>

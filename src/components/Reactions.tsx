@@ -1,121 +1,158 @@
-import { useState, useCallback } from "react";
-import { REACTION_KEYS, ReactionKey } from "@/types";
-import { hasReacted, markReacted, unmarkReacted } from "@/lib/storage";
-import { likePost, unlikePost, reactToPost, unreactToPost } from "@/lib/api";
-import {
-  Heart,
-  Ear,
-  Laugh,
-  HandMetal,
-  PartyPopper,
-  Sparkles,
-  Flame,
-} from "lucide-react";
-
-const REACTION_ICONS: Record<ReactionKey, { icon: typeof Heart; label: string }> = {
-  ear: { icon: Ear, label: "聴こえた" },
-  laugh: { icon: Laugh, label: "笑った" },
-  clap: { icon: HandMetal, label: "すごい" },
-  party: { icon: PartyPopper, label: "最高" },
-  sparkle: { icon: Sparkles, label: "天才" },
-  melt: { icon: Flame, label: "ヤバい" },
-};
+import { useState, useCallback, useEffect, useRef } from "react";
+import { CURATED_EMOJI } from "@/types";
+import { getMyReaction, setMyReaction, clearMyReaction } from "@/lib/storage";
+import { setReaction, removeReaction } from "@/lib/api";
+import { useI18n, getLocale } from "@/i18n";
+import { Plus } from "lucide-react";
 
 interface Props {
   postId: string;
-  initialLikes: number;
   initialReactions: Record<string, number>;
 }
 
-export default function Reactions({
-  postId,
-  initialLikes,
-  initialReactions,
-}: Props) {
-  const [likes, setLikes] = useState(initialLikes);
-  const [reactions, setReactions] = useState<Record<string, number>>(
-    initialReactions
-  );
-  const [liked, setLiked] = useState(() => hasReacted(postId, "like"));
+export default function Reactions({ postId, initialReactions }: Props) {
+  const t = useI18n();
+  const [reactions, setReactions] = useState<Record<string, number>>(initialReactions);
+  const [myEmoji, setMyEmoji] = useState<string | null>(() => getMyReaction(postId));
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleLike = useCallback(async () => {
-    if (liked) {
-      setLiked(false);
-      unmarkReacted(postId, "like");
-      const newCount = await unlikePost(postId);
-      setLikes(newCount);
-    } else {
-      setLiked(true);
-      markReacted(postId, "like");
-      const newCount = await likePost(postId);
-      setLikes(newCount);
-    }
-  }, [postId, liked]);
+  // Close picker on outside click
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [pickerOpen]);
 
-  const handleReaction = useCallback(
-    async (key: string) => {
-      const reacted = hasReacted(postId, key);
-      if (reacted) {
-        unmarkReacted(postId, key);
-        const newCount = await unreactToPost(postId, key);
-        setReactions((prev) => ({ ...prev, [key]: newCount }));
+  // Close picker on Escape
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPickerOpen(false);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [pickerOpen]);
+
+  const handlePick = useCallback(
+    async (emoji: string) => {
+      if (emoji === myEmoji) {
+        // Toggle off
+        setMyEmoji(null);
+        clearMyReaction(postId);
+        setReactions((prev) => {
+          const next = { ...prev };
+          if (next[emoji] > 1) {
+            next[emoji] -= 1;
+          } else {
+            delete next[emoji];
+          }
+          return next;
+        });
+        setPickerOpen(false);
+        try {
+          const result = await removeReaction(postId);
+          setReactions(result.reactions);
+        } catch { /* revert on error is acceptable */ }
       } else {
-        markReacted(postId, key);
-        const newCount = await reactToPost(postId, key);
-        setReactions((prev) => ({ ...prev, [key]: newCount }));
+        // Set or switch
+        const oldEmoji = myEmoji;
+        setMyEmoji(emoji);
+        setMyReaction(postId, emoji);
+        setReactions((prev) => {
+          const next = { ...prev };
+          // Remove old
+          if (oldEmoji && next[oldEmoji]) {
+            if (next[oldEmoji] > 1) {
+              next[oldEmoji] -= 1;
+            } else {
+              delete next[oldEmoji];
+            }
+          }
+          // Add new
+          next[emoji] = (next[emoji] || 0) + 1;
+          return next;
+        });
+        setPickerOpen(false);
+        try {
+          const result = await setReaction(postId, emoji);
+          setReactions(result.reactions);
+        } catch { /* optimistic update stands */ }
       }
     },
-    [postId]
+    [postId, myEmoji]
   );
 
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 mt-4">
-      <button
-        onClick={handleLike}
-        aria-label={`いいね ${likes}`}
-        aria-pressed={liked}
-        className={`
-          flex items-center gap-1 min-w-[3.5rem] justify-center px-3 py-1.5 rounded-full text-sm
-          transition-all border
-          ${
-            liked
-              ? "border-neon-pink/50 text-neon-pink bg-neon-pink/10"
-              : "border-white/20 text-white/60 hover:border-neon-pink/50 hover:text-neon-pink"
-          }
-        `}
-      >
-        <Heart size={14} fill={liked ? "currentColor" : "none"} />
-        <span className="min-w-[1ch] text-center">{likes}</span>
-      </button>
+  // Sort badges by count descending
+  const badges = Object.entries(reactions)
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1]);
 
-      {REACTION_KEYS.map((key) => {
-        const { icon: Icon, label } = REACTION_ICONS[key];
-        const count = reactions[key] || 0;
-        const reacted = hasReacted(postId, key);
-        return (
+  return (
+    <div ref={containerRef} className="relative mt-4">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {badges.map(([emoji, count]) => (
           <button
-            key={key}
-            onClick={() => handleReaction(key)}
-            aria-label={label}
-            aria-pressed={reacted}
-            title={label}
+            key={emoji}
+            onClick={() => handlePick(emoji)}
+            aria-label={`${emoji} ${count}`}
+            aria-pressed={emoji === myEmoji}
             className={`
-              flex items-center gap-1 min-w-[2.5rem] justify-center px-2 py-1.5 rounded-full text-sm
+              flex items-center gap-1 px-2.5 py-1 rounded-full text-sm
               transition-all border
               ${
-                reacted
-                  ? "border-white/30 bg-white/10 text-white/70"
-                  : "border-white/10 text-white/40 hover:border-white/30 hover:bg-white/5 hover:text-white/60"
+                emoji === myEmoji
+                  ? "border-neon-pink/50 bg-neon-pink/10 text-white"
+                  : "border-white/15 text-white/60 hover:border-white/30 hover:bg-white/5"
               }
             `}
           >
-            <Icon size={14} />
-            {count > 0 && (
-              <span className="text-white/50 text-xs min-w-[1ch] text-center">{count}</span>
-            )}
+            <span className="text-base leading-none">{emoji}</span>
+            <span className="text-xs min-w-[1ch] text-center">{count}</span>
           </button>
-        );
-      })}
+        ))}
+
+        {/* Add reaction button */}
+        <button
+          onClick={() => setPickerOpen(!pickerOpen)}
+          aria-label={t.reactions.add}
+          aria-expanded={pickerOpen}
+          className="flex items-center justify-center w-8 h-8 rounded-full
+                     border border-white/15 text-white/40
+                     hover:border-white/30 hover:text-white/60 hover:bg-white/5
+                     transition-all"
+        >
+          <Plus size={14} />
+        </button>
+      </div>
+
+      {/* Emoji picker popover */}
+      {pickerOpen && (
+        <div className="emoji-picker" role="dialog" aria-label={t.reactions.pickerTitle}>
+          <div className="emoji-picker-grid">
+            {CURATED_EMOJI.map(({ emoji, label, labelEn }) => {
+              const locLabel = getLocale() === "ja" ? label : labelEn;
+              return (
+                <button
+                  key={emoji}
+                  onClick={() => handlePick(emoji)}
+                  aria-label={locLabel}
+                  aria-pressed={emoji === myEmoji}
+                  title={locLabel}
+                  className="emoji-picker-btn"
+                >
+                  {emoji}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

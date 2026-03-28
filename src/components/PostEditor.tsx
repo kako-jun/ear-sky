@@ -3,11 +3,12 @@ import { LANGUAGES, Post } from "@/types";
 import { parseVideoUrl, formatTime, parseTime } from "@/lib/video";
 import { saveDraft, getAllDrafts, deleteDraft } from "@/lib/storage";
 import { fetchVideoTitle, splitArtistTitle } from "@/lib/oembed";
+import { useI18n } from "@/i18n";
 import YouTubePlayer from "./YouTubePlayer";
 import Subtitle from "./Subtitle";
 import { Save, Send, Eye, EyeOff } from "lucide-react";
 
-type PostData = Omit<Post, "id" | "likes" | "createdAt" | "reactions">;
+type PostData = Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions">;
 
 interface Props {
   onPublished: (data: PostData) => void;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function PostEditor({ onPublished, initialDraftId }: Props) {
+  const t = useI18n();
   const [url, setUrl] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -28,6 +30,8 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     try { return localStorage.getItem("ear-sky-nickname") || ""; } catch { return ""; }
   });
   const [deleteKey, setDeleteKey] = useState("");
+  const [era, setEra] = useState("");
+  const [comment, setComment] = useState("");
   const [draftId, setDraftId] = useState<string | undefined>(initialDraftId);
   const [showPreview, setShowPreview] = useState(false);
   const [showSubtitle, setShowSubtitle] = useState(false);
@@ -45,7 +49,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
   // Auto-fetch video title when URL changes
   useEffect(() => {
     if (!parsed || parsed.platform === "other") return;
-    if (artistName || songTitle) return; // Don't overwrite user input
+    if (artistName || songTitle) return;
     let cancelled = false;
     fetchVideoTitle(parsed.platform, parsed.videoId).then((title) => {
       if (cancelled || !title) return;
@@ -73,6 +77,8 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     setSourceLang(d.sourceLang);
     setTargetLang(d.targetLang);
     setNickname(d.nickname);
+    setEra(d.era || "");
+    setComment(d.comment || "");
   }, [initialDraftId]);
 
   const buildData = useCallback(() => {
@@ -89,12 +95,15 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
       songTitle: songTitle.trim(),
       sourceLang,
       targetLang,
-      nickname: nickname.trim() || "名無し",
+      nickname: nickname.trim() || "Anonymous",
       deleteKey: deleteKey.trim() || undefined,
+      era: era.trim() || undefined,
+      comment: comment.trim() || undefined,
     };
   }, [
     url, parsed, startSec, endSec, misheardText, originalText,
-    artistName, songTitle, sourceLang, targetLang, nickname,
+    artistName, songTitle, sourceLang, targetLang, nickname, deleteKey,
+    era, comment,
   ]);
 
   const handleSaveDraft = useCallback(() => {
@@ -102,15 +111,14 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     if (!data) return;
     const draft = saveDraft(data, draftId);
     setDraftId(draft.id);
-    setSavedMsg("下書き保存しました");
+    setSavedMsg(t.editor.draftSaved);
     setTimeout(() => setSavedMsg(""), 2000);
-  }, [buildData, draftId]);
+  }, [buildData, draftId, t]);
 
   const handleSubmit = useCallback(() => {
     const data = buildData();
     if (!data) return;
     if (draftId) deleteDraft(draftId);
-    // Remember nickname for next time
     try { localStorage.setItem("ear-sky-nickname", nickname.trim()); } catch { /* ignore */ }
     onPublished(data);
   }, [buildData, draftId, onPublished, nickname]);
@@ -135,6 +143,8 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     setSourceLang(d.sourceLang);
     setTargetLang(d.targetLang);
     setNickname(d.nickname);
+    setEra(d.era || "");
+    setComment(d.comment || "");
     setDraftId(draft.id);
     setShowDrafts(false);
   }, []);
@@ -147,7 +157,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           onClick={() => setShowDrafts(!showDrafts)}
           className="text-xs text-white/40 hover:text-white/60 underline"
         >
-          下書き一覧
+          {t.editor.drafts}
         </button>
       </div>
 
@@ -163,25 +173,25 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
 
       {/* URL input */}
       <div className="space-y-1">
-        <label className="block text-sm text-white/60">動画URL</label>
+        <label className="block text-sm text-white/60">{t.editor.urlLabel}</label>
         <input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://youtube.com/watch?v=... or nicovideo.jp/watch/sm..."
+          placeholder={t.editor.urlPlaceholder}
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
                      placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
         {url && !parsed && (
-          <p className="text-xs text-red-400">有効なURLを入力してください</p>
+          <p className="text-xs text-red-400">{t.editor.urlInvalid}</p>
         )}
         {parsed && (
           <p className="text-xs text-neon-blue/60">
             {parsed.platform === "youtube"
-              ? "YouTube"
+              ? t.platform.youtube
               : parsed.platform === "niconico"
-                ? "ニコニコ動画"
-                : "外部サイト"}{" "}
+                ? t.platform.niconico
+                : t.platform.other}{" "}
             — {parsed.platform === "other" ? new URL(parsed.videoId).hostname : parsed.videoId}
           </p>
         )}
@@ -190,7 +200,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
       {/* Time range */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="block text-sm text-white/60">開始</label>
+          <label className="block text-sm text-white/60">{t.editor.startLabel}</label>
           <input
             type="text"
             value={startTime}
@@ -201,7 +211,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           />
         </div>
         <div className="space-y-1">
-          <label className="block text-sm text-white/60">終了</label>
+          <label className="block text-sm text-white/60">{t.editor.endLabel}</label>
           <input
             type="text"
             value={endTime}
@@ -216,7 +226,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
       {/* Language pair */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="block text-sm text-white/60">オリジナル言語</label>
+          <label className="block text-sm text-white/60">{t.editor.sourceLangLabel}</label>
           <select
             value={sourceLang}
             onChange={(e) => setSourceLang(e.target.value)}
@@ -231,7 +241,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           </select>
         </div>
         <div className="space-y-1">
-          <label className="block text-sm text-white/60">こう聴こえる</label>
+          <label className="block text-sm text-white/60">{t.editor.targetLangLabel}</label>
           <select
             value={targetLang}
             onChange={(e) => setTargetLang(e.target.value)}
@@ -249,12 +259,12 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
 
       {/* Misheard text */}
       <div className="space-y-1">
-        <label className="block text-sm text-white/60">こう聴こえる！（空耳テキスト）</label>
+        <label className="block text-sm text-white/60">{t.editor.misheardLabel}</label>
         <input
           type="text"
           value={misheardText}
           onChange={(e) => setMisheardText(e.target.value)}
-          placeholder="コンドルが関取に見えたので"
+          placeholder={t.editor.misheardPlaceholder}
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white text-lg
                      placeholder:text-white/20 focus:border-neon-pink/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
@@ -263,7 +273,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
       {/* Song info */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="block text-sm text-white/60">アーティスト</label>
+          <label className="block text-sm text-white/60">{t.editor.artistLabel}</label>
           <input
             type="text"
             value={artistName}
@@ -274,7 +284,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           />
         </div>
         <div className="space-y-1">
-          <label className="block text-sm text-white/60">曲名</label>
+          <label className="block text-sm text-white/60">{t.editor.songLabel}</label>
           <input
             type="text"
             value={songTitle}
@@ -288,9 +298,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
 
       {/* Original text (optional) */}
       <div className="space-y-1">
-        <label className="block text-sm text-white/60">
-          元の歌詞（わかれば）
-        </label>
+        <label className="block text-sm text-white/60">{t.editor.originalLabel}</label>
         <input
           type="text"
           value={originalText}
@@ -301,14 +309,42 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
         />
       </div>
 
+      {/* Era (optional) */}
+      <div className="space-y-1">
+        <label className="block text-sm text-white/60">{t.editor.eraLabel}</label>
+        <input
+          type="text"
+          value={era}
+          onChange={(e) => setEra(e.target.value)}
+          placeholder={t.editor.eraPlaceholder}
+          maxLength={20}
+          className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
+                     placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+        />
+      </div>
+
+      {/* Comment (optional) */}
+      <div className="space-y-1">
+        <label className="block text-sm text-white/60">{t.editor.commentLabel}</label>
+        <input
+          type="text"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder={t.editor.commentPlaceholder}
+          maxLength={200}
+          className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
+                     placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+        />
+      </div>
+
       {/* Nickname */}
       <div className="space-y-1">
-        <label className="block text-sm text-white/60">ニックネーム（任意）</label>
+        <label className="block text-sm text-white/60">{t.editor.nicknameLabel}</label>
         <input
           type="text"
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
-          placeholder="名無し"
+          placeholder={t.editor.nicknamePlaceholder}
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
                      placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
@@ -316,7 +352,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
 
       {/* Delete key */}
       <div className="space-y-1">
-        <label className="block text-sm text-white/60">削除キー（任意・投稿を消したいとき用）</label>
+        <label className="block text-sm text-white/60">{t.editor.deleteKeyLabel}</label>
         <input
           type="text"
           value={deleteKey}
@@ -334,7 +370,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             onClick={() => setShowPreview(!showPreview)}
             className="text-sm text-neon-blue hover:underline"
           >
-            {showPreview ? <><EyeOff size={14} className="inline mr-1" />プレビューを閉じる</> : <><Eye size={14} className="inline mr-1" />プレビューで確認</>}
+            {showPreview ? <><EyeOff size={14} className="inline mr-1" />{t.editor.previewClose}</> : <><Eye size={14} className="inline mr-1" />{t.editor.previewOpen}</>}
           </button>
 
           {showPreview && parsed?.platform === "youtube" && (
@@ -350,7 +386,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           )}
           {showPreview && parsed?.platform !== "youtube" && (
             <p className="mt-3 text-sm text-white/40 text-center">
-              プレビューはYouTube動画のみ対応しています
+              {t.editor.previewUnsupported}
             </p>
           )}
         </div>
@@ -365,7 +401,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
                      hover:border-white/40 hover:text-white/80 transition-all
                      disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <Save size={14} className="inline mr-1" />下書き保存
+          <Save size={14} className="inline mr-1" />{t.editor.saveDraft}
         </button>
         <button
           onClick={handleSubmit}
@@ -375,7 +411,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
                      disabled:opacity-30 disabled:cursor-not-allowed
                      focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
-          <Send size={14} className="inline mr-1" />投稿する
+          <Send size={14} className="inline mr-1" />{t.editor.submit}
         </button>
       </div>
 
@@ -397,6 +433,7 @@ function DraftsList({
   onLoad: (draft: ReturnType<typeof getAllDrafts>[number]) => void;
   onDelete: (id: string) => void;
 }) {
+  const t = useI18n();
   const [drafts, setDrafts] = useState<ReturnType<typeof getAllDrafts>>([]);
 
   useEffect(() => {
@@ -406,7 +443,7 @@ function DraftsList({
   if (drafts.length === 0) {
     return (
       <p className="text-xs text-white/30 text-center py-3">
-        下書きはありません
+        {t.editor.noDrafts}
       </p>
     );
   }
@@ -422,7 +459,7 @@ function DraftsList({
             onClick={() => onLoad(draft)}
             className="text-white/60 hover:text-white truncate text-left flex-1"
           >
-            {draft.data.misheardText || draft.data.videoUrl || "（無題）"}
+            {draft.data.misheardText || draft.data.videoUrl || "(untitled)"}
             <span className="text-white/30 text-xs ml-2">
               {new Date(draft.updatedAt).toLocaleDateString("ja-JP")}
             </span>
@@ -434,7 +471,7 @@ function DraftsList({
             }}
             className="text-white/30 hover:text-red-400 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center
                        focus-visible:outline-2 focus-visible:outline-neon-blue"
-            aria-label="削除"
+            aria-label={t.editor.delete}
           >
             ✕
           </button>
