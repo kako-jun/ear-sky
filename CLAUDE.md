@@ -123,7 +123,9 @@ migrations/
 - **Format**: Master (wine/blue) introduces song (1曲目「まずは」, 2曲目以降「続いては」) → サムネイルクリックで展開（autoExpand廃止） → cue区間到達で空耳テキスト+掛け合い自動展開。専用revealボタンなし
 - **Layout**: 通常の投稿カードと同じ見た目（VideoSegment共通コンポーネント使用）
 - **Archive**: "Past picks" expandable below the latest
-- **JSON**: `{ id, title, publishedAt, picks: [{ artistName, songTitle, year, videoUrl, startSec, endSec, misheardText, originalText?, banter: [{speaker, text}] }] }`
+- **JSON**: `{ id, title, publishedAt, picks: [{ artistName, songTitle, year, videoUrl, startSec, endSec, misheardText, originalText?, cues?: SubtitleCue[], banter: [{speaker, text}] }] }`
+- **Cue fallback**: `PickupEntry.cues` is optional. When `cues` is undefined or empty, PickupCorner synthesizes a single cue from `misheardText`/`startSec`/`endSec`. Existing pickup JSONs without `cues` work unchanged
+- **Multi-cue reveal**: When `pickupCues.length > 1`, each cue is displayed as a separate block (same pattern as PostCard). Single cue uses legacy `misheardText` display
 - **URL入力欄**: URL未入力時にYouTube/niconico/SoundCloudへのExternalLinkアイコン付きリンクを表示
 - **startSec自動取得**: parseVideoUrlの戻り値に `startSec?: number` を追加。URL中の `?t=` / `&t=` / `?start=` (YouTube) / `?from=` (niconico) から開始時刻を取得し、PostEditorで字幕cue初期値に反映
 
