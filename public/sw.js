@@ -23,6 +23,8 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
+  // Only handle same-origin requests — skip third-party (analytics, CDN, etc.)
+  if (url.origin !== self.location.origin) return;
   // API calls: network only
   if (url.pathname.startsWith("/api/")) return;
 

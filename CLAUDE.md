@@ -28,7 +28,7 @@ src/
 │   ├── video.ts         # URL parsing (YouTube /live/, ?list=&v=, ?t=, ?start=; Niconico nicovideo.jp + nico.ms short URL, ?from=; SoundCloud), time formatting
 │   └── oembed.ts        # Video title auto-fetch (oEmbed/noembed)
 ├── components/
-│   ├── Header.tsx       # Neon title + sticky shrink (useShrunk hook: scrollY>80px → compact mode)
+│   ├── Header.tsx       # Neon title + sticky shrink (useShrunk hook: scrollY>80px → compact mode, 200ms lock to prevent oscillation)
 │   ├── PostEditor.tsx   # Post form (wizard: URL→preview→info→cues→about you). Preview uses PostCard(preview=true)
 │   ├── PostCard.tsx     # Flat post layout (song→artist(era) lang→video→reveal→ID|date|poster). PlatformIcon + external link
 │   ├── EmptyState.tsx   # No-posts state with soramimi explanation and CTA
@@ -42,7 +42,7 @@ src/
 │   ├── NiconicoPlayer.tsx # Niconico embed segment playback. 統合オーバーレイ
 │   ├── SoundCloudPlayer.tsx # SoundCloud Widget API segment playback. 統合オーバーレイ
 │   ├── PlatformIcon.tsx # Platform SVG icons (YouTube/Niconico/SoundCloud)
-│   ├── Subtitle.tsx     # Karaoke subtitle (currentTime→progress直接計算, 複数cue対応)
+│   ├── Subtitle.tsx     # Karaoke subtitle (currentTime→progress直接計算, 複数cue対応). useEffect is always called (early return moved after hooks to prevent React Error #310)
 │   ├── DualRangeSlider.tsx # Dual-thumb range slider (◀▶ 1s adjust, drag→seekTo連動)
 │   ├── NightBackground.tsx # Day-rotating night scene background
 │   ├── Reactions.tsx    # Emoji picker + reaction badges (Slack-style, 12 emoji, 1 per user)
@@ -121,6 +121,7 @@ migrations/
 - Playback has pre-margin (5s) and post-margin (0.3s) around the segment (POST_MARGIN=0.3s, all players)
 - After playback ends, swept subtitle text remains visible (not cleared)
 - **統合オーバーレイ（3プレイヤー共通）**: 1つのdivが再生中ブロック＋リプレイを兼ねる。条件 `(playing || segmentEnded)` で表示。再生中は透明でiframe操作遮断（onClick=undefined）、segmentEnded時はbg-black/30+RotateCcw+role="button"+aria-label。再生前（両方false）はオーバーレイ非表示
+- **Pre-mount hiding**: VideoSegmentは未展開時のiframeを `clip-path: inset(100%) + position: absolute + pointer-events: none` で隠す。`display: none`（Tailwind `hidden`）はiframe初期化を阻害するため使用禁止。YouTube APIはコンテナ高さ0で初期化不能なので `height: 0` も不可
 - YouTube: handlePlayでリプレイ。No `end` playerVar (prevents seek-to-start on replay)
 - Niconico: handlePlayでリプレイ。pause postMessage sent at segment end
 - SoundCloud: handleReplayでリプレイ。Widget API seek/pause for segment playback
@@ -190,6 +191,13 @@ migrations/
 - Icon: Copilot-generated cloud-cat-ear mascot (public/icon-*.png), used in Header and EmptyState. Top-level OGP uses icon-512.png with twitter:card=summary. Per-post OGP uses platform thumbnails where available
 - prefers-reduced-motion supported
 - Mobile background: `100lvh` to prevent jitter from address bar toggle
+
+## Service Worker
+
+- `public/sw.js`: Stale-while-revalidate caching for static assets
+- **Same-origin only**: Third-party requests (Cloudflare analytics, YouTube API, SoundCloud CDN) are skipped via `url.origin !== self.location.origin` check. Without this, the SW attempts to cache cross-origin responses and fails with "Failed to convert value to 'Response'"
+- API calls (`/api/`) are network-only (no caching)
+- Cache name includes build date for automatic invalidation on deploy
 
 ## Cloudflare Config
 

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useLayoutEffect, useState } from "react";
 import { SubtitleCue } from "@/types";
 
 interface Props {
@@ -24,29 +24,30 @@ export default function Subtitle({ cues, currentTime }: Props) {
   const [fontSize, setFontSize] = useState(BASE_REM);
   const [lastText, setLastText] = useState("");
 
-  if (cues.length === 0) return null;
-
-  const firstShowAt = cues[0].showAt;
+  const hasCues = cues.length > 0;
+  const firstShowAt = hasCues ? cues[0].showAt : 0;
   const leadStart = firstShowAt - LEAD_SEC;
 
   let activeCue: SubtitleCue | null = null;
   let progress = 0;
 
-  for (let i = cues.length - 1; i >= 0; i--) {
-    const cue = cues[i];
-    if (currentTime >= cue.showAt) {
-      activeCue = cue;
-      const elapsed = currentTime - cue.showAt;
-      progress = cue.duration > 0 ? Math.min(1, elapsed / cue.duration) : 1;
-      break;
+  if (hasCues) {
+    for (let i = cues.length - 1; i >= 0; i--) {
+      const cue = cues[i];
+      if (currentTime >= cue.showAt) {
+        activeCue = cue;
+        const elapsed = currentTime - cue.showAt;
+        progress = cue.duration > 0 ? Math.min(1, elapsed / cue.duration) : 1;
+        break;
+      }
     }
   }
 
-  const displayText = activeCue?.text ?? cues[0].text;
+  const displayText = activeCue?.text ?? (hasCues ? cues[0].text : "");
 
-  // Recalculate font size when text changes
-  useEffect(() => {
-    if (displayText === lastText) return;
+  // Recalculate font size when text changes (useLayoutEffect to avoid 1-frame flash)
+  useLayoutEffect(() => {
+    if (!displayText || displayText === lastText) return;
     setLastText(displayText);
 
     const el = textRef.current;
@@ -68,6 +69,8 @@ export default function Subtitle({ cues, currentTime }: Props) {
       setFontSize(Math.max(FLOOR_REM, scaled));
     }
   }, [displayText, lastText]);
+
+  if (!hasCues) return null;
 
   let backdropOpacity = 0;
   if (currentTime >= firstShowAt) {

@@ -36,7 +36,7 @@ Misheard text is hidden by default. Play the video and the text reveals automati
 
 ## Reactions
 
-Pick one emoji per post from 16 curated options. Positive vibes only.
+Pick one emoji per post from 12 curated options. Positive vibes only.
 
 ## Hall of Fame
 
