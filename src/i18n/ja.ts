@@ -24,6 +24,8 @@ const ja: Messages = {
     deleteKeyPlaceholder: "削除キー",
     deleteConfirm: "削除",
     deleteTitle: "この投稿を削除",
+    deleteKeyWrong: "キーが違います",
+    deleted: "削除しました",
   },
   reactions: {
     add: "リアクション",

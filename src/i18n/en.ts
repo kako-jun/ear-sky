@@ -22,6 +22,8 @@ const en = {
     deleteKeyPlaceholder: "Delete key",
     deleteConfirm: "Delete",
     deleteTitle: "Delete this post",
+    deleteKeyWrong: "Wrong key",
+    deleted: "Deleted",
   },
   reactions: {
     add: "Add reaction",

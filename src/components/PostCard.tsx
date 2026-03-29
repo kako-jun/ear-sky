@@ -26,6 +26,7 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
   });
   const [deleteError, setDeleteError] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
 
   const copyId = useCallback(() => {
     navigator.clipboard.writeText(post.id).then(() => {
@@ -150,7 +151,10 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
       </div>
 
       {/* Delete */}
-      {!preview && (
+      {!preview && deleted && (
+        <p className="text-xs text-white/30 text-center py-2">{t.postCard.deleted}</p>
+      )}
+      {!preview && !deleted && (
         showDeleteInput ? (
           <form
             onSubmit={async (e) => {
@@ -160,7 +164,11 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
               setDeleteError(false);
               try {
                 await deletePost(post.id, deleteKeyInput.trim());
-                onDeleted?.(post.id);
+                if (onDeleted) {
+                  onDeleted(post.id);
+                } else {
+                  setDeleted(true);
+                }
               } catch {
                 setDeleteError(true);
                 setDeleting(false);
@@ -179,6 +187,9 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
                 ${deleteError ? "border-red-400" : "border-white/20"}`}
               autoFocus
             />
+            {deleteError && (
+              <span className="text-[10px] text-red-400">{t.postCard.deleteKeyWrong}</span>
+            )}
             <button
               type="submit"
               disabled={!deleteKeyInput.trim() || deleting}
