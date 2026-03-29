@@ -115,18 +115,20 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
         onError={() => setError(true)}
       />
 
-      {/* Hole overlay: circular hole in the center lets clicks through to Niconico's
-         native play button. radial-gradient mask cuts a transparent circle.
-         VideoSegment detects the iframe click via window.blur and starts the timer. */}
+      {/* Hole overlay: SVG with circular mask cutout. SVG pointer-events only fire
+         on painted (visible) areas, so the masked circle lets clicks through to
+         Niconico's native play button beneath. */}
       {showOverlay && (
         <>
-          <div
-            className="absolute inset-0 z-10 bg-black/50"
-            style={{
-              WebkitMaskImage: "radial-gradient(circle 36px at center, transparent 100%, black calc(100% + 1px))",
-              maskImage: "radial-gradient(circle 36px at center, transparent 100%, black calc(100% + 1px))",
-            }}
-          />
+          <svg className="absolute inset-0 z-10 w-full h-full" aria-hidden="true">
+            <defs>
+              <mask id={`nico-hole-${videoId}`}>
+                <rect width="100%" height="100%" fill="white" />
+                <circle cx="50%" cy="50%" r="36" fill="black" />
+              </mask>
+            </defs>
+            <rect width="100%" height="100%" fill="rgba(0,0,0,0.5)" mask={`url(#nico-hole-${videoId})`} />
+          </svg>
           <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none text-white/80">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5,3 19,12 5,21" />
