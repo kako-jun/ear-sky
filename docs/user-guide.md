@@ -4,10 +4,10 @@
 
 The post form is a step-by-step wizard:
 
-1. **Paste a video URL** (YouTube, Niconico, or any URL) — the video preview loads immediately
+1. **Paste a video URL** (YouTube, Niconico, or any URL) — the video preview loads immediately. Before pasting, YouTube/niconico links are shown below the input for quick access. URLs with time parameters (`?t=`, `?start=`, `?from=`) auto-set the cue start time
 2. **Song info**: Artist name, song title, and era are auto-filled from the video title via oEmbed (you can correct them). Select the original language and "sounds like" language
 3. **Subtitle cues**: Use the **dual-thumb slider** to set the start and end of the misheard segment. Type what you hear. Use the **◀ ▶ buttons** for 1-second fine-tuning, or **drag the thumb** to seek the video in real-time
-   - To add **multiple subtitles** in one post, tap the **+** button. The 2nd cue onwards only needs an end time (start = previous cue's end)
+   - To add **multiple subtitles** (up to 3) in one post, tap the **+** button. The 2nd cue onwards only needs an end time (start = previous cue's end)
 4. **About you**: Nickname, delete key, and a one-liner comment (optional fields are styled differently so you know they're skippable)
 5. Hit **Post**!
 
@@ -41,8 +41,8 @@ The post form is a step-by-step wizard:
 
 - A **jump link** at the top lets you skip straight to the latest posts
 - Featured picks appear below the jump link, looking just like regular post cards
-- The **master** introduces each song → **play the video** → when playback reaches the cue segment, the misheard text and banter automatically appear
-- No need to tap a separate reveal button — just listen and enjoy the auto-reveal
+- The **master** introduces each song ("First up..." for the 1st, "Next up..." for the rest) → **play the video** → when playback reaches the cue segment, the misheard text and banter automatically appear
+- No separate reveal button — playback triggers the reveal automatically
 - Pickup dates show an "updated" label
 - A gradient divider separates the pickup corner from new posts
 - Tap **Past picks** for archives

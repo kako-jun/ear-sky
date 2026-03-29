@@ -15,12 +15,13 @@
 ## Data Flow
 
 ### Posting (Wizard Flow)
-1. User pastes a video URL → instant preview loads
-2. URL parsed to extract platform/videoId (`video.ts`)
+1. User pastes a video URL → instant preview loads (URL未入力時はYouTube/niconicoへのExternalLink付きリンクを表示)
+2. URL parsed to extract platform/videoId/startSec (`video.ts` — YouTube `/watch?v=`, `/shorts/`, `/live/`, `/embed/`, `youtu.be/`, `?list=...&v=...` 対応; `?t=`/`&t=`/`?start=` で開始時刻取得; niconico `?from=` も同様)
 3. **Song info step**: Video title auto-fetched via oEmbed → artist/song auto-filled (user can correct)
-4. **Cues step**: User defines 1+ subtitle cues via DualRangeSlider (dual-thumb, ◀▶ 1s adjust, drag→seekTo)
+4. **Cues step**: User defines 1–3 subtitle cues via DualRangeSlider (dual-thumb, ◀▶ 1s adjust, drag→seekTo)
+   - If URL has `?t=`/`?start=`/`?from=`, first cue's start/end are auto-initialized from that time
    - First cue: specify start + end
-   - Additional cues (+ button): start = previous cue's end, only end is specified
+   - Additional cues (+ button, max 3): start = previous cue's end, only end is specified
 5. **About you step**: Nickname, delete key, comment (optional fields styled neon-blue/40)
 6. POST /api/posts → saved to D1 (post row + cues rows, with IP hash)
 7. Immediately appears in feed
@@ -59,7 +60,7 @@
 1. Fetch `public/pickups/index.json` for available pickup IDs
 2. Load latest pickup JSON
 3. Display in same card layout as regular posts (VideoSegment shared component)
-4. Master intro → video plays → cue区間到達で空耳テキスト+掛け合い(banter)が自動展開（専用revealボタンなし）
+4. Master intro (1曲目「まずは」, 2曲目以降「続いては」) → video plays → cue区間到達で空耳テキスト+掛け合い(banter)が自動展開（専用revealボタンなし、再生で自動展開）
 5. "Jump to latest posts" link above pickup corner for quick navigation
 6. Gradient divider + spacing separates pickup corner from new posts below
 7. Pickup date shows "updated" label

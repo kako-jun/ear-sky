@@ -73,7 +73,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
 
   const parsed = useMemo(() => parseVideoUrl(url), [url]);
 
-  // Auto-fetch video title
+  // Auto-fetch video title + apply URL start time
   useEffect(() => {
     if (!parsed || parsed.platform === "other") return;
     let cancelled = false;
@@ -83,6 +83,17 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
       setArtistName((prev) => prev || artist);
       setSongTitle((prev) => prev || song);
     });
+    // Apply start time from URL (e.g. ?t=30)
+    if (parsed.startSec != null && parsed.startSec > 0) {
+      setCues((prev) => {
+        const first = prev[0];
+        if (first.startSec === 0 && first.endSec === 10) {
+          // Only apply if cue is still at default values
+          return [{ ...first, startSec: parsed.startSec!, endSec: parsed.startSec! + 5 }, ...prev.slice(1)];
+        }
+        return prev;
+      });
+    }
     return () => { cancelled = true; };
   }, [parsed]);
 

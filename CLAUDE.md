@@ -25,7 +25,7 @@ src/
 ├── lib/
 │   ├── api.ts           # D1 API client (fetch wrapper)
 │   ├── storage.ts       # localStorage (drafts + reaction tracking)
-│   ├── video.ts         # URL parsing, time formatting
+│   ├── video.ts         # URL parsing (YouTube /live/, ?list=&v=, ?t=, ?start=; Niconico ?from=), time formatting
 │   └── oembed.ts        # Video title auto-fetch (oEmbed/noembed)
 ├── components/
 │   ├── Header.tsx       # Neon title
@@ -83,8 +83,9 @@ migrations/
 - **Multiple cues per post**: Each post has N subtitle cues stored in `cues` table (0004_cues.sql)
 - **Type**: `SubtitleCue { text, originalText?, showAt, duration }` — `Post.cues: SubtitleCue[]`
 - **No CSS animation**: Progress computed directly from `currentTime - cue.showAt` / `cue.duration`; `background-position` set via inline style
-- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep. After sweep completes, text remains visible (bar-style residual)
+- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (fill layer uses background-clip:text, no textShadow). After sweep completes, text remains visible (bar-style residual)
 - **VideoSegment.tsx**: Shared component wrapping video player + Subtitle, used by both PostCard and PickupCorner
+- **Frontend cue limit**: Max 3 cues per post (PostEditor enforces)
 
 ## Spoiler/Reveal Mechanism
 
@@ -99,10 +100,12 @@ migrations/
 ## Pickup Corner
 
 - **Data**: `public/pickups/` monthly JSONs. Generated locally → git commit → deploy
-- **Format**: Master (wine/blue) introduces song → video plays → cue区間到達で空耳テキスト+掛け合い自動展開。専用revealボタンなし
+- **Format**: Master (wine/blue) introduces song (1曲目「まずは」, 2曲目以降「続いては」) → video plays → cue区間到達で空耳テキスト+掛け合い自動展開。専用revealボタンなし
 - **Layout**: 通常の投稿カードと同じ見た目（VideoSegment共通コンポーネント使用）
 - **Archive**: "Past picks" expandable below the latest
 - **JSON**: `{ id, title, publishedAt, picks: [{ artistName, songTitle, year, videoUrl, startSec, endSec, misheardText, originalText?, banter: [{speaker, text}] }] }`
+- **URL入力欄**: URL未入力時にYouTube/niconicoへのExternalLinkアイコン付きリンクを表示
+- **startSec自動取得**: parseVideoUrlの戻り値に `startSec?: number` を追加。URL中の `?t=` / `&t=` / `?start=` (YouTube) / `?from=` (niconico) から開始時刻を取得し、PostEditorで字幕cue初期値に反映
 
 ## i18n
 

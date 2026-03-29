@@ -6,21 +6,41 @@ export type Platform = "youtube" | "niconico" | "other";
 export function parseVideoUrl(url: string): {
   platform: Platform;
   videoId: string;
+  startSec?: number;
 } | null {
   // YouTube: various URL formats
   const ytPatterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /(?:youtube\.com\/watch\?.*v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
     /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/live\/([a-zA-Z0-9_-]{11})/,
   ];
   for (const pattern of ytPatterns) {
     const m = url.match(pattern);
-    if (m) return { platform: "youtube", videoId: m[1] };
+    if (m) {
+      // Extract start time from ?t=, &t=, or ?start= parameters
+      // Supports: ?t=90, ?t=1m30s, ?t=1h2m3s
+      const tMatch = url.match(/[?&](?:t|start)=([0-9hms]+)/);
+      let startSec: number | undefined;
+      if (tMatch) {
+        const raw = tMatch[1];
+        const hms = raw.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/);
+        if (hms) {
+          startSec = (parseInt(hms[1] || "0") * 3600) + (parseInt(hms[2] || "0") * 60) + parseInt(hms[3] || "0");
+          if (startSec === 0) startSec = undefined;
+        }
+      }
+      return { platform: "youtube", videoId: m[1], startSec };
+    }
   }
 
-  // Niconico
+  // Niconico — ?from= parameter
   const nicoPattern = /nicovideo\.jp\/watch\/(sm\d+|nm\d+|\d+)/;
   const nm = url.match(nicoPattern);
-  if (nm) return { platform: "niconico", videoId: nm[1] };
+  if (nm) {
+    const fromMatch = url.match(/[?&]from=(\d+)/);
+    const startSec = fromMatch ? parseInt(fromMatch[1]) : undefined;
+    return { platform: "niconico", videoId: nm[1], startSec };
+  }
 
   // Any other valid URL — store full URL as videoId
   try {
