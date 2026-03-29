@@ -1,18 +1,22 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Post, VALID_TAGS } from "@/types";
+import { Post, VALID_TAGS, PAGE_SIZE } from "@/types";
 import { fetchPosts, fetchPost, createPost, ApiError } from "@/lib/api";
 import { useI18n, useI18nState, I18nContext, useI18nProvider } from "@/i18n";
 import PostEditor from "@/components/PostEditor";
 import PostCard from "@/components/PostCard";
+import EmptyState from "@/components/EmptyState";
+import ShareButton from "@/components/ShareButton";
+import Paginator from "@/components/Paginator";
+import Footer from "@/components/Footer";
+import RankingList from "@/components/RankingList";
 import Header, { useShrunk } from "@/components/Header";
 import Toast from "@/components/Toast";
 import PickupCorner from "@/components/PickupCorner";
 import NightBackground from "@/components/NightBackground";
-import { Share2, Sparkles, Award, PenLine, ChevronDown, ChevronLeft, ChevronRight, Heart, ExternalLink, Search, X } from "lucide-react";
+import { Sparkles, Award, PenLine, ChevronDown, Search, X } from "lucide-react";
 
 type Tab = "feed" | "fame" | "search" | "post";
 type ToastState = { message: string; type: "success" | "error" } | null;
-const PAGE_SIZE = 10;
 
 export default function App() {
   const i18n = useI18nProvider();
@@ -63,6 +67,8 @@ function AppInner() {
   const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
   }, []);
+
+  const dismissToast = useCallback(() => setToast(null), []);
 
   const filterParams = useCallback((filter: LangFilter, tags: string[]) => {
     const params: { targetLang?: string; sourceLang?: string; tags?: string[] } = {};
@@ -211,7 +217,7 @@ function AppInner() {
   return (
     <div className="bar-bg min-h-dvh">
       <NightBackground />
-      <div className={`sticky-header sticky top-0 z-40 transition-colors duration-300
+      <div className={`sticky-header top-0 z-40 transition-colors duration-300
         ${shrunk ? "bg-night-deep/90 backdrop-blur-md shadow-lg shadow-black/30" : ""}`}
       >
         <Header shrunk={shrunk} />
@@ -246,7 +252,7 @@ function AppInner() {
       </div>
 
       {toast && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+        <Toast message={toast.message} type={toast.type} onClose={dismissToast} />
       )}
 
       <main className="max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4 py-6 space-y-4" role="tabpanel">
@@ -437,237 +443,5 @@ function AppInner() {
 
       <Footer />
     </div>
-  );
-}
-
-function EmptyState({ onPost }: { onPost: () => void }) {
-  const t = useI18n();
-  return (
-    <div className="text-center py-16 space-y-5">
-      <img src="/icon-192.png" alt="" width={64} height={64} className="mx-auto rounded-xl opacity-80" aria-hidden="true" />
-      <p className="text-white/60 text-lg font-bold">{t.feed.empty}</p>
-      <p className="text-white/40 text-sm max-w-xs mx-auto leading-relaxed">
-        {t.feed.emptyHint}
-      </p>
-      <button
-        onClick={onPost}
-        className="px-6 py-2 rounded-lg bg-neon-pink text-white font-bold
-                   hover:brightness-110 transition-all
-                   focus-visible:outline-2 focus-visible:outline-neon-blue focus-visible:outline-offset-2"
-      >
-        {t.feed.emptyAction}
-      </button>
-    </div>
-  );
-}
-
-function ShareButton({ onShare }: { onShare: () => void }) {
-  const t = useI18n();
-  return (
-    <div className="flex justify-end mt-1">
-      <button
-        onClick={onShare}
-        className="flex items-center gap-1 text-xs text-white/30 hover:text-white/50
-                   min-h-[44px] px-3
-                   focus-visible:outline-2 focus-visible:outline-neon-blue"
-      >
-        <Share2 size={12} />{t.share}
-      </button>
-    </div>
-  );
-}
-
-function Paginator({ page, total, onPage }: {
-  page: number; total: number; onPage: (page: number) => void;
-}) {
-  const t = useI18n();
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-  if (totalPages <= 1) return null;
-
-  // Show current page ± 1, plus first and last
-  const pages: number[] = [];
-  for (let i = 0; i < totalPages; i++) {
-    if (i === 0 || i === totalPages - 1 || (i >= page - 1 && i <= page + 1)) {
-      pages.push(i);
-    }
-  }
-
-  return (
-    <div className="flex items-center justify-center gap-1 py-3 flex-wrap">
-      <button
-        onClick={() => onPage(page - 1)}
-        disabled={page === 0}
-        className="p-1.5 rounded text-white/40 hover:text-white/70 disabled:opacity-20 disabled:cursor-default transition-colors"
-        aria-label={t.feed.prevPage}
-      >
-        <ChevronLeft size={16} />
-      </button>
-      {pages.map((p, i) => {
-        // Insert ellipsis if gap
-        const prev = i > 0 ? pages[i - 1] : p;
-        const rangeStart = p * PAGE_SIZE + 1;
-        return (
-          <span key={p} className="contents">
-            {p - prev > 1 && <span className="text-white/30 text-xs px-1">…</span>}
-            <button
-              onClick={() => onPage(p)}
-              className={`px-2 py-1 rounded text-xs font-medium transition-colors min-w-[36px]
-                ${page === p
-                  ? "bg-neon-blue/20 text-neon-blue border border-neon-blue/40"
-                  : "text-white/50 hover:text-white/70 hover:bg-white/5"
-                }`}
-            >
-              {rangeStart}-
-            </button>
-          </span>
-        );
-      })}
-      <button
-        onClick={() => onPage(page + 1)}
-        disabled={page >= totalPages - 1}
-        className="p-1.5 rounded text-white/40 hover:text-white/70 disabled:opacity-20 disabled:cursor-default transition-colors"
-        aria-label={t.feed.nextPage}
-      >
-        <ChevronRight size={16} />
-      </button>
-    </div>
-  );
-}
-
-function RankingList({
-  posts,
-  handleShare,
-  highlightId,
-  startRank,
-  onDeleted,
-}: {
-  posts: Post[];
-  handleShare: (id: string) => void;
-  highlightId: string | null;
-  startRank: number;
-  onDeleted?: (id: string) => void;
-}) {
-  const t = useI18n();
-
-  if (posts.length === 0) {
-    return <p className="text-center text-white/40 py-8">{t.fame.empty}</p>;
-  }
-
-  return (
-    <div className="space-y-4">
-      {posts.map((post, i) => {
-        const rank = startRank + i;
-        // Top 3 emoji by count
-        const topEmoji = Object.entries(post.reactions)
-          .filter(([, count]) => count > 0)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 3);
-
-        return (
-          <div key={post.id}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className={`text-lg font-black ${rank < 3 ? "neon-text" : "text-white/30"}`}>
-                #{rank + 1}
-              </span>
-              {topEmoji.length > 0 ? (
-                <span className="text-xs text-white/50 flex items-center gap-1.5">
-                  {topEmoji.map(([emoji, count]) => (
-                    <span key={emoji} className="flex items-center gap-0.5">
-                      <span>{emoji}</span>
-                      <span className="text-white/35">{count}</span>
-                    </span>
-                  ))}
-                </span>
-              ) : (
-                <span className="text-xs text-white/30">0 {t.fame.reactions}</span>
-              )}
-            </div>
-            <PostCard post={post} showPlayer={highlightId === post.id} onDeleted={onDeleted} />
-            <ShareButton onShare={() => handleShare(post.id)} />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function Footer() {
-  const t = useI18n();
-
-  return (
-    <footer className="text-center text-xs text-white/30 py-12 px-4 space-y-4">
-      {/* Neon pink divider */}
-      <div className="mx-auto max-w-xs h-px bg-gradient-to-r from-transparent via-neon-pink/40 to-transparent mb-6" aria-hidden="true" />
-
-      <p className="text-white/40 font-bold tracking-wider">{t.footer.siteName}</p>
-      {t.footer.siteAlias && (
-        <div className="flex items-center justify-center gap-3">
-          <div className="w-10 h-px bg-gradient-to-l from-white/20 to-transparent" aria-hidden="true" />
-          <p className="text-xs text-white/30 tracking-widest">{t.footer.siteAlias}</p>
-          <div className="w-10 h-px bg-gradient-to-r from-white/20 to-transparent" aria-hidden="true" />
-        </div>
-      )}
-
-      <p className="leading-relaxed text-white/30">
-        {t.footer.disclaimer}<br />
-        {t.footer.noHosting}
-      </p>
-
-      {/* QR code */}
-      <div className="pt-2">
-        <img
-          src="/qr.webp"
-          alt="Scan to visit Ear in the Sky Diamond"
-          width={96}
-          height={96}
-          className="mx-auto opacity-40 invert sepia saturate-[5] hue-rotate-[170deg]"
-        />
-      </div>
-
-      {/* Author & links */}
-      <div className="flex items-center justify-center gap-4 text-white/30 pt-2">
-        <span>
-          {t.footer.madeBy}{" "}
-          <a
-            href="https://llll-ll.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-neon-blue/60 hover:text-neon-blue transition-colors"
-          >
-            kako-jun
-          </a>
-        </span>
-        <a
-          href="https://github.com/kako-jun/ear-sky"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:text-white/50 transition-colors flex items-center gap-0.5"
-        >
-          GitHub <ExternalLink size={10} />
-        </a>
-      </div>
-
-      {/* Sponsor */}
-      <a
-        href="https://github.com/sponsors/kako-jun"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full
-                   border border-neon-pink/30 text-neon-pink/60
-                   hover:border-neon-pink/50 hover:text-neon-pink hover:bg-neon-pink/5
-                   transition-all text-xs"
-      >
-        <Heart size={12} />
-        Sponsor
-      </a>
-
-      <div className="flex items-center justify-center gap-4 text-white/25 pt-2">
-        <span>
-          {/* @ts-expect-error nostalgic-counter is a Web Component */}
-          <nostalgic-counter id="ear-sky-eaae1797" type="total" format="text" />{" "}{t.footer.visits}
-        </span>
-        <span>v{__BUILD_DATE__}</span>
-      </div>
-    </footer>
   );
 }

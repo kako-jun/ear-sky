@@ -16,6 +16,7 @@ export const VALID_TAGS = [
 export type TagId = typeof VALID_TAGS[number]["id"];
 export const TAG_IDS = VALID_TAGS.map((t) => t.id);
 export const MAX_TAGS = 3;
+export const PAGE_SIZE = 10;
 
 export interface SubtitleCue {
   text: string;

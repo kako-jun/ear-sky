@@ -230,7 +230,7 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
           <div className="flex justify-end">
             <button
               onClick={() => setShowDeleteInput(true)}
-              className="text-white/25 hover:text-red-400/60 transition-colors p-1"
+              className="text-white/35 hover:text-red-400/60 transition-colors p-1"
               title={t.postCard.deleteTitle}
             >
               <Trash2 size={12} />
