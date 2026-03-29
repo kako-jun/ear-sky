@@ -74,6 +74,7 @@ export default function SoundCloudPlayer({
   const t = useI18n();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const widgetRef = useRef<SCWidget | null>(null);
+  const [playing, setPlaying] = useState(false);
   const [segmentEnded, setSegmentEnded] = useState(false);
   const [error, setError] = useState(false);
 
@@ -103,10 +104,12 @@ export default function SoundCloudPlayer({
 
       widget.bind(window.SC.Widget.Events.PLAY, () => {
         onStateChangeRef.current?.("playing");
+        setPlaying(true);
         setSegmentEnded(false);
       });
 
       widget.bind(window.SC.Widget.Events.PAUSE, () => {
+        setPlaying(false);
         onStateChangeRef.current?.("paused");
       });
 
@@ -116,6 +119,7 @@ export default function SoundCloudPlayer({
         onTimeUpdateRef.current?.(currentSec);
         if (currentSec >= endSecRef.current + POST_MARGIN) {
           widget.pause();
+          setPlaying(false);
           setSegmentEnded(true);
           onStateChangeRef.current?.("ended");
         }
@@ -159,6 +163,10 @@ export default function SoundCloudPlayer({
             title="SoundCloud"
           />
         </div>
+        {/* Block iframe interaction during playback */}
+        {playing && !segmentEnded && (
+          <div className="absolute inset-0 z-10" />
+        )}
         {segmentEnded && (
           <button
             onClick={handleReplay}

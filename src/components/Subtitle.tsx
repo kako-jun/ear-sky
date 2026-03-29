@@ -53,9 +53,11 @@ export default function Subtitle({ cues, currentTime }: Props) {
 
   return (
     <div
-      className="w-full text-center py-4 px-4 -mt-16 relative z-10 backdrop-blur-md rounded-b-lg transition-none"
+      className="w-full text-center py-4 px-4 -mt-16 relative z-10 rounded-b-lg transition-none"
       style={{
         backgroundColor: `rgba(0, 0, 0, ${0.5 * backdropOpacity})`,
+        backdropFilter: `blur(${12 * backdropOpacity}px)`,
+        WebkitBackdropFilter: `blur(${12 * backdropOpacity}px)`,
       }}
     >
       {/* Fill layer — transparent text swept to white */}

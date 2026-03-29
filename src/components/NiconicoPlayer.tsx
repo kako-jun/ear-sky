@@ -30,6 +30,7 @@ export default function NiconicoPlayer({
   const onTimeUpdateRef = useRef(onTimeUpdate);
   onTimeUpdateRef.current = onTimeUpdate;
   const [ready, setReady] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const [segmentEnded, setSegmentEnded] = useState(false);
   const [error, setError] = useState(false);
 
@@ -83,6 +84,7 @@ export default function NiconicoPlayer({
         "https://embed.nicovideo.jp"
       );
       onStateChangeRef.current?.("playing");
+      setPlaying(true);
       setSegmentEnded(false);
 
       // Simulated time updates (niconico embed doesn't expose currentTime)
@@ -106,6 +108,7 @@ export default function NiconicoPlayer({
           );
         }
         setSegmentEnded(true);
+        setPlaying(false);
         onStateChangeRef.current?.("ended");
         if (intervalRef.current) clearInterval(intervalRef.current);
       }, duration);
@@ -142,6 +145,10 @@ export default function NiconicoPlayer({
             onError={() => setError(true)}
           />
         </div>
+        {/* Block iframe interaction during playback */}
+        {playing && !segmentEnded && (
+          <div className="absolute inset-0 z-10" />
+        )}
         {segmentEnded && (
           <button
             onClick={handlePlay}
