@@ -88,21 +88,7 @@ select option {
   color: #e0d8e8;
 }
 
-/* Subtitle karaoke sweep — left-to-right color transition */
-.subtitle-sweep {
-  background: linear-gradient(90deg, #ffe156 0%, #ffe156 50%, #fff 50%, #fff 100%);
-  background-size: 200% 100%;
-  background-position: 100% 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: subtitle-sweep 3s ease-out forwards;
-}
-
-@keyframes subtitle-sweep {
-  from { background-position: 100% 0; }
-  to { background-position: 0% 0; }
-}
+/* Subtitle fill layer — sweep is now driven by inline backgroundPosition, no CSS animation */
 
 /* Reveal animation */
 .animate-fade-in {
@@ -171,10 +157,10 @@ select option {
     text-shadow: none;
   }
 
-  .subtitle-sweep {
-    background: none;
-    color: #ffe156;
-    -webkit-background-clip: unset;
-    background-clip: unset;
+  .subtitle-fill {
+    background: none !important;
+    color: #ffe156 !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
   }
 }

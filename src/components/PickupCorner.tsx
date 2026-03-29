@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Pickup, PickupEntry, BanterLine } from "@/types";
-import { parseVideoUrl } from "@/lib/video";
 import { useI18n } from "@/i18n";
-import YouTubePlayer from "@/components/YouTubePlayer";
-import NiconicoPlayer from "@/components/NiconicoPlayer";
-import Subtitle from "@/components/Subtitle";
+import VideoSegment from "@/components/VideoSegment";
 import { Mic, Wine, ChevronDown, ChevronUp, Eye, Share2 } from "lucide-react";
 
 function interpolate(template: string, vars: Record<string, string | number>): string {
@@ -133,18 +130,14 @@ function PickupContent({ pickup }: { pickup: Pickup }) {
 function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: number; pickupId: string }) {
   const t = useI18n();
   const [revealed, setRevealed] = useState(false);
-  const [showSubtitle, setShowSubtitle] = useState(false);
   const [copied, setCopied] = useState(false);
-  const parsed = parseVideoUrl(pick.videoUrl);
 
-  const handleTimeUpdate = useCallback((currentTime: number) => {
-    if (currentTime >= pick.startSec && currentTime < pick.endSec) {
-      setRevealed(true);
-      setShowSubtitle(true);
-    } else {
-      setShowSubtitle(false);
-    }
-  }, [pick.startSec, pick.endSec]);
+  const pickupCues = [{
+    text: pick.misheardText,
+    originalText: pick.originalText,
+    showAt: pick.startSec,
+    duration: pick.endSec - pick.startSec,
+  }];
 
   const handleShare = () => {
     const url = `${window.location.origin}${window.location.pathname}#pickup-${pickupId}-${index}`;
@@ -190,37 +183,15 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
         </div>
       </div>
 
-      {/* Video player */}
-      {parsed?.platform === "youtube" ? (
-        <>
-          <YouTubePlayer
-            videoId={parsed.videoId}
-            startSec={pick.startSec}
-            endSec={pick.endSec}
-            onTimeUpdate={handleTimeUpdate}
-          />
-          <Subtitle text={pick.misheardText} visible={showSubtitle} durationSec={pick.endSec - pick.startSec} />
-        </>
-      ) : parsed?.platform === "niconico" ? (
-        <>
-          <NiconicoPlayer
-            videoId={parsed.videoId}
-            startSec={pick.startSec}
-            endSec={pick.endSec}
-            onTimeUpdate={handleTimeUpdate}
-          />
-          <Subtitle text={pick.misheardText} visible={showSubtitle} durationSec={pick.endSec - pick.startSec} />
-        </>
-      ) : (
-        <a
-          href={pick.videoUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block text-center text-sm text-neon-blue hover:underline py-4"
-        >
-          {t.pickup.watchVideo}
-        </a>
-      )}
+      {/* Video player — shared component */}
+      <VideoSegment
+        videoUrl={pick.videoUrl}
+        startSec={pick.startSec}
+        endSec={pick.endSec}
+        cues={pickupCues}
+        autoExpand
+        onCueReached={() => setRevealed(true)}
+      />
 
       {/* Reveal button or revealed content */}
       {!revealed ? (

@@ -11,17 +11,6 @@ function safeSetItem(key: string, value: string): void {
 const DRAFTS_KEY = "ear-sky-drafts";
 const REACTIONS_KEY = "ear-sky-reactions";
 
-// Old key→emoji mapping for localStorage migration
-const OLD_KEY_TO_EMOJI: Record<string, string> = {
-  like: "❤️",
-  ear: "👂",
-  laugh: "🤣",
-  clap: "👏",
-  party: "🎉",
-  sparkle: "✨",
-  melt: "🫠",
-};
-
 // --- Drafts (local only) ---
 
 export function getAllDrafts(): Draft[] {
@@ -97,29 +86,3 @@ export function clearMyReaction(postId: string): void {
   safeSetItem(REACTIONS_KEY, JSON.stringify(map));
 }
 
-// --- Migration from old array format ---
-
-export function migrateReactionsStorage(): void {
-  if (typeof window === "undefined") return;
-  const raw = localStorage.getItem(REACTIONS_KEY);
-  if (!raw) return;
-  try {
-    const parsed = JSON.parse(raw);
-    // Detect old format: values are arrays of strings
-    const firstValue = Object.values(parsed)[0];
-    if (!Array.isArray(firstValue)) return; // Already new format
-
-    const newMap: Record<string, string> = {};
-    for (const [postId, types] of Object.entries(parsed)) {
-      const arr = types as string[];
-      if (arr.length === 0) continue;
-      // Take the first reaction and map it to emoji
-      const oldKey = arr[0];
-      newMap[postId] = OLD_KEY_TO_EMOJI[oldKey] || "❤️";
-    }
-    safeSetItem(REACTIONS_KEY, JSON.stringify(newMap));
-  } catch {
-    // Corrupted data, clear it
-    localStorage.removeItem(REACTIONS_KEY);
-  }
-}

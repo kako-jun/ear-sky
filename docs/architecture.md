@@ -14,20 +14,23 @@
 
 ## Data Flow
 
-### Posting
-1. User enters URL + time range + misheard text
+### Posting (Wizard Flow)
+1. User pastes a video URL → instant preview loads
 2. URL parsed to extract platform/videoId (`video.ts`)
-3. Video title auto-fetched via oEmbed → split into artist/song
-4. Preview with YouTube segment playback + subtitle
-5. POST /api/posts → saved to D1 (with IP hash, optional era/comment)
-6. Immediately appears in feed
+3. **Song info step**: Video title auto-fetched via oEmbed → artist/song auto-filled (user can correct)
+4. **Cues step**: User defines 1+ subtitle cues via DualRangeSlider (dual-thumb, ◀▶ 1s adjust, drag→seekTo)
+   - First cue: specify start + end
+   - Additional cues (+ button): start = previous cue's end, only end is specified
+5. **About you step**: Nickname, delete key, comment (optional fields styled neon-blue/40)
+6. POST /api/posts → saved to D1 (post row + cues rows, with IP hash)
+7. Immediately appears in feed
 
-### Playback (YouTube)
-1. PostCard shows YouTube thumbnail (mqdefault.jpg) before expansion
+### Playback (YouTube) — via VideoSegment
+1. VideoSegment (shared component) renders thumbnail before expansion
 2. Tap thumbnail → iframe loads; first play via iframe's built-in controls (autoplay policy)
 3. YouTube IFrame API with margins (start - 5s, end + 1s), disablekb:1
-4. onTimeUpdate tracks current time; subtitle appears when time reaches segment start
-5. Karaoke sweep duration matches segment length (endSec - startSec)
+4. onTimeUpdate passes currentTime to Subtitle; active cue determined by `currentTime >= cue.showAt`
+5. Karaoke sweep progress = `(currentTime - showAt) / duration`, applied as inline `background-position`
 6. Auto-stops 1 second after segment end
 7. After first play: overlay with replay icon blocks iframe, forces replay via API
 
@@ -38,10 +41,10 @@
 4. Timer-based segment end detection
 
 ### Spoiler/Reveal
-1. PostCard initially hides misheard text (shows "???" with inline reveal button)
-2. Reveal triggers: playback reaches segment start OR "Show mishearing" button
+1. PostCard initially hides cue texts (shows "???" with inline reveal button)
+2. Reveal triggers: playback reaches first cue's showAt (via VideoSegment onCueReached) OR "Show mishearing" button
 3. Text appears with fade-in animation
-4. Karaoke subtitle plays during segment with time-synced sweep, stays visible after sweep
+4. Karaoke subtitle plays during each cue with time-synced sweep (progress-based), stays visible after sweep
 
 ### Reactions (Emoji Picker)
 1. User taps "+" button → emoji picker popover with 16 curated emoji
@@ -56,7 +59,7 @@
 1. Fetch `public/pickups/index.json` for available pickup IDs
 2. Load latest pickup JSON
 3. Display in talk-show format: master intro → video → reveal → banter
-4. Karaoke subtitle synced via onTimeUpdate (same as PostCard)
+4. Uses VideoSegment component (shared with PostCard) for video + karaoke subtitle
 5. Past pickups lazy-loaded on demand
 
 ### Dynamic OGP
@@ -108,3 +111,18 @@
 | created_at | TEXT | Timestamp |
 
 **Constraints:** UNIQUE(post_id, ip_hash) — one reaction per user per post.
+
+### cues
+| Column | Type | Description |
+|---|---|---|
+| id | INTEGER PK | Auto-increment |
+| post_id | TEXT FK | Post ID (CASCADE delete) |
+| text | TEXT | Misheard/subtitle text |
+| original_text | TEXT? | Original lyrics |
+| show_at | REAL | Time (seconds) when cue appears |
+| duration | REAL | Cue duration (seconds) for sweep |
+| sort_order | INTEGER | Display order (0-based) |
+| created_at | TEXT | Timestamp |
+
+**Index:** `idx_cues_post_id` on `post_id`.
+**Migration (0004):** Existing posts' `misheard_text + start_sec + end_sec` auto-migrated to one cue each.

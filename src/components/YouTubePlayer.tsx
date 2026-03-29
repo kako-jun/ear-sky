@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useImperativeHandle, forwardRef } from "react";
 import { useI18n } from "@/i18n";
 import { RotateCcw } from "lucide-react";
 
@@ -11,6 +11,11 @@ declare global {
 
 const PRE_MARGIN = 5; // seconds before the misheard segment
 const POST_MARGIN = 1; // seconds after the misheard segment
+
+export interface YouTubePlayerHandle {
+  seekTo: (sec: number) => void;
+  getDuration: () => number;
+}
 
 interface Props {
   videoId: string;
@@ -46,13 +51,13 @@ function whenApiReady(cb: () => void) {
   }
 }
 
-export default function YouTubePlayer({
+const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePlayer({
   videoId,
   startSec,
   endSec,
   onTimeUpdate,
   onStateChange,
-}: Props) {
+}, ref) {
   const t = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YT.Player | null>(null);
@@ -67,6 +72,15 @@ export default function YouTubePlayer({
   onStateChangeRef.current = onStateChange;
   const endSecRef = useRef(endSec);
   endSecRef.current = endSec;
+
+  useImperativeHandle(ref, () => ({
+    seekTo: (sec: number) => {
+      playerRef.current?.seekTo(sec, true);
+    },
+    getDuration: () => {
+      return playerRef.current?.getDuration() || 0;
+    },
+  }));
 
   const playStart = Math.max(0, startSec - PRE_MARGIN);
   const playEnd = endSec + POST_MARGIN;
@@ -176,4 +190,6 @@ export default function YouTubePlayer({
       </div>
     </div>
   );
-}
+});
+
+export default YouTubePlayer;

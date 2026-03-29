@@ -14,9 +14,9 @@
 src/
 ├── App.tsx              # Main SPA (tabs: New/Hall of Fame/Post)
 ├── main.tsx             # Entry point + SW registration + localStorage migration
-├── index.css            # Tailwind + neon theme + karaoke sweep animation
+├── index.css            # Tailwind + neon theme
 ├── types/
-│   ├── index.ts         # Post, Draft, Pickup, LANGUAGES, CURATED_EMOJI
+│   ├── index.ts         # Post, SubtitleCue, Draft, Pickup, LANGUAGES, CURATED_EMOJI
 │   └── youtube.d.ts     # YouTube IFrame API type definitions
 ├── i18n/
 │   ├── en.ts            # English strings (default)
@@ -29,12 +29,15 @@ src/
 │   └── oembed.ts        # Video title auto-fetch (oEmbed/noembed)
 ├── components/
 │   ├── Header.tsx       # Neon title
-│   ├── PostEditor.tsx   # Post form (preview + drafts + auto-complete + era/comment)
-│   ├── PostCard.tsx     # Post card (spoiler/reveal + player + subtitle + reactions)
+│   ├── PostEditor.tsx   # Post form (wizard: URL→preview→info→cues→about you)
+│   ├── PostCard.tsx     # Flat post layout (song→artist→video→reveal→meta)
 │   ├── PickupCorner.tsx # Pickup corner (master & regular banter)
+│   ├── VideoSegment.tsx # Shared video+subtitle component (PostCard/PickupCorner共通)
 │   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, post-play overlay+replay)
 │   ├── NiconicoPlayer.tsx # Niconico embed segment playback
-│   ├── Subtitle.tsx     # Misheard text subtitle (karaoke sweep + black stroke)
+│   ├── Subtitle.tsx     # Karaoke subtitle (currentTime→progress直接計算, 複数cue対応)
+│   ├── DualRangeSlider.tsx # Dual-thumb range slider (◀▶ 1s adjust, drag→seekTo連動)
+│   ├── NightBackground.tsx # Day-rotating night scene background
 │   ├── Reactions.tsx    # Emoji picker + reaction badges (Slack-style, 1 per user)
 │   └── Toast.tsx        # Notification toast
 functions/
@@ -50,7 +53,8 @@ public/
 migrations/
 ├── 0001_init.sql        # posts + reactions tables
 ├── 0002_security.sql    # ip_hash, delete_key columns
-└── 0003_emoji_reactions.sql  # emoji reactions + era/comment columns
+├── 0003_emoji_reactions.sql  # emoji reactions + era/comment columns
+└── 0004_cues.sql        # cues table (multiple subtitle cues per post)
 ```
 
 ## API Endpoints
@@ -74,11 +78,19 @@ migrations/
 - **Client tracking**: localStorage stores `{ postId: emoji }` map
 - **Legacy migration**: Old array-based localStorage auto-migrated on load
 
+## Subtitle System (cues)
+
+- **Multiple cues per post**: Each post has N subtitle cues stored in `cues` table (0004_cues.sql)
+- **Type**: `SubtitleCue { text, originalText?, showAt, duration }` — `Post.cues: SubtitleCue[]`
+- **No CSS animation**: Progress computed directly from `currentTime - cue.showAt` / `cue.duration`; `background-position` set via inline style
+- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep. After sweep completes, text remains visible (bar-style residual)
+- **VideoSegment.tsx**: Shared component wrapping video player + Subtitle, used by both PostCard and PickupCorner
+
 ## Spoiler/Reveal Mechanism
 
-- PostCard hides `misheardText` initially (shows "???")
-- Reveal triggers: (1) Video starts playing, or (2) "Show mishearing" button clicked
-- Karaoke-style subtitle appears when playback reaches the misheard segment (time-synced via onTimeUpdate), stays visible after sweep (番組風)
+- PostCard hides cue texts initially (shows "???")
+- Reveal triggers: (1) Video starts playing (onCueReached), or (2) "Show mishearing" button clicked
+- Karaoke-style subtitle appears when playback reaches each cue's showAt (time-synced via currentTime), stays visible after sweep (番組風)
 - Playback has pre-margin (5s) and post-margin (1s) around the segment
 - YouTube: segment end triggers replay overlay (RotateCcw); user pause does not
 - Niconico: pause postMessage sent at segment end; replay overlay same as YouTube
@@ -114,7 +126,7 @@ migrations/
 - Day-rotating background images (7 Gemini-generated night scenes, webp)
 - Accents: Neon Pink (#ff2d78), Neon Blue (#00d4ff), Neon Yellow (#ffe156)
 - Text: white/60+ (AA contrast)
-- Subtitle: Karaoke left→right sweep (white→yellow) + thick black stroke, duration matches segment length
+- Subtitle: Karaoke left→right sweep (white→yellow) + thick black stroke, progress driven by currentTime (no CSS animation)
 - Icon: Copilot-generated cloud-cat-ear mascot (public/icon-*.png), used in Header and EmptyState
 - prefers-reduced-motion supported
 - Mobile background: `100lvh` to prevent jitter from address bar toggle

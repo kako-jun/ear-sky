@@ -163,6 +163,19 @@ function AppInner() {
       <main className="max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4 py-6 space-y-4" role="tabpanel">
         {tab === "feed" && (
           <>
+            {/* Skip pickup — for returning users */}
+            <div className="flex justify-end">
+              <button
+                onClick={scrollToNewPosts}
+                className="flex items-center gap-1 text-[11px] text-white/25
+                           hover:text-white/45 transition-colors
+                           focus-visible:outline-2 focus-visible:outline-neon-blue"
+              >
+                {t.feed.jumpToNew}
+                <ChevronDown size={11} />
+              </button>
+            </div>
+
             <PickupCorner />
 
             {/* New Posts section header — matches PickupCorner style */}
@@ -204,7 +217,7 @@ function AppInner() {
         {tab === "post" && <PostEditor onPublished={handlePublished} />}
       </main>
 
-      <Footer scrollToNewPosts={scrollToNewPosts} currentTab={tab} />
+      <Footer />
     </div>
   );
 }
@@ -295,7 +308,7 @@ function RankingList({
   );
 }
 
-function Footer({ scrollToNewPosts, currentTab }: { scrollToNewPosts: () => void; currentTab: Tab }) {
+function Footer() {
   const t = useI18n();
 
   return (
@@ -304,17 +317,6 @@ function Footer({ scrollToNewPosts, currentTab }: { scrollToNewPosts: () => void
       <div className="mx-auto max-w-xs h-px bg-gradient-to-r from-transparent via-neon-pink/40 to-transparent mb-6" aria-hidden="true" />
 
       <p className="text-white/25 font-bold tracking-wider">{t.footer.siteName}</p>
-
-      {/* Jump to new posts (only on feed tab) */}
-      {currentTab === "feed" && (
-        <button
-          onClick={scrollToNewPosts}
-          className="inline-flex items-center gap-1 text-white/30 hover:text-white/50 transition-colors"
-        >
-          <ChevronDown size={12} />
-          {t.feed.jumpToNew}
-        </button>
-      )}
 
       <p className="leading-relaxed text-white/20">
         {t.footer.disclaimer}<br />

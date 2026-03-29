@@ -1,54 +1,79 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
-import { LANGUAGES, Post } from "@/types";
-import { parseVideoUrl, formatTime, parseTime } from "@/lib/video";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { LANGUAGES, Post, SubtitleCue } from "@/types";
+import { parseVideoUrl, formatTime } from "@/lib/video";
 import { saveDraft, getAllDrafts, deleteDraft } from "@/lib/storage";
 import { fetchVideoTitle, splitArtistTitle } from "@/lib/oembed";
 import { useI18n, getLocale } from "@/i18n";
-import YouTubePlayer from "./YouTubePlayer";
+import YouTubePlayer, { YouTubePlayerHandle } from "./YouTubePlayer";
 import NiconicoPlayer from "./NiconicoPlayer";
 import Subtitle from "./Subtitle";
-import { Save, Send, Eye, EyeOff } from "lucide-react";
+import DualRangeSlider from "./DualRangeSlider";
+import { Save, Send, X, Plus } from "lucide-react";
 
-type PostData = Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions">;
+// Margins are applied inside YouTubePlayer/NiconicoPlayer, not here.
+
+type PostData = Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions"> & { deleteKey?: string };
+
+interface CueInput {
+  id: string;
+  startSec: number;
+  endSec: number;
+  text: string;
+  originalText: string;
+}
 
 interface Props {
   onPublished: (data: PostData) => void;
   initialDraftId?: string;
 }
 
+function OptionalLabel({ text }: { text: string }) {
+  return <span className="text-neon-blue/40 text-xs ml-1.5">{text}</span>;
+}
+
+function SectionHeader({ text }: { text: string }) {
+  return (
+    <h3 className="text-xs font-bold text-white/30 uppercase tracking-widest border-b border-white/10 pb-1 mb-3">
+      {text}
+    </h3>
+  );
+}
+
 export default function PostEditor({ onPublished, initialDraftId }: Props) {
   const t = useI18n();
+  const ytRef = useRef<YouTubePlayerHandle>(null);
+
+  // Song info
   const [url, setUrl] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [misheardText, setMisheardText] = useState("");
-  const [originalText, setOriginalText] = useState("");
   const [artistName, setArtistName] = useState("");
   const [songTitle, setSongTitle] = useState("");
   const [sourceLang, setSourceLang] = useState("en");
   const [targetLang, setTargetLang] = useState("ja");
+  const [era, setEra] = useState("");
+
+  // Cues
+  const [cues, setCues] = useState<CueInput[]>([
+    { id: crypto.randomUUID(), startSec: 0, endSec: 10, text: "", originalText: "" },
+  ]);
+
+  // About you
   const [nickname, setNickname] = useState(() => {
     try { return localStorage.getItem("ear-sky-nickname") || ""; } catch { return ""; }
   });
   const [deleteKey, setDeleteKey] = useState("");
-  const [era, setEra] = useState("");
   const [comment, setComment] = useState("");
+
+  // UI state
   const [draftId, setDraftId] = useState<string | undefined>(initialDraftId);
-  const [showPreview, setShowPreview] = useState(false);
-  const [showSubtitle, setShowSubtitle] = useState(false);
   const [showDrafts, setShowDrafts] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(300);
 
   const parsed = useMemo(() => parseVideoUrl(url), [url]);
-  const startSec = useMemo(() => parseTime(startTime), [startTime]);
-  const endSec = useMemo(() => parseTime(endTime), [endTime]);
 
-  const canPreview =
-    parsed !== null && startSec !== null && endSec !== null && endSec > startSec;
-  const canSubmit = canPreview && misheardText.trim().length > 0;
-
-  // Auto-fetch video title when URL changes
+  // Auto-fetch video title
   useEffect(() => {
     if (!parsed || parsed.platform === "other") return;
     let cancelled = false;
@@ -61,7 +86,20 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     return () => { cancelled = true; };
   }, [parsed]);
 
-  // Load draft on mount
+  // Get video duration after player loads
+  useEffect(() => {
+    if (!parsed) return;
+    const timer = setInterval(() => {
+      const d = ytRef.current?.getDuration();
+      if (d && d > 0) {
+        setVideoDuration(Math.ceil(d));
+        clearInterval(timer);
+      }
+    }, 500);
+    return () => clearInterval(timer);
+  }, [parsed]);
+
+  // Load draft
   useEffect(() => {
     if (!initialDraftId) return;
     const drafts = getAllDrafts();
@@ -69,29 +107,63 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     if (!draft) return;
     const d = draft.data;
     setUrl(d.videoUrl);
-    setStartTime(formatTime(d.startSec));
-    setEndTime(formatTime(d.endSec));
-    setMisheardText(d.misheardText);
-    setOriginalText(d.originalText || "");
     setArtistName(d.artistName);
     setSongTitle(d.songTitle);
     setSourceLang(d.sourceLang);
     setTargetLang(d.targetLang);
-    setNickname(d.nickname);
     setEra(d.era || "");
+    setNickname(d.nickname);
     setComment(d.comment || "");
+    // Restore cues
+    if (d.cues && d.cues.length > 0) {
+      setCues(d.cues.map((c) => ({
+        id: crypto.randomUUID(),
+        startSec: c.showAt,
+        endSec: c.showAt + c.duration,
+        text: c.text,
+        originalText: c.originalText || "",
+      })));
+    } else {
+      setCues([{
+        id: crypto.randomUUID(),
+        startSec: d.startSec,
+        endSec: d.endSec,
+        text: d.misheardText,
+        originalText: d.originalText || "",
+      }]);
+    }
   }, [initialDraftId]);
 
-  const buildData = useCallback(() => {
-    if (!parsed || startSec === null || endSec === null) return null;
+  // Pass raw cue boundaries — players add their own margins
+  const playStartSec = cues[0].startSec;
+  const playEndSec = cues[cues.length - 1].endSec;
+
+  const canPreview = parsed !== null && cues[0].endSec > cues[0].startSec;
+  const canSubmit = canPreview && cues.every((c) => c.text.trim().length > 0);
+
+  // Build cues array for Subtitle component
+  const subtitleCues: SubtitleCue[] = useMemo(
+    () => cues.map((c) => ({
+      text: c.text,
+      originalText: c.originalText || undefined,
+      showAt: c.startSec,
+      duration: c.endSec - c.startSec,
+    })),
+    [cues]
+  );
+
+  const buildData = useCallback((): PostData | null => {
+    if (!parsed) return null;
+    const firstCue = cues[0];
+    const lastCue = cues[cues.length - 1];
     return {
       videoUrl: url,
       platform: parsed.platform,
       videoId: parsed.videoId,
-      startSec,
-      endSec,
-      misheardText: misheardText.trim(),
-      originalText: originalText.trim() || undefined,
+      startSec: firstCue.startSec,
+      endSec: lastCue.endSec,
+      misheardText: cues.map((c) => c.text.trim()).join(""),
+      originalText: cues.map((c) => c.originalText.trim()).filter(Boolean).join(" ") || undefined,
       artistName: artistName.trim(),
       songTitle: songTitle.trim(),
       sourceLang,
@@ -100,12 +172,9 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
       deleteKey: deleteKey.trim() || undefined,
       era: era.trim() || undefined,
       comment: comment.trim() || undefined,
+      cues: subtitleCues,
     };
-  }, [
-    url, parsed, startSec, endSec, misheardText, originalText,
-    artistName, songTitle, sourceLang, targetLang, nickname, deleteKey,
-    era, comment,
-  ]);
+  }, [url, parsed, cues, subtitleCues, artistName, songTitle, sourceLang, targetLang, nickname, deleteKey, era, comment]);
 
   const handleSaveDraft = useCallback(() => {
     const data = buildData();
@@ -122,51 +191,100 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     setSubmitting(true);
     if (draftId) deleteDraft(draftId);
     try { localStorage.setItem("ear-sky-nickname", nickname.trim()); } catch { /* ignore */ }
-    onPublished(data);
+    try {
+      onPublished(data);
+    } catch {
+      setSubmitting(false);
+    }
   }, [buildData, draftId, onPublished, nickname, submitting]);
 
-  const handleTimeUpdate = useCallback((currentTime: number) => {
-    if (startSec !== null && endSec !== null && currentTime >= startSec && currentTime < endSec) {
-      setShowSubtitle(true);
-    } else {
-      setShowSubtitle(false);
-    }
-  }, [startSec, endSec]);
-
-  const handleStateChange = useCallback((state: number) => {
-    // 0 = ended, 2 = paused
-    if (state === 0 || state === 2) {
-      setShowSubtitle(false);
-    }
+  const handleTimeUpdate = useCallback((t: number) => {
+    setCurrentTime(t);
   }, []);
 
-  const handleNicoStateChange = useCallback((state: "playing" | "paused" | "ended") => {
-    if (state === "paused" || state === "ended") {
-      setShowSubtitle(false);
-    }
+  const handleStateChange = useCallback((_state: number) => {}, []);
+  const handleNicoStateChange = useCallback((_state: "playing" | "paused" | "ended") => {}, []);
+
+  // Cue management
+  const updateCue = useCallback((index: number, patch: Partial<CueInput>) => {
+    setCues((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], ...patch };
+      // Chain: update subsequent cue starts
+      for (let i = index + 1; i < next.length; i++) {
+        next[i] = { ...next[i], startSec: next[i - 1].endSec };
+        if (next[i].endSec <= next[i].startSec) {
+          next[i] = { ...next[i], endSec: next[i].startSec + 3 };
+        }
+      }
+      return next;
+    });
+  }, []);
+
+  const addCue = useCallback(() => {
+    setCues((prev) => {
+      const last = prev[prev.length - 1];
+      if (last.endSec >= videoDuration) return prev; // no room
+      return [...prev, {
+        id: crypto.randomUUID(),
+        startSec: last.endSec,
+        endSec: Math.min(last.endSec + 5, videoDuration),
+        text: "",
+        originalText: "",
+      }];
+    });
+  }, [videoDuration]);
+
+  const removeCue = useCallback((index: number) => {
+    setCues((prev) => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((_, i) => i !== index);
+      // Re-chain
+      for (let i = 1; i < next.length; i++) {
+        next[i] = { ...next[i], startSec: next[i - 1].endSec };
+      }
+      return next;
+    });
+  }, []);
+
+  const handleSeek = useCallback((sec: number) => {
+    ytRef.current?.seekTo(sec);
   }, []);
 
   const handleLoadDraft = useCallback((draft: ReturnType<typeof getAllDrafts>[number]) => {
     const d = draft.data;
     setUrl(d.videoUrl);
-    setStartTime(formatTime(d.startSec));
-    setEndTime(formatTime(d.endSec));
-    setMisheardText(d.misheardText);
-    setOriginalText(d.originalText || "");
     setArtistName(d.artistName);
     setSongTitle(d.songTitle);
     setSourceLang(d.sourceLang);
     setTargetLang(d.targetLang);
-    setNickname(d.nickname);
     setEra(d.era || "");
+    setNickname(d.nickname);
     setComment(d.comment || "");
+    if (d.cues && d.cues.length > 0) {
+      setCues(d.cues.map((c) => ({
+        id: crypto.randomUUID(),
+        startSec: c.showAt,
+        endSec: c.showAt + c.duration,
+        text: c.text,
+        originalText: c.originalText || "",
+      })));
+    } else {
+      setCues([{
+        id: crypto.randomUUID(),
+        startSec: d.startSec,
+        endSec: d.endSec,
+        text: d.misheardText,
+        originalText: d.originalText || "",
+      }]);
+    }
     setDraftId(draft.id);
     setShowDrafts(false);
   }, []);
 
   return (
-    <div className="space-y-5">
-      {/* Drafts button */}
+    <div className="space-y-6">
+      {/* Drafts */}
       <div className="flex justify-end">
         <button
           onClick={() => setShowDrafts(!showDrafts)}
@@ -175,7 +293,6 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           {t.editor.drafts}
         </button>
       </div>
-
       {showDrafts && (
         <DraftsList
           onLoad={handleLoadDraft}
@@ -186,7 +303,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
         />
       )}
 
-      {/* URL input */}
+      {/* === 1. URL (first thing the user does) === */}
       <div className="space-y-1">
         <label className="block text-sm text-white/60">{t.editor.urlLabel}</label>
         <input
@@ -200,147 +317,217 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
         {url && !parsed && (
           <p className="text-xs text-red-400">{t.editor.urlInvalid}</p>
         )}
-        {parsed && (
-          <p className="text-xs text-neon-blue/60">
-            {parsed.platform === "youtube"
-              ? t.platform.youtube
-              : parsed.platform === "niconico"
-                ? t.platform.niconico
-                : t.platform.other}{" "}
-            — {parsed.platform === "other" ? new URL(parsed.videoId).hostname : parsed.videoId}
-          </p>
-        )}
       </div>
 
-      {/* Time range */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="block text-sm text-white/60">{t.editor.startLabel}</label>
-          <input
-            type="text"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            placeholder="1:23 or 83"
-            className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                       placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
-          />
+      {/* === 2. Video Player (appears immediately after valid URL) === */}
+      {parsed && (parsed.platform === "youtube" || parsed.platform === "niconico") && (
+        <div className="rounded-xl overflow-hidden border border-white/10 bg-black/30">
+          {parsed.platform === "youtube" && (
+            <YouTubePlayer
+              ref={ytRef}
+              videoId={parsed.videoId}
+              startSec={playStartSec}
+              endSec={playEndSec}
+              onTimeUpdate={handleTimeUpdate}
+              onStateChange={handleStateChange}
+            />
+          )}
+          {parsed.platform === "niconico" && (
+            <NiconicoPlayer
+              videoId={parsed.videoId}
+              startSec={playStartSec}
+              endSec={playEndSec}
+              onTimeUpdate={handleTimeUpdate}
+              onStateChange={handleNicoStateChange}
+            />
+          )}
+          {/* Live subtitle preview */}
+          <Subtitle cues={subtitleCues.filter((c) => c.text.trim())} currentTime={currentTime} />
         </div>
-        <div className="space-y-1">
-          <label className="block text-sm text-white/60">{t.editor.endLabel}</label>
-          <input
-            type="text"
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-            placeholder="1:30 or 90"
-            className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                       placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
-          />
-        </div>
-      </div>
+      )}
 
-      {/* Language pair */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="block text-sm text-white/60">{t.editor.sourceLangLabel}</label>
-          <select
-            value={sourceLang}
-            onChange={(e) => setSourceLang(e.target.value)}
-            className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                       focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
-          >
-            {LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <label className="block text-sm text-white/60">{t.editor.targetLangLabel}</label>
-          <select
-            value={targetLang}
-            onChange={(e) => setTargetLang(e.target.value)}
-            className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                       focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
-          >
-            {LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      {/* === 3. Song info (auto-filled from oEmbed, user corrects if needed) === */}
+      {parsed && (
+        <>
+          <SectionHeader text={t.editor.sectionSong} />
 
-      {/* Misheard text */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="block text-sm text-white/60">{t.editor.artistLabel}</label>
+              <input
+                type="text"
+                value={artistName}
+                onChange={(e) => setArtistName(e.target.value)}
+                placeholder="Queen"
+                className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
+                           placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-sm text-white/60">{t.editor.songLabel}</label>
+              <input
+                type="text"
+                value={songTitle}
+                onChange={(e) => setSongTitle(e.target.value)}
+                placeholder="Bohemian Rhapsody"
+                className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
+                           placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="block text-sm text-white/60">{t.editor.sourceLangLabel}</label>
+              <select
+                value={sourceLang}
+                onChange={(e) => setSourceLang(e.target.value)}
+                className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
+                           focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+              >
+                {LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>{l.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-sm text-white/60">{t.editor.targetLangLabel}</label>
+              <select
+                value={targetLang}
+                onChange={(e) => setTargetLang(e.target.value)}
+                className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
+                           focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+              >
+                {LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>{l.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-sm text-white/60">
+              {t.editor.eraLabel}
+              <OptionalLabel text={t.editor.optional} />
+            </label>
+            <input
+              type="text"
+              value={era}
+              onChange={(e) => setEra(e.target.value)}
+              placeholder={t.editor.eraPlaceholder}
+              maxLength={20}
+              className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
+                         placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+            />
+          </div>
+        </>
+      )}
+
+      {/* === 4. Subtitles (slider + text per cue) === */}
+      {parsed && <SectionHeader text={t.editor.sectionSubtitle} />}
+
+      {cues.map((cue, i) => (
+        <div key={cue.id} className="space-y-3 p-3 rounded-lg border border-white/10 bg-white/[0.02]">
+          {/* Cue header */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-white/40">
+              {t.editor.cueLabel} {cues.length > 1 ? i + 1 : ""}
+            </span>
+            {cues.length > 1 && (
+              <button
+                onClick={() => removeCue(i)}
+                className="text-xs text-white/30 hover:text-red-400 flex items-center gap-0.5
+                           min-w-[44px] min-h-[44px] justify-center
+                           focus-visible:outline-2 focus-visible:outline-neon-blue"
+                aria-label={t.editor.removeCue}
+              >
+                <X size={12} />
+                {t.editor.removeCue}
+              </button>
+            )}
+          </div>
+
+          {/* Slider */}
+          {i === 0 ? (
+            // First cue: dual slider for start + end
+            <DualRangeSlider
+              min={0}
+              max={videoDuration}
+              startVal={cue.startSec}
+              endVal={cue.endSec}
+              onStartChange={(v) => updateCue(i, { startSec: v })}
+              onEndChange={(v) => updateCue(i, { endSec: v })}
+              onSeek={handleSeek}
+            />
+          ) : (
+            // Subsequent cues: start is locked to previous end, only end slider
+            <div className="space-y-1">
+              <p className="text-xs text-white/30">
+                {formatTime(cue.startSec)} 〜
+              </p>
+              <DualRangeSlider
+                min={cue.startSec}
+                max={videoDuration}
+                startVal={cue.startSec}
+                endVal={cue.endSec}
+                onStartChange={() => {}} // locked
+                onEndChange={(v) => updateCue(i, { endSec: v })}
+                onSeek={handleSeek}
+              />
+            </div>
+          )}
+
+          {/* Misheard text */}
+          <div className="space-y-1">
+            <label className="block text-sm text-white/60">{t.editor.misheardLabel}</label>
+            <input
+              type="text"
+              value={cue.text}
+              onChange={(e) => updateCue(i, { text: e.target.value })}
+              placeholder={t.editor.misheardPlaceholder}
+              className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white text-lg
+                         placeholder:text-white/20 focus:border-neon-pink/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+            />
+          </div>
+
+          {/* Original text */}
+          <div className="space-y-1">
+            <label className="block text-sm text-white/60">
+              {t.editor.originalLabel}
+              <OptionalLabel text={t.editor.optional} />
+            </label>
+            <input
+              type="text"
+              value={cue.originalText}
+              onChange={(e) => updateCue(i, { originalText: e.target.value })}
+              placeholder=""
+              className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
+                         placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+            />
+          </div>
+        </div>
+      ))}
+
+      {/* Add cue button */}
+      <button
+        onClick={addCue}
+        className="w-full py-2.5 rounded-lg border border-dashed border-white/15 text-white/40
+                   hover:border-white/30 hover:text-white/60 transition-all flex items-center justify-center gap-1.5
+                   focus-visible:outline-2 focus-visible:outline-neon-blue"
+      >
+        <Plus size={14} />
+        {t.editor.addCue}
+      </button>
+
+      {/* === Section: About You === */}
+      <SectionHeader text={t.editor.sectionAboutYou} />
+
+      {/* Comment */}
       <div className="space-y-1">
-        <label className="block text-sm text-white/60">{t.editor.misheardLabel}</label>
-        <input
-          type="text"
-          value={misheardText}
-          onChange={(e) => setMisheardText(e.target.value)}
-          placeholder={t.editor.misheardPlaceholder}
-          className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white text-lg
-                     placeholder:text-white/20 focus:border-neon-pink/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
-        />
-      </div>
-
-      {/* Song info */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="block text-sm text-white/60">{t.editor.artistLabel}</label>
-          <input
-            type="text"
-            value={artistName}
-            onChange={(e) => setArtistName(e.target.value)}
-            placeholder="Queen"
-            className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                       placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="block text-sm text-white/60">{t.editor.songLabel}</label>
-          <input
-            type="text"
-            value={songTitle}
-            onChange={(e) => setSongTitle(e.target.value)}
-            placeholder="Bohemian Rhapsody"
-            className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                       placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
-          />
-        </div>
-      </div>
-
-      {/* Original text (optional) */}
-      <div className="space-y-1">
-        <label className="block text-sm text-white/60">{t.editor.originalLabel}</label>
-        <input
-          type="text"
-          value={originalText}
-          onChange={(e) => setOriginalText(e.target.value)}
-          placeholder=""
-          className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                     placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
-        />
-      </div>
-
-      {/* Era (optional) */}
-      <div className="space-y-1">
-        <label className="block text-sm text-white/60">{t.editor.eraLabel}</label>
-        <input
-          type="text"
-          value={era}
-          onChange={(e) => setEra(e.target.value)}
-          placeholder={t.editor.eraPlaceholder}
-          maxLength={20}
-          className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                     placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
-        />
-      </div>
-
-      {/* Comment (optional) */}
-      <div className="space-y-1">
-        <label className="block text-sm text-white/60">{t.editor.commentLabel}</label>
+        <label className="block text-sm text-white/60">
+          {t.editor.commentLabel}
+          <OptionalLabel text={t.editor.optional} />
+        </label>
         <input
           type="text"
           value={comment}
@@ -354,7 +541,10 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
 
       {/* Nickname */}
       <div className="space-y-1">
-        <label className="block text-sm text-white/60">{t.editor.nicknameLabel}</label>
+        <label className="block text-sm text-white/60">
+          {t.editor.nicknameLabel}
+          <OptionalLabel text={t.editor.optional} />
+        </label>
         <input
           type="text"
           value={nickname}
@@ -367,7 +557,10 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
 
       {/* Delete key */}
       <div className="space-y-1">
-        <label className="block text-sm text-white/60">{t.editor.deleteKeyLabel}</label>
+        <label className="block text-sm text-white/60">
+          {t.editor.deleteKeyLabel}
+          <OptionalLabel text={t.editor.optional} />
+        </label>
         <input
           type="text"
           value={deleteKey}
@@ -377,48 +570,6 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
                      placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
       </div>
-
-      {/* Preview */}
-      {canPreview && (
-        <div>
-          <button
-            onClick={() => setShowPreview(!showPreview)}
-            className="text-sm text-neon-blue hover:underline"
-          >
-            {showPreview ? <><EyeOff size={14} className="inline mr-1" />{t.editor.previewClose}</> : <><Eye size={14} className="inline mr-1" />{t.editor.previewOpen}</>}
-          </button>
-
-          {showPreview && parsed?.platform === "youtube" && (
-            <div className="mt-3 p-4 bg-black/30 rounded-xl border border-white/10">
-              <YouTubePlayer
-                videoId={parsed.videoId}
-                startSec={startSec!}
-                endSec={endSec!}
-                onTimeUpdate={handleTimeUpdate}
-                onStateChange={handleStateChange}
-              />
-              <Subtitle text={misheardText} visible={showSubtitle} durationSec={endSec! - startSec!} />
-            </div>
-          )}
-          {showPreview && parsed?.platform === "niconico" && (
-            <div className="mt-3 p-4 bg-black/30 rounded-xl border border-white/10">
-              <NiconicoPlayer
-                videoId={parsed.videoId}
-                startSec={startSec!}
-                endSec={endSec!}
-                onTimeUpdate={handleTimeUpdate}
-                onStateChange={handleNicoStateChange}
-              />
-              <Subtitle text={misheardText} visible={showSubtitle} durationSec={endSec! - startSec!} />
-            </div>
-          )}
-          {showPreview && parsed?.platform === "other" && (
-            <p className="mt-3 text-sm text-white/40 text-center">
-              {t.editor.previewUnsupported}
-            </p>
-          )}
-        </div>
-      )}
 
       {/* Actions */}
       <div className="flex gap-3 pt-2">

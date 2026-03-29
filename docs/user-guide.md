@@ -2,15 +2,14 @@
 
 ## Posting a Mishearing
 
-1. Tap the **Post** tab
-2. Paste a **video URL** (YouTube, Niconico, or any URL)
-3. Enter **start and end times** (format: `1:23` or `83` — just the part where you hear it)
-4. Select the **original language** and **sounds like** language
-5. Type what you hear in **"Sounds like this!"**
-6. Artist and song title are auto-filled from the video title (you can edit them)
-7. Optionally add the **era/year** (e.g. "1985", "90s") and a **one-liner comment**
-8. **Preview** — for YouTube videos, you can preview the segment + subtitle right there
-9. Hit **Post**!
+The post form is a step-by-step wizard:
+
+1. **Paste a video URL** (YouTube, Niconico, or any URL) — the video preview loads immediately
+2. **Song info**: Artist name, song title, and era are auto-filled from the video title via oEmbed (you can correct them). Select the original language and "sounds like" language
+3. **Subtitle cues**: Use the **dual-thumb slider** to set the start and end of the misheard segment. Type what you hear. Use the **◀ ▶ buttons** for 1-second fine-tuning, or **drag the thumb** to seek the video in real-time
+   - To add **multiple subtitles** in one post, tap the **+** button. The 2nd cue onwards only needs an end time (start = previous cue's end)
+4. **About you**: Nickname, delete key, and a one-liner comment (optional fields are styled differently so you know they're skippable)
+5. Hit **Post**!
 
 ## Drafts
 
@@ -19,14 +18,16 @@
 
 ## Playing
 
-- Tap the **play button** on a post card
+- Tap the **play button** on a post
 - YouTube and Niconico videos play inline (Niconico with comments OFF)
-- The misheard text appears as a **karaoke-style subtitle** (color sweeps left to right) during playback
+- Each subtitle cue appears as a **karaoke-style subtitle** (color sweeps left to right) when its time arrives
+- Posts with multiple cues show each subtitle in sequence during playback
 
 ## Spoiler
 
-- The misheard text is **hidden by default** — you see only the artist and song title
+- The misheard text is **hidden by default** — you see the song title, artist name (era), and video
 - It reveals when you **play the video** or tap **"Show mishearing"**
+- Below the video: meta info line showing post ID (copyable), poster nickname, date, and language
 - This way you can listen first and see if you hear it too!
 
 ## Reactions

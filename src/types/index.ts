@@ -1,3 +1,10 @@
+export interface SubtitleCue {
+  text: string;
+  originalText?: string;
+  showAt: number;
+  duration: number;
+}
+
 export interface Post {
   id: string;
   videoUrl: string;
@@ -18,6 +25,7 @@ export interface Post {
   totalReactions: number;
   era?: string;
   comment?: string;
+  cues: SubtitleCue[];
 }
 
 export interface Draft {

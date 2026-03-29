@@ -84,9 +84,17 @@ async function getReactionCounts(db: D1Database, postId: string): Promise<Record
 
 // --- Row mapper ---
 
-function mapRow(row: Record<string, unknown>) {
+function mapRow(row: Record<string, unknown>, cueRows?: Record<string, unknown>[]) {
   const reactions = row.reactions_json ? JSON.parse(row.reactions_json as string) : {};
   const totalReactions = Object.values(reactions).reduce((sum: number, n) => sum + (n as number), 0);
+
+  const cues = (cueRows || []).map((c) => ({
+    text: c.text as string,
+    originalText: (c.original_text as string) || undefined,
+    showAt: c.show_at as number,
+    duration: c.duration as number,
+  }));
+
   return {
     id: row.id,
     videoUrl: row.video_url,
@@ -108,6 +116,7 @@ function mapRow(row: Record<string, unknown>) {
     totalReactions,
     era: row.era || undefined,
     comment: row.comment || undefined,
+    cues,
   };
 }
 
@@ -142,7 +151,21 @@ app.get("/posts", async (c) => {
   }
 
   const { results } = await c.env.DB.prepare(query).bind(...params).all();
-  return c.json({ posts: (results || []).map(mapRow) });
+  // Load cues for all posts in one query
+  const postIds = (results || []).map((r) => r.id as string);
+  let cuesByPost: Record<string, Record<string, unknown>[]> = {};
+  if (postIds.length > 0) {
+    const placeholders = postIds.map(() => "?").join(",");
+    const { results: cueResults } = await c.env.DB.prepare(
+      `SELECT * FROM cues WHERE post_id IN (${placeholders}) ORDER BY sort_order`
+    ).bind(...postIds).all();
+    for (const c of cueResults || []) {
+      const pid = c.post_id as string;
+      if (!cuesByPost[pid]) cuesByPost[pid] = [];
+      cuesByPost[pid].push(c);
+    }
+  }
+  return c.json({ posts: (results || []).map((r) => mapRow(r, cuesByPost[r.id as string])) });
 });
 
 app.get("/posts/:id", async (c) => {
@@ -152,7 +175,10 @@ app.get("/posts/:id", async (c) => {
   ).bind(id).first();
 
   if (!row) return c.json({ error: "not found" }, 404);
-  return c.json({ post: mapRow(row) });
+  const { results: cueRows } = await c.env.DB.prepare(
+    "SELECT * FROM cues WHERE post_id = ? ORDER BY sort_order"
+  ).bind(id).all();
+  return c.json({ post: mapRow(row, cueRows || []) });
 });
 
 // POST /api/posts — with validation & rate limit
@@ -170,7 +196,7 @@ app.post("/posts", async (c) => {
 
   let body: Record<string, unknown>;
   try { body = await c.req.json(); } catch { return c.json({ error: "invalid body" }, 400); }
-  const { videoUrl, platform, videoId, startSec, endSec, misheardText, originalText, artistName, songTitle, sourceLang, targetLang, nickname, deleteKey, era, comment } = body;
+  const { videoUrl, platform, videoId, startSec, endSec, misheardText, originalText, artistName, songTitle, sourceLang, targetLang, nickname, deleteKey, era, comment, cues: rawCues } = body;
 
   // Validate required fields exist and are strings
   if (
@@ -209,28 +235,55 @@ app.post("/posts", async (c) => {
   const rawDeleteKey = typeof deleteKey === "string" ? deleteKey.trim() : "";
   const safeDeleteKey = rawDeleteKey ? await hashDeleteKey(rawDeleteKey) : null;
 
-  await c.env.DB.prepare(
-    `INSERT INTO posts (id, video_url, platform, video_id, start_sec, end_sec, misheard_text, original_text, artist_name, song_title, source_lang, target_lang, nickname, ip_hash, delete_key, era, comment)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    id,
-    truncate(safeUrl, MAX_URL),
-    platform,
-    truncate(platform === "other" ? sanitizeUrl(videoId)! : videoId, MAX_URL),
-    start,
-    end,
-    truncate(String(misheardText).trim(), MAX_TEXT),
-    typeof originalText === "string" && originalText.trim() ? truncate(originalText.trim(), MAX_TEXT) : null,
-    truncate(String(artistName || "").trim(), MAX_NAME * 3),
-    truncate(String(songTitle || "").trim(), MAX_NAME * 3),
-    truncate(String(sourceLang || "en"), 10),
-    truncate(String(targetLang || "ja"), 10),
-    truncate(String(nickname || "").trim(), MAX_NAME) || "Anonymous",
-    ipHash,
-    safeDeleteKey,
-    typeof era === "string" && era.trim() ? truncate(era.trim(), MAX_ERA) : null,
-    typeof comment === "string" && comment.trim() ? truncate(comment.trim(), MAX_TEXT) : null,
-  ).run();
+  // Build all statements and execute as a batch (atomic)
+  const statements: D1PreparedStatement[] = [];
+
+  statements.push(
+    c.env.DB.prepare(
+      `INSERT INTO posts (id, video_url, platform, video_id, start_sec, end_sec, misheard_text, original_text, artist_name, song_title, source_lang, target_lang, nickname, ip_hash, delete_key, era, comment)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      id,
+      truncate(safeUrl, MAX_URL),
+      platform,
+      truncate(platform === "other" ? sanitizeUrl(videoId)! : videoId, MAX_URL),
+      start,
+      end,
+      truncate(String(misheardText).trim(), MAX_TEXT),
+      typeof originalText === "string" && originalText.trim() ? truncate(originalText.trim(), MAX_TEXT) : null,
+      truncate(String(artistName || "").trim(), MAX_NAME * 3),
+      truncate(String(songTitle || "").trim(), MAX_NAME * 3),
+      truncate(String(sourceLang || "en"), 10),
+      truncate(String(targetLang || "ja"), 10),
+      truncate(String(nickname || "").trim(), MAX_NAME) || "Anonymous",
+      ipHash,
+      safeDeleteKey,
+      typeof era === "string" && era.trim() ? truncate(era.trim(), MAX_ERA) : null,
+      typeof comment === "string" && comment.trim() ? truncate(comment.trim(), MAX_TEXT) : null,
+    )
+  );
+
+  // Cue statements (required)
+  const cuesArray = Array.isArray(rawCues) ? rawCues : [];
+  if (cuesArray.length === 0) {
+    return c.json({ error: "at least one cue is required" }, 400);
+  }
+  for (let i = 0; i < cuesArray.length; i++) {
+    const cue = cuesArray[i] as Record<string, unknown>;
+    const cueText = typeof cue.text === "string" ? cue.text.trim() : "";
+    if (!cueText) continue;
+    const cueOriginal = typeof cue.originalText === "string" && cue.originalText.trim() ? truncate(cue.originalText.trim(), MAX_TEXT) : null;
+    const showAt = Number(cue.showAt) || 0;
+    const duration = Number(cue.duration) || 0;
+    if (showAt < 0 || duration <= 0) continue;
+    statements.push(
+      c.env.DB.prepare(
+        "INSERT INTO cues (post_id, text, original_text, show_at, duration, sort_order) VALUES (?, ?, ?, ?, ?, ?)"
+      ).bind(id, truncate(cueText, MAX_TEXT), cueOriginal, showAt, duration, i)
+    );
+  }
+
+  await c.env.DB.batch(statements);
 
   return c.json({ id }, 201);
 });
@@ -255,6 +308,7 @@ app.delete("/posts/:id", async (c) => {
     return c.json({ error: "Delete key mismatch" }, 403);
   }
 
+  await c.env.DB.prepare("DELETE FROM cues WHERE post_id = ?").bind(id).run();
   await c.env.DB.prepare("DELETE FROM reactions WHERE post_id = ?").bind(id).run();
   await c.env.DB.prepare("DELETE FROM posts WHERE id = ?").bind(id).run();
 
