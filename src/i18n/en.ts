@@ -13,6 +13,8 @@ const en = {
     jumpToNew: "Jump to new posts",
     loadMore: "Load more",
     loadingMore: "Loading...",
+    prevPage: "Previous",
+    nextPage: "Next",
     showingOf: "{count} of {total}",
     noResults: "No results found",
   },

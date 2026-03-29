@@ -15,6 +15,8 @@ const ja: Messages = {
     jumpToNew: "新着投稿へジャンプ",
     loadMore: "もっと見る",
     loadingMore: "読み込み中...",
+    prevPage: "前へ",
+    nextPage: "次へ",
     showingOf: "{count} / {total} 件",
     noResults: "見つかりませんでした",
   },

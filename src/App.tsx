@@ -8,11 +8,11 @@ import Header from "@/components/Header";
 import Toast from "@/components/Toast";
 import PickupCorner from "@/components/PickupCorner";
 import NightBackground from "@/components/NightBackground";
-import { Share2, Sparkles, Award, PenLine, ChevronDown, Heart, ExternalLink, Search, X } from "lucide-react";
+import { Share2, Sparkles, Award, PenLine, ChevronDown, ChevronLeft, ChevronRight, Heart, ExternalLink, Search, X } from "lucide-react";
 
 type Tab = "feed" | "fame" | "search" | "post";
 type ToastState = { message: string; type: "success" | "error" } | null;
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export default function App() {
   const i18n = useI18nProvider();
@@ -32,20 +32,20 @@ function AppInner() {
   const [tab, setTab] = useState<Tab>("feed");
   const [feedPosts, setFeedPosts] = useState<Post[]>([]);
   const [feedTotal, setFeedTotal] = useState(0);
+  const [feedPage, setFeedPage] = useState(0);
   const [famePosts, setFamePosts] = useState<Post[]>([]);
   const [fameTotal, setFameTotal] = useState(0);
+  const [famePage, setFamePage] = useState(0);
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [fameLoading, setFameLoading] = useState(false);
-  const [fameLoadingMore, setFameLoadingMore] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
   const [searchPosts, setSearchPosts] = useState<Post[]>([]);
   const [searchTotal, setSearchTotal] = useState(0);
+  const [searchPage, setSearchPage] = useState(0);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [searchLoadingMore, setSearchLoadingMore] = useState(false);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [langFilter, setLangFilterState] = useState<LangFilter>(() => {
     const saved = localStorage.getItem(LANG_FILTER_KEY);
@@ -71,42 +71,45 @@ function AppInner() {
     return params;
   }, [locale]);
 
-  const loadFeed = useCallback(async (append = false, offset = 0) => {
-    if (append) setLoadingMore(true); else setLoading(true);
+  const loadFeed = useCallback(async (page = 0) => {
+    setLoading(true);
     try {
-      const { posts, total } = await fetchPosts({ sort: "new", limit: PAGE_SIZE, offset });
-      setFeedPosts((prev) => append ? [...prev, ...posts] : posts);
+      const { posts, total } = await fetchPosts({ sort: "new", limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+      setFeedPosts(posts);
       setFeedTotal(total);
+      setFeedPage(page);
     } catch {
-      if (!append) { setFeedPosts([]); setFeedTotal(0); }
+      setFeedPosts([]); setFeedTotal(0);
     } finally {
-      if (append) setLoadingMore(false); else setLoading(false);
+      setLoading(false);
     }
   }, []);
 
-  const loadFame = useCallback(async (append = false, offset = 0) => {
-    if (append) setFameLoadingMore(true); else setFameLoading(true);
+  const loadFame = useCallback(async (page = 0) => {
+    setFameLoading(true);
     try {
-      const { posts, total } = await fetchPosts({ sort: "likes", limit: PAGE_SIZE, offset });
-      setFamePosts((prev) => append ? [...prev, ...posts] : posts);
+      const { posts, total } = await fetchPosts({ sort: "likes", limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+      setFamePosts(posts);
       setFameTotal(total);
+      setFamePage(page);
     } catch {
-      if (!append) { setFamePosts([]); setFameTotal(0); }
+      setFamePosts([]); setFameTotal(0);
     } finally {
-      if (append) setFameLoadingMore(false); else setFameLoading(false);
+      setFameLoading(false);
     }
   }, []);
 
-  const loadSearch = useCallback(async (query: string, filter: LangFilter, tags: string[], append = false, offset = 0) => {
-    if (append) setSearchLoadingMore(true); else setSearchLoading(true);
+  const loadSearch = useCallback(async (query: string, filter: LangFilter, tags: string[], page = 0) => {
+    setSearchLoading(true);
     try {
-      const { posts, total } = await fetchPosts({ sort: "new", q: query || undefined, ...filterParams(filter, tags), limit: PAGE_SIZE, offset });
-      setSearchPosts((prev) => append ? [...prev, ...posts] : posts);
+      const { posts, total } = await fetchPosts({ sort: "new", q: query || undefined, ...filterParams(filter, tags), limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+      setSearchPosts(posts);
       setSearchTotal(total);
+      setSearchPage(page);
     } catch {
-      if (!append) { setSearchPosts([]); setSearchTotal(0); }
+      setSearchPosts([]); setSearchTotal(0);
     } finally {
-      if (append) setSearchLoadingMore(false); else setSearchLoading(false);
+      setSearchLoading(false);
     }
   }, [filterParams]);
 
@@ -126,9 +129,9 @@ function AppInner() {
     setSearchTotal(0);
   }, []);
 
-  // Reload search when query/filter changes
+  // Reload search when query/filter changes (reset to page 0)
   useEffect(() => {
-    if (tab === "search") loadSearch(activeQuery, langFilter, filterTags);
+    if (tab === "search") { setSearchPage(0); loadSearch(activeQuery, langFilter, filterTags, 0); }
   }, [activeQuery, langFilter, filterTags, tab, loadSearch]);
 
   // Reload feed/fame when tab changes
@@ -267,7 +270,7 @@ function AppInner() {
               </h2>
               {feedTotal > 0 && (
                 <p className="text-xs text-white/25">
-                  {t.feed.showingOf.replace("{count}", String(feedPosts.length)).replace("{total}", String(feedTotal))}
+                  {t.feed.showingOf.replace("{count}", String(feedPage * PAGE_SIZE + 1) + "-" + String(Math.min((feedPage + 1) * PAGE_SIZE, feedTotal))).replace("{total}", String(feedTotal))}
                 </p>
               )}
             </div>
@@ -278,6 +281,7 @@ function AppInner() {
               <EmptyState onPost={() => setTab("post")} />
             ) : (
               <>
+                <Paginator page={feedPage} total={feedTotal} onPage={(p) => { loadFeed(p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
                 {feedPosts.map((post) => (
                   <div key={post.id} id={`post-${post.id}`}>
                     <PostCard
@@ -291,12 +295,7 @@ function AppInner() {
                     <ShareButton onShare={() => handleShare(post.id)} />
                   </div>
                 ))}
-                <LoadMoreButton
-                  shown={feedPosts.length}
-                  total={feedTotal}
-                  loading={loadingMore}
-                  onLoad={() => loadFeed(true, feedPosts.length)}
-                />
+                <Paginator page={feedPage} total={feedTotal} onPage={(p) => { loadFeed(p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
               </>
             )}
           </>
@@ -308,7 +307,7 @@ function AppInner() {
               <h2 className="text-lg font-bold neon-text">{t.fame.title}</h2>
               {fameTotal > 0 && (
                 <p className="text-xs text-white/25">
-                  {t.feed.showingOf.replace("{count}", String(famePosts.length)).replace("{total}", String(fameTotal))}
+                  {t.feed.showingOf.replace("{count}", String(famePage * PAGE_SIZE + 1) + "-" + String(Math.min((famePage + 1) * PAGE_SIZE, fameTotal))).replace("{total}", String(fameTotal))}
                 </p>
               )}
             </div>
@@ -318,16 +317,12 @@ function AppInner() {
               <p className="text-center text-white/40 py-8">{t.fame.empty}</p>
             ) : (
               <>
-                <RankingList posts={famePosts} handleShare={handleShare} highlightId={highlightId} startRank={0} onDeleted={(id) => {
+                <Paginator page={famePage} total={fameTotal} onPage={(p) => { loadFame(p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+                <RankingList posts={famePosts} handleShare={handleShare} highlightId={highlightId} startRank={famePage * PAGE_SIZE} onDeleted={(id) => {
                   setFamePosts((prev) => prev.filter((p) => p.id !== id));
                   setFameTotal((prev) => prev - 1);
                 }} />
-                <LoadMoreButton
-                  shown={famePosts.length}
-                  total={fameTotal}
-                  loading={fameLoadingMore}
-                  onLoad={() => loadFame(true, famePosts.length)}
-                />
+                <Paginator page={famePage} total={fameTotal} onPage={(p) => { loadFame(p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
               </>
             )}
           </>
@@ -410,7 +405,7 @@ function AppInner() {
             {/* Search results */}
             {searchTotal > 0 && (
               <p className="text-xs text-white/25 text-center">
-                {t.feed.showingOf.replace("{count}", String(searchPosts.length)).replace("{total}", String(searchTotal))}
+                {t.feed.showingOf.replace("{count}", String(searchPage * PAGE_SIZE + 1) + "-" + String(Math.min((searchPage + 1) * PAGE_SIZE, searchTotal))).replace("{total}", String(searchTotal))}
               </p>
             )}
 
@@ -422,6 +417,7 @@ function AppInner() {
               </p>
             ) : (
               <>
+                <Paginator page={searchPage} total={searchTotal} onPage={(p) => { loadSearch(activeQuery, langFilter, filterTags, p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
                 {searchPosts.map((post) => (
                   <div key={post.id}>
                     <PostCard post={post} onDeleted={(id) => {
@@ -431,12 +427,7 @@ function AppInner() {
                     <ShareButton onShare={() => handleShare(post.id)} />
                   </div>
                 ))}
-                <LoadMoreButton
-                  shown={searchPosts.length}
-                  total={searchTotal}
-                  loading={searchLoadingMore}
-                  onLoad={() => loadSearch(activeQuery, langFilter, filterTags, true, searchPosts.length)}
-                />
+                <Paginator page={searchPage} total={searchTotal} onPage={(p) => { loadSearch(activeQuery, langFilter, filterTags, p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
               </>
             )}
           </>
@@ -484,23 +475,59 @@ function ShareButton({ onShare }: { onShare: () => void }) {
   );
 }
 
-function LoadMoreButton({ shown, total, loading, onLoad }: {
-  shown: number; total: number; loading: boolean; onLoad: () => void;
+function Paginator({ page, total, onPage }: {
+  page: number; total: number; onPage: (page: number) => void;
 }) {
   const t = useI18n();
-  if (shown >= total) return null;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (totalPages <= 1) return null;
+
+  // Show current page ± 2, plus first and last
+  const pages: number[] = [];
+  for (let i = 0; i < totalPages; i++) {
+    if (i === 0 || i === totalPages - 1 || (i >= page - 2 && i <= page + 2)) {
+      pages.push(i);
+    }
+  }
+
   return (
-    <div className="text-center py-4">
+    <div className="flex items-center justify-center gap-1 py-3 flex-wrap">
       <button
-        onClick={onLoad}
-        disabled={loading}
-        className="px-6 py-2.5 rounded-lg border border-white/15 text-sm text-white/50
-                   hover:text-white/70 hover:border-white/25 hover:bg-white/5
-                   disabled:opacity-40 disabled:cursor-default
-                   transition-all
-                   focus-visible:outline-2 focus-visible:outline-neon-blue focus-visible:outline-offset-2"
+        onClick={() => onPage(page - 1)}
+        disabled={page === 0}
+        className="p-1.5 rounded text-white/40 hover:text-white/70 disabled:opacity-20 disabled:cursor-default transition-colors"
+        aria-label={t.feed.prevPage}
       >
-        {loading ? t.feed.loadingMore : t.feed.loadMore}
+        <ChevronLeft size={16} />
+      </button>
+      {pages.map((p, i) => {
+        // Insert ellipsis if gap
+        const prev = i > 0 ? pages[i - 1] : p;
+        const rangeStart = p * PAGE_SIZE + 1;
+        const rangeEnd = Math.min((p + 1) * PAGE_SIZE, total);
+        return (
+          <span key={p} className="contents">
+            {p - prev > 1 && <span className="text-white/20 text-xs px-1">…</span>}
+            <button
+              onClick={() => onPage(p)}
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors min-w-[44px]
+                ${page === p
+                  ? "bg-neon-blue/20 text-neon-blue border border-neon-blue/40"
+                  : "text-white/40 hover:text-white/60 hover:bg-white/5"
+                }`}
+            >
+              {rangeStart}-{rangeEnd}
+            </button>
+          </span>
+        );
+      })}
+      <button
+        onClick={() => onPage(page + 1)}
+        disabled={page >= totalPages - 1}
+        className="p-1.5 rounded text-white/40 hover:text-white/70 disabled:opacity-20 disabled:cursor-default transition-colors"
+        aria-label={t.feed.nextPage}
+      >
+        <ChevronRight size={16} />
       </button>
     </div>
   );
