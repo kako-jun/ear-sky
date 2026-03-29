@@ -2,6 +2,7 @@ const en = {
   tab: {
     feed: "New",
     fame: "Hall of Fame",
+    search: "Search",
     post: "Post",
   },
   feed: {

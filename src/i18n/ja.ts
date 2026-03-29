@@ -4,6 +4,7 @@ const ja: Messages = {
   tab: {
     feed: "新着",
     fame: "殿堂",
+    search: "検索",
     post: "投稿する",
   },
   feed: {

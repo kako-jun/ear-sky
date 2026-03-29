@@ -10,7 +10,7 @@ import PickupCorner from "@/components/PickupCorner";
 import NightBackground from "@/components/NightBackground";
 import { Share2, Sparkles, Award, PenLine, ChevronDown, Heart, ExternalLink, Search, X } from "lucide-react";
 
-type Tab = "feed" | "fame" | "post";
+type Tab = "feed" | "fame" | "search" | "post";
 type ToastState = { message: string; type: "success" | "error" } | null;
 const PAGE_SIZE = 20;
 
@@ -42,11 +42,14 @@ function AppInner() {
   const [toast, setToast] = useState<ToastState>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchPosts, setSearchPosts] = useState<Post[]>([]);
+  const [searchTotal, setSearchTotal] = useState(0);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchLoadingMore, setSearchLoadingMore] = useState(false);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [langFilter, setLangFilterState] = useState<LangFilter>(() => {
     const saved = localStorage.getItem(LANG_FILTER_KEY);
-    return (saved === "to" || saved === "from" || saved === "all") ? saved : "to";
+    return (saved === "to" || saved === "from" || saved === "all") ? saved : "all";
   });
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -68,10 +71,10 @@ function AppInner() {
     return params;
   }, [locale]);
 
-  const loadFeed = useCallback(async (query = "", filter: LangFilter = "to", tags: string[] = [], append = false, offset = 0) => {
+  const loadFeed = useCallback(async (append = false, offset = 0) => {
     if (append) setLoadingMore(true); else setLoading(true);
     try {
-      const { posts, total } = await fetchPosts({ sort: "new", q: query || undefined, ...filterParams(filter, tags), limit: PAGE_SIZE, offset });
+      const { posts, total } = await fetchPosts({ sort: "new", limit: PAGE_SIZE, offset });
       setFeedPosts((prev) => append ? [...prev, ...posts] : posts);
       setFeedTotal(total);
     } catch {
@@ -79,18 +82,31 @@ function AppInner() {
     } finally {
       if (append) setLoadingMore(false); else setLoading(false);
     }
-  }, [filterParams]);
+  }, []);
 
-  const loadFame = useCallback(async (query = "", filter: LangFilter = "to", tags: string[] = [], append = false, offset = 0) => {
+  const loadFame = useCallback(async (append = false, offset = 0) => {
     if (append) setFameLoadingMore(true); else setFameLoading(true);
     try {
-      const { posts, total } = await fetchPosts({ sort: "likes", q: query || undefined, ...filterParams(filter, tags), limit: PAGE_SIZE, offset });
+      const { posts, total } = await fetchPosts({ sort: "likes", limit: PAGE_SIZE, offset });
       setFamePosts((prev) => append ? [...prev, ...posts] : posts);
       setFameTotal(total);
     } catch {
       if (!append) { setFamePosts([]); setFameTotal(0); }
     } finally {
       if (append) setFameLoadingMore(false); else setFameLoading(false);
+    }
+  }, []);
+
+  const loadSearch = useCallback(async (query: string, filter: LangFilter, tags: string[], append = false, offset = 0) => {
+    if (append) setSearchLoadingMore(true); else setSearchLoading(true);
+    try {
+      const { posts, total } = await fetchPosts({ sort: "new", q: query || undefined, ...filterParams(filter, tags), limit: PAGE_SIZE, offset });
+      setSearchPosts((prev) => append ? [...prev, ...posts] : posts);
+      setSearchTotal(total);
+    } catch {
+      if (!append) { setSearchPosts([]); setSearchTotal(0); }
+    } finally {
+      if (append) setSearchLoadingMore(false); else setSearchLoading(false);
     }
   }, [filterParams]);
 
@@ -106,27 +122,26 @@ function AppInner() {
     setSearchQuery("");
     setActiveQuery("");
     setFilterTags([]);
-    setSearchOpen(false);
+    setSearchPosts([]);
+    setSearchTotal(0);
   }, []);
 
-  const toggleSearch = useCallback(() => {
-    setSearchOpen((prev) => {
-      if (!prev) setTimeout(() => searchInputRef.current?.focus(), 50);
-      return !prev;
-    });
-  }, []);
+  // Reload search when query/filter changes
+  useEffect(() => {
+    if (tab === "search") loadSearch(activeQuery, langFilter, filterTags);
+  }, [activeQuery, langFilter, filterTags, tab, loadSearch]);
 
-  // Reload when active query, lang filter, or tab changes
+  // Reload feed/fame when tab changes
   const isInitialMount = useRef(true);
   useEffect(() => {
     if (isInitialMount.current) { isInitialMount.current = false; return; }
-    if (tab === "feed") loadFeed(activeQuery, langFilter, filterTags);
-    if (tab === "fame") loadFame(activeQuery, langFilter, filterTags);
-  }, [activeQuery, langFilter, filterTags, tab, loadFeed, loadFame]);
+    if (tab === "feed") loadFeed();
+    if (tab === "fame") loadFame();
+  }, [tab, loadFeed, loadFame]);
 
   useEffect(() => {
     const init = async () => {
-      await loadFeed("", langFilter, filterTags);
+      await loadFeed();
       const hash = window.location.hash;
       if (hash.startsWith("#post-")) {
         const targetId = hash.slice(6);
@@ -157,8 +172,7 @@ function AppInner() {
         const id = await createPost(data);
         showToast(t.toast.posted);
         setTab("feed");
-        clearSearch();
-        await loadFeed("", langFilter, filterTags);
+        await loadFeed();
         setHighlightId(id);
         setTimeout(() => {
           document.getElementById(`post-${id}`)?.scrollIntoView({ behavior: "smooth" });
@@ -168,7 +182,7 @@ function AppInner() {
         showToast(msg, "error");
       }
     },
-    [loadFeed, clearSearch, showToast, t, langFilter, filterTags]
+    [loadFeed, showToast, t]
   );
 
   const handleShare = useCallback((postId: string) => {
@@ -202,6 +216,7 @@ function AppInner() {
             [
               ["feed", t.tab.feed, Sparkles],
               ["fame", t.tab.fame, Award],
+              ["search", t.tab.search, Search],
               ["post", t.tab.post, PenLine],
             ] as const
           ).map(([key, label, Icon]) => (
@@ -220,32 +235,117 @@ function AppInner() {
               <Icon size={14} />{label}
             </button>
           ))}
-          {/* Search toggle — hidden on post tab */}
-          {tab !== "post" && (
-            <button
-              onClick={toggleSearch}
-              className={`px-3 py-3 transition-colors
-                focus-visible:outline-2 focus-visible:outline-neon-blue focus-visible:outline-offset-[-2px]
-                ${searchOpen || activeQuery ? "text-neon-blue" : "text-white/40 hover:text-white/60"}`}
-              aria-label="Search"
-            >
-              <Search size={16} />
-            </button>
-          )}
         </div>
+      </nav>
 
-        {/* Search bar slide-in */}
-        {searchOpen && tab !== "post" && (
-          <div className="max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4 py-2 border-t border-white/5 space-y-2">
+      <main className="max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4 py-6 space-y-4" role="tabpanel">
+
+        {tab === "feed" && (
+          <>
+            <div className="flex justify-end">
+              <button
+                onClick={scrollToNewPosts}
+                className="flex items-center gap-1 text-[11px] text-white/25
+                           hover:text-white/45 transition-colors
+                           focus-visible:outline-2 focus-visible:outline-neon-blue"
+              >
+                {t.feed.jumpToNew}
+                <ChevronDown size={11} />
+              </button>
+            </div>
+
+            <PickupCorner />
+
+            <div className="py-6">
+              <div className="mx-auto max-w-xs h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+            </div>
+
+            <div id="new-posts" className="text-center space-y-1">
+              <h2 className="text-lg font-bold neon-text-blue flex items-center justify-center gap-2">
+                <Sparkles size={18} aria-hidden="true" />
+                {t.feed.newPosts}
+              </h2>
+              {feedTotal > 0 && (
+                <p className="text-xs text-white/25">
+                  {t.feed.showingOf.replace("{count}", String(feedPosts.length)).replace("{total}", String(feedTotal))}
+                </p>
+              )}
+            </div>
+
+            {loading ? (
+              <p className="text-center text-white/40 py-8">{t.feed.loading}</p>
+            ) : feedPosts.length === 0 ? (
+              <EmptyState onPost={() => setTab("post")} />
+            ) : (
+              <>
+                {feedPosts.map((post) => (
+                  <div key={post.id} id={`post-${post.id}`}>
+                    <PostCard
+                      post={post}
+                      showPlayer={highlightId === post.id}
+                      onDeleted={(id) => {
+                        setFeedPosts((prev) => prev.filter((p) => p.id !== id));
+                        setFeedTotal((prev) => prev - 1);
+                      }}
+                    />
+                    <ShareButton onShare={() => handleShare(post.id)} />
+                  </div>
+                ))}
+                <LoadMoreButton
+                  shown={feedPosts.length}
+                  total={feedTotal}
+                  loading={loadingMore}
+                  onLoad={() => loadFeed(true, feedPosts.length)}
+                />
+              </>
+            )}
+          </>
+        )}
+
+        {tab === "fame" && (
+          <>
+            <div className="text-center space-y-1">
+              <h2 className="text-lg font-bold neon-text">{t.fame.title}</h2>
+              {fameTotal > 0 && (
+                <p className="text-xs text-white/25">
+                  {t.feed.showingOf.replace("{count}", String(famePosts.length)).replace("{total}", String(fameTotal))}
+                </p>
+              )}
+            </div>
+            {fameLoading ? (
+              <p className="text-center text-white/40 py-8">{t.feed.loading}</p>
+            ) : famePosts.length === 0 ? (
+              <p className="text-center text-white/40 py-8">{t.fame.empty}</p>
+            ) : (
+              <>
+                <RankingList posts={famePosts} handleShare={handleShare} highlightId={highlightId} startRank={0} onDeleted={(id) => {
+                  setFamePosts((prev) => prev.filter((p) => p.id !== id));
+                  setFameTotal((prev) => prev - 1);
+                }} />
+                <LoadMoreButton
+                  shown={famePosts.length}
+                  total={fameTotal}
+                  loading={fameLoadingMore}
+                  onLoad={() => loadFame(true, famePosts.length)}
+                />
+              </>
+            )}
+          </>
+        )}
+
+        {tab === "search" && (
+          <>
+            {/* Search bar */}
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder={t.search.placeholder}
-                className="w-full pl-9 pr-9 py-2 rounded-lg bg-white/5 border border-white/10
+                autoFocus
+                className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-white/5 border border-white/10
                            text-sm text-white placeholder:text-white/25
                            focus:outline-none focus:border-neon-blue/50 focus:bg-white/8
                            transition-colors"
@@ -256,12 +356,13 @@ function AppInner() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
                   aria-label={t.search.clear}
                 >
-                  <X size={14} />
+                  <X size={16} />
                 </button>
               )}
             </div>
-            {/* Language filter chips */}
-            <div className="flex items-center gap-2">
+
+            {/* Language filter toggle */}
+            <div className="inline-flex rounded-md border border-white/10 overflow-hidden">
               {(["to", "from", "all"] as const).map((f) => {
                 const label = f === "to"
                   ? t.search.filterTo.replace("{lang}", locale.toUpperCase())
@@ -272,10 +373,10 @@ function AppInner() {
                   <button
                     key={f}
                     onClick={() => setLangFilter(f)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors
+                    className={`px-3 py-1.5 text-xs font-medium transition-colors border-r border-white/10 last:border-r-0
                       ${langFilter === f
-                        ? "bg-neon-blue/20 text-neon-blue border border-neon-blue/40"
-                        : "text-white/35 border border-white/10 hover:text-white/55 hover:border-white/20"
+                        ? "bg-neon-blue/20 text-neon-blue"
+                        : "text-white/35 hover:text-white/55 hover:bg-white/5"
                       }`}
                   >
                     {label}
@@ -283,6 +384,7 @@ function AppInner() {
                 );
               })}
             </div>
+
             {/* Tag filter chips */}
             <div className="flex flex-wrap items-center gap-1.5">
               {VALID_TAGS.map((tag) => {
@@ -304,114 +406,36 @@ function AppInner() {
                 );
               })}
             </div>
-          </div>
-        )}
-      </nav>
 
-      <main className="max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4 py-6 space-y-4" role="tabpanel">
-
-        {tab === "feed" && (
-          <>
-            {/* Skip pickup — for returning users (hide when searching) */}
-            {!activeQuery && (
-              <>
-                <div className="flex justify-end">
-                  <button
-                    onClick={scrollToNewPosts}
-                    className="flex items-center gap-1 text-[11px] text-white/25
-                               hover:text-white/45 transition-colors
-                               focus-visible:outline-2 focus-visible:outline-neon-blue"
-                  >
-                    {t.feed.jumpToNew}
-                    <ChevronDown size={11} />
-                  </button>
-                </div>
-
-                <PickupCorner />
-
-                {/* Divider between pickup and new posts */}
-                <div className="py-6">
-                  <div className="mx-auto max-w-xs h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-                </div>
-              </>
+            {/* Search results */}
+            {searchTotal > 0 && (
+              <p className="text-xs text-white/25 text-center">
+                {t.feed.showingOf.replace("{count}", String(searchPosts.length)).replace("{total}", String(searchTotal))}
+              </p>
             )}
 
-            {/* New Posts section header */}
-            <div id="new-posts" className="text-center space-y-1">
-              <h2 className="text-lg font-bold neon-text-blue flex items-center justify-center gap-2">
-                <Sparkles size={18} aria-hidden="true" />
-                {t.feed.newPosts}
-              </h2>
-              {feedTotal > 0 && (
-                <p className="text-xs text-white/25">
-                  {t.feed.showingOf.replace("{count}", String(feedPosts.length)).replace("{total}", String(feedTotal))}
-                </p>
-              )}
-            </div>
-
-            {loading ? (
+            {searchLoading ? (
               <p className="text-center text-white/40 py-8">{t.feed.loading}</p>
-            ) : feedPosts.length === 0 ? (
-              activeQuery ? (
-                <p className="text-center text-white/40 py-8">{t.feed.noResults}</p>
-              ) : (
-                <EmptyState onPost={() => setTab("post")} />
-              )
+            ) : searchPosts.length === 0 ? (
+              <p className="text-center text-white/40 py-8">
+                {(activeQuery || filterTags.length > 0 || langFilter !== "all") ? t.feed.noResults : t.search.placeholder}
+              </p>
             ) : (
               <>
-                {feedPosts.map((post) => (
-                  <div key={post.id} id={`post-${post.id}`}>
-                    <PostCard
-                      post={post}
-                      showPlayer={highlightId === post.id}
-                      onDeleted={(id) => {
-                        setFeedPosts((prev) => prev.filter((p) => p.id !== id));
-                        setFeedTotal((prev) => prev - 1);
-                      }}
-                    />
+                {searchPosts.map((post) => (
+                  <div key={post.id}>
+                    <PostCard post={post} onDeleted={(id) => {
+                      setSearchPosts((prev) => prev.filter((p) => p.id !== id));
+                      setSearchTotal((prev) => prev - 1);
+                    }} />
                     <ShareButton onShare={() => handleShare(post.id)} />
                   </div>
                 ))}
                 <LoadMoreButton
-                  shown={feedPosts.length}
-                  total={feedTotal}
-                  loading={loadingMore}
-                  onLoad={() => loadFeed(activeQuery, langFilter, filterTags, true, feedPosts.length)}
-                />
-              </>
-            )}
-          </>
-        )}
-
-        {tab === "fame" && (
-          <>
-            <div className="text-center space-y-1">
-              <h2 className="text-lg font-bold neon-text">{t.fame.title}</h2>
-              {fameTotal > 0 && (
-                <p className="text-xs text-white/25">
-                  {t.feed.showingOf.replace("{count}", String(famePosts.length)).replace("{total}", String(fameTotal))}
-                </p>
-              )}
-            </div>
-            {fameLoading ? (
-              <p className="text-center text-white/40 py-8">{t.feed.loading}</p>
-            ) : famePosts.length === 0 ? (
-              activeQuery ? (
-                <p className="text-center text-white/40 py-8">{t.feed.noResults}</p>
-              ) : (
-                <p className="text-center text-white/40 py-8">{t.fame.empty}</p>
-              )
-            ) : (
-              <>
-                <RankingList posts={famePosts} handleShare={handleShare} highlightId={highlightId} startRank={0} onDeleted={(id) => {
-                  setFamePosts((prev) => prev.filter((p) => p.id !== id));
-                  setFameTotal((prev) => prev - 1);
-                }} />
-                <LoadMoreButton
-                  shown={famePosts.length}
-                  total={fameTotal}
-                  loading={fameLoadingMore}
-                  onLoad={() => loadFame(activeQuery, langFilter, filterTags, true, famePosts.length)}
+                  shown={searchPosts.length}
+                  total={searchTotal}
+                  loading={searchLoadingMore}
+                  onLoad={() => loadSearch(activeQuery, langFilter, filterTags, true, searchPosts.length)}
                 />
               </>
             )}
