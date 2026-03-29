@@ -97,7 +97,8 @@ migrations/
 - **Multiple cues per post**: Each post has N subtitle cues stored in `cues` table (0004_cues.sql)
 - **Type**: `SubtitleCue { text, originalText?, showAt, duration }` — `Post.cues: SubtitleCue[]`
 - **No CSS animation**: Progress computed directly from `currentTime - cue.showAt` / `cue.duration`; `background-position` set via inline style
-- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (transparent→white, fill layer uses background-clip:text, no textShadow). スイープ境界は2%幅グラデーション帯（49%-51%, rgba(255,255,255,0.5)）でハードカットではなく滑らかに遷移。After sweep completes, text remains visible (bar-style residual). Subtitle persists after playback ends
+- **Backdrop fade-in**: LEAD_SEC (1.5s) before the first cue, the backdrop bar fades in via an opacity ramp (0→1). `backgroundColor` is set as inline style `rgba(0,0,0, 0.5 * backdropOpacity)` — no Tailwind class, no pop-in
+- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (transparent→white, fill layer uses background-clip:text, no textShadow). スイープ境界は2%幅グラデーション帯（49%-51%, rgba(255,255,255,0.5)）でハードカットではなく滑らかに遷移。After sweep completes, text remains visible (bar-style residual). Subtitle persists after playback ends. Text opacity also follows backdropOpacity during the lead-in period
 - **VideoSegment.tsx**: Shared component wrapping video player + Subtitle, used by both PostCard and PickupCorner. `onCueReached` fires after the last cue finishes (not after the first)
 - **Multiple cue reveal display**: PostCard shows each cue's text as a separate block when `cues.length > 1` (individual `<div>` per cue with text + originalText). Single cue uses the legacy `misheardText` field
 - **Cue editing chaining**: Editing a subsequent cue's startSec auto-updates the previous cue's endSec. Forward chaining ensures subsequent cue starts match the prior cue's end, with minimum 3s duration enforcement
@@ -118,7 +119,7 @@ migrations/
 
 ## Pickup Corner
 
-- **Data**: `public/pickups/` monthly JSONs. Generated locally → git commit → deploy
+- **Data**: `public/pickups/` monthly JSONs. Generated locally → git commit → deploy. Pick count varies per month (e.g. 2026-03 has 2 picks)
 - **Format**: Master (wine/blue) introduces song (1曲目「まずは」, 2曲目以降「続いては」) → サムネイルクリックで展開（autoExpand廃止） → cue区間到達で空耳テキスト+掛け合い自動展開。専用revealボタンなし
 - **Layout**: 通常の投稿カードと同じ見た目（VideoSegment共通コンポーネント使用）
 - **Archive**: "Past picks" expandable below the latest
