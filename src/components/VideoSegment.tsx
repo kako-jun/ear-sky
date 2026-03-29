@@ -111,8 +111,9 @@ export default function VideoSegment({
   }, []);
 
   const handlePlayClick = useCallback(() => {
-    // Niconico: play() synchronously in click handler — gesture propagates
     if (isNiconico) {
+      // Niconico: try postMessage play synchronously (gesture propagation).
+      // Also rely on autoplay=1 in URL which activates when display:none is removed.
       nicoRef.current?.play();
     }
     setExpanded(true);
