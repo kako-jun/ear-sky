@@ -178,8 +178,13 @@ function AppInner() {
 
             <PickupCorner />
 
-            {/* New Posts section header — matches PickupCorner style */}
-            <div id="new-posts" className="text-center space-y-1 pt-4">
+            {/* Divider between pickup and new posts */}
+            <div className="py-6">
+              <div className="mx-auto max-w-xs h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+            </div>
+
+            {/* New Posts section header */}
+            <div id="new-posts" className="text-center space-y-1">
               <h2 className="text-lg font-bold neon-text-blue flex items-center justify-center gap-2">
                 <Sparkles size={18} aria-hidden="true" />
                 {t.feed.newPosts}
