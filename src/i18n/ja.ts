@@ -68,6 +68,7 @@ const ja: Messages = {
     empty: "まだピックアップがありません",
     emptyHint: "投稿が集まったらマスターが選びます",
     archive: "過去のピックアップ",
+    updated: "更新",
     closing: "また来月、カウンターで",
     reveal: "空耳を見る",
     copied: "リンクをコピーしました！",

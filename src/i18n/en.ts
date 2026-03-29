@@ -66,6 +66,7 @@ const en = {
     empty: "No picks yet",
     emptyHint: "The master will choose when posts gather",
     archive: "Past picks",
+    updated: "Updated",
     closing: "See you next month at the counter",
     reveal: "Show the mishearing",
     copied: "Link copied!",
