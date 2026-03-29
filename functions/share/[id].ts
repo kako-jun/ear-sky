@@ -44,15 +44,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     return Response.redirect(`${SITE_URL}/`, 302);
   }
 
-  const misheard = escapeHtml(row.misheard_text as string);
   const artist = escapeHtml(row.artist_name as string);
   const song = escapeHtml(row.song_title as string);
-  const original = row.original_text ? escapeHtml(row.original_text as string) : "";
 
-  const title = `「${misheard}」— ${artist}`;
-  const description = original
-    ? `${song} の空耳: "${misheard}" (${original})`
-    : `${song} の空耳: "${misheard}"`;
+  const title = `${artist}「${song}」の空耳`;
+  const description = "この部分、こう聴こえない？ 再生して確かめよう";
 
   const html = `<!DOCTYPE html>
 <html lang="ja">
