@@ -86,11 +86,9 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
 
   const handleIframeLoad = useCallback(() => {
     onReadyRef.current?.();
-    // Fire-and-forget: try postMessage play + start timer immediately.
-    // autoplay=1 in URL handles actual playback. If it fails, user clicks
-    // Niconico's native button. Timer starts regardless so subtitles run.
-    setTimeout(() => doPlay(), 500);
-  }, [doPlay]);
+    // Don't auto-play here. VideoSegment calls play() synchronously
+    // in the click handler so the user gesture propagates via postMessage.
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -99,7 +97,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
     };
   }, []);
 
-  const embedUrl = `https://embed.nicovideo.jp/watch/${videoId}?from=${Math.floor(playStart)}&autoplay=1&mute=0&commentLayerMode=0`;
+  const embedUrl = `https://embed.nicovideo.jp/watch/${videoId}?from=${Math.floor(playStart)}&autoplay=0&mute=0&commentLayerMode=0`;
 
   if (error) {
     return (
