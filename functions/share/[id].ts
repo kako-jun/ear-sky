@@ -64,13 +64,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   <meta property="og:description" content="${description}" />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="${SITE_URL}/share/${escapeHtml(id)}" />
-  <meta property="og:image" content="${SITE_URL}/ogp.png" />
+  <meta property="og:image" content="${SITE_URL}/ogp.png?v=2" />
   <meta property="og:site_name" content="${SITE_NAME}" />
   <meta property="og:locale" content="ja_JP" />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
-  <meta name="twitter:image" content="${SITE_URL}/ogp.png" />
+  <meta name="twitter:image" content="${SITE_URL}/ogp.png?v=2" />
   <meta http-equiv="refresh" content="0;url=${SITE_URL}/#post-${escapeHtml(id)}" />
 </head>
 <body>
