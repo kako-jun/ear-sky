@@ -99,8 +99,10 @@ export default function VideoSegment({
     setExpanded(true);
   }, []);
 
-  // Keep subtitles visible after segment ends (last cue stays on screen)
-  const activeCues = hasPlayed ? cues : [];
+  // Keep subtitles visible after segment ends (last cue stays on screen).
+  // Niconico: no reliable play detection, so show subtitles based on timer (doPlay fires onPlaying immediately)
+  const isNiconico = parsed?.platform === "niconico";
+  const activeCues = (hasPlayed || isNiconico) ? cues : [];
 
   if (!parsed) return null;
 
@@ -130,17 +132,17 @@ export default function VideoSegment({
             <SoundCloudPlayer ref={scRef} trackUrl={parsed.videoId} {...playerProps} />
           )}
 
-          {/* Loading indicator before playback starts */}
-          {!hasPlayed && (
+          {/* Loading indicator before playback starts (skip for Niconico — no reliable play detection) */}
+          {!hasPlayed && !isNiconico && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 rounded-lg pointer-events-none">
               <Loader2 size={36} className="animate-spin text-white/70" />
             </div>
           )}
 
-          {/* Interaction overlay — only after playback starts.
-             Before hasPlayed, iframe is unblocked so YouTube's native
-             play button remains clickable as autoplay fallback. */}
-          {hasPlayed && (
+          {/* Interaction overlay — blocks iframe clicks during playback.
+             Skip for Niconico: autoplay is unreliable, user may need to
+             click Niconico's native play button. */}
+          {hasPlayed && !isNiconico && (
             <div
               onClick={stoppable ? () => setExpanded(false) : undefined}
               className={`absolute inset-0 z-10 rounded-lg ${stoppable ? "cursor-pointer" : ""}`}
