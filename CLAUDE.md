@@ -25,7 +25,7 @@ src/
 ├── lib/
 │   ├── api.ts           # D1 API client (fetch wrapper)
 │   ├── storage.ts       # localStorage (drafts + reaction tracking)
-│   ├── video.ts         # URL parsing (YouTube /live/, ?list=&v=, ?t=, ?start=; Niconico ?from=; SoundCloud), time formatting
+│   ├── video.ts         # URL parsing (YouTube /live/, ?list=&v=, ?t=, ?start=; Niconico nicovideo.jp + nico.ms short URL, ?from=; SoundCloud), time formatting
 │   └── oembed.ts        # Video title auto-fetch (oEmbed/noembed)
 ├── components/
 │   ├── Header.tsx       # Neon title
@@ -130,7 +130,7 @@ migrations/
 - **Multi-cue reveal**: When `pickupCues.length > 1`, each cue is displayed as a separate block (same pattern as PostCard). Single cue uses legacy `misheardText` display
 - **シェアURL**: PickupItemのシェアボタンは `/share/${pick.postId}` を生成（OGP対応）。旧アンカー方式（`#pickup-{id}-{index}`）は廃止。`postId` がない場合はシェアボタン無効（早期return）
 - **URL入力欄**: URL未入力時にYouTube/niconico/SoundCloudへのExternalLinkアイコン付きリンクを表示
-- **startSec自動取得**: parseVideoUrlの戻り値に `startSec?: number` を追加。URL中の `?t=` / `&t=` / `?start=` (YouTube) / `?from=` (niconico) から開始時刻を取得し、PostEditorで字幕cue初期値に反映
+- **startSec自動取得**: parseVideoUrlの戻り値に `startSec?: number` を追加。URL中の `?t=` / `&t=` / `?start=` (YouTube) / `?from=` (niconico, nicovideo.jp/nico.ms両対応) から開始時刻を取得し、PostEditorで字幕cue初期値に反映
 
 ## PostEditor Architecture
 
