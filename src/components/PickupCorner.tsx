@@ -134,12 +134,14 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const pickupCues = [{
-    text: pick.misheardText,
-    originalText: pick.originalText,
-    showAt: pick.startSec,
-    duration: pick.endSec - pick.startSec,
-  }];
+  const pickupCues = pick.cues && pick.cues.length > 0
+    ? pick.cues
+    : [{
+        text: pick.misheardText,
+        originalText: pick.originalText,
+        showAt: pick.startSec,
+        duration: pick.endSec - pick.startSec,
+      }];
 
   const handleShare = () => {
     const url = `${window.location.origin}${window.location.pathname}#pickup-${pickupId}-${index}`;
@@ -197,12 +199,27 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
       {/* Misheard text + banter — auto-revealed on playback */}
       {revealed && (
         <div className="space-y-3 animate-fade-in">
-          <div className="neon-border rounded-lg p-3 space-y-1 text-center">
-            <p className="text-lg font-bold text-white/90">
-              &ldquo;{pick.misheardText}&rdquo;
-            </p>
-            {pick.originalText && (
-              <p className="text-xs text-white/40">{pick.originalText}</p>
+          <div className="neon-border rounded-lg p-3 space-y-2 text-center">
+            {pickupCues.length > 1 ? (
+              pickupCues.map((cue, ci) => (
+                <div key={ci} className="space-y-0.5">
+                  <p className="text-lg font-bold text-white/90">
+                    &ldquo;{cue.text}&rdquo;
+                  </p>
+                  {cue.originalText && (
+                    <p className="text-xs text-white/40">{cue.originalText}</p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <>
+                <p className="text-lg font-bold text-white/90">
+                  &ldquo;{pick.misheardText}&rdquo;
+                </p>
+                {pick.originalText && (
+                  <p className="text-xs text-white/40">{pick.originalText}</p>
+                )}
+              </>
             )}
           </div>
 

@@ -84,6 +84,7 @@ export interface PickupEntry {
   startSec: number;
   endSec: number;
   banter: BanterLine[];
+  cues?: SubtitleCue[];
 }
 
 export interface Pickup {

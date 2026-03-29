@@ -28,6 +28,20 @@
       "endSec": 113,
       "misheardText": "アリだ ヒ〜 ハゲた",
       "originalText": "out in the heat hanging tough",
+      "cues": [
+        {
+          "text": "アリだ　ヒ〜",
+          "originalText": "out in the heat",
+          "showAt": 109,
+          "duration": 2
+        },
+        {
+          "text": "ハゲた",
+          "originalText": "hanging tough",
+          "showAt": 111,
+          "duration": 2
+        }
+      ],
       "banter": [
         { "speaker": "regular", "text": "ロッキーのテーマで脱毛!? 「ヒ〜」のタメがずるい。" },
         { "speaker": "master", "text": "2段オチの完成度が高すぎますね。アリが出てきてからのハゲは防げません。" }
