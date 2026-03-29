@@ -33,7 +33,7 @@ src/
 │   ├── PostCard.tsx     # Flat post layout (song→artist(era) lang→video→reveal→ID|date|poster). Song title is external link to source platform with PlatformIcon. preview prop: preview=true shows skeleton ID/date (animate-pulse) and hides reactions
 │   ├── PickupCorner.tsx # Pickup corner (master & regular banter)
 │   ├── VideoSegment.tsx # Shared video+subtitle component (PostCard/PickupCorner共通)
-│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, width/height 100%, post-play overlay+replay, no `end` playerVar)
+│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, width/height 100%, post-play overlay+replay, no `end` playerVar). 再生中は透明オーバーレイでiframe操作遮断（playing=trueまで非表示）
 │   ├── NiconicoPlayer.tsx # Niconico embed segment playback
 │   ├── SoundCloudPlayer.tsx # SoundCloud Widget API segment playback
 │   ├── PlatformIcon.tsx # Platform SVG icons (YouTube/Niconico/SoundCloud)
@@ -85,7 +85,7 @@ migrations/
 - **Multiple cues per post**: Each post has N subtitle cues stored in `cues` table (0004_cues.sql)
 - **Type**: `SubtitleCue { text, originalText?, showAt, duration }` — `Post.cues: SubtitleCue[]`
 - **No CSS animation**: Progress computed directly from `currentTime - cue.showAt` / `cue.duration`; `background-position` set via inline style
-- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (transparent→white, fill layer uses background-clip:text, no textShadow). After sweep completes, text remains visible (bar-style residual). Subtitle persists after playback ends
+- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (transparent→white, fill layer uses background-clip:text, no textShadow). スイープ境界は4%グラデーション帯（46%→50% rgba(255,255,255,0.3)→54%）でハードカットではなく滑らかに遷移。After sweep completes, text remains visible (bar-style residual). Subtitle persists after playback ends
 - **VideoSegment.tsx**: Shared component wrapping video player + Subtitle, used by both PostCard and PickupCorner
 - **Frontend cue limit**: Max 3 cues per post (PostEditor enforces)
 
@@ -105,7 +105,7 @@ migrations/
 ## Pickup Corner
 
 - **Data**: `public/pickups/` monthly JSONs. Generated locally → git commit → deploy
-- **Format**: Master (wine/blue) introduces song (1曲目「まずは」, 2曲目以降「続いては」) → video plays → cue区間到達で空耳テキスト+掛け合い自動展開。専用revealボタンなし
+- **Format**: Master (wine/blue) introduces song (1曲目「まずは」, 2曲目以降「続いては」) → サムネイルクリックで展開（autoExpand廃止: ページロード時の一斉再生バグ修正のため） → cue区間到達で空耳テキスト+掛け合い自動展開。専用revealボタンなし
 - **Layout**: 通常の投稿カードと同じ見た目（VideoSegment共通コンポーネント使用）
 - **Archive**: "Past picks" expandable below the latest
 - **JSON**: `{ id, title, publishedAt, picks: [{ artistName, songTitle, year, videoUrl, startSec, endSec, misheardText, originalText?, banter: [{speaker, text}] }] }`

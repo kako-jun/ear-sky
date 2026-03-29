@@ -177,9 +177,12 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
           ref={containerRef}
           className="aspect-video w-full rounded-lg overflow-hidden bg-black/50"
         />
-        {/* Block iframe interaction during playback */}
+        {/* Block iframe interaction during playback — click to pause */}
         {playing && !segmentEnded && (
-          <div className="absolute inset-0 z-10" />
+          <div
+            className="absolute inset-0 z-10 cursor-pointer"
+            onClick={() => playerRef.current?.pauseVideo()}
+          />
         )}
         {/* After segment ends: overlay blocks iframe and shows replay button */}
         {segmentEnded && !playing && (
