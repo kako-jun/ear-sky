@@ -189,7 +189,6 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
         startSec={pick.startSec}
         endSec={pick.endSec}
         cues={pickupCues}
-        autoExpand
         onCueReached={() => setRevealed(true)}
       />
 
