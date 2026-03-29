@@ -98,10 +98,12 @@ export default function VideoSegment({
 
   const handleSegmentEnd = useCallback(() => {
     setExpanded(false);
+    setCurrentTime(0);
+    setHasPlayed(false);
+    cueReachedRef.current = false;
     // Niconico: remount iframe (new key) to stop playback. Hole overlay resets.
     if (isNiconico) {
       setNicoKey(k => k + 1);
-      setHasPlayed(false);
     }
   }, [isNiconico]);
 
