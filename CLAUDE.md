@@ -33,7 +33,7 @@ src/
 │   ├── PostCard.tsx     # Flat post layout (song→artist(era) lang→video→reveal→ID|date|poster). Song title is external link to source platform with PlatformIcon. preview prop: preview=true shows skeleton ID/date (animate-pulse) and hides reactions
 │   ├── PickupCorner.tsx # Pickup corner (master & regular banter)
 │   ├── VideoSegment.tsx # Shared video+subtitle component (PostCard/PickupCorner共通)
-│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, width/height 100%, post-play overlay+replay, no `end` playerVar). 再生中は透明オーバーレイでiframe操作遮断（playing=trueまで非表示）
+│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, width/height 100%, post-play overlay+replay, no `end` playerVar). 再生中は透明オーバーレイでiframe操作遮断＋クリックでpauseVideo()（playing=trueまで非表示）
 │   ├── NiconicoPlayer.tsx # Niconico embed segment playback
 │   ├── SoundCloudPlayer.tsx # SoundCloud Widget API segment playback
 │   ├── PlatformIcon.tsx # Platform SVG icons (YouTube/Niconico/SoundCloud)
@@ -69,7 +69,7 @@ migrations/
 | DELETE | /api/posts/:id | Delete post (deleteKey required) |
 | PUT | /api/posts/:id/reaction | Set/switch emoji reaction (1 per user per post) |
 | DELETE | /api/posts/:id/reaction | Remove your reaction |
-| GET | /share/:id | Dynamic OGP (meta tags for bots, redirect for browsers) |
+| GET | /share/:id | Dynamic OGP (meta tags for bots, redirect for browsers). Title: `{artist}「{song}」の空耳`（ネタバレ防止）. Description: 固定テンプレ「この部分、こう聴こえない？ 再生して確かめよう」. Image: YouTube投稿はhqdefaultサムネイル、その他はサイトOGPにフォールバック. twitter:card: summary_large_image |
 
 ## Reaction System
 
@@ -132,11 +132,11 @@ migrations/
 
 - **Input validation**: Type/length/enum checks on all fields. URL protocol check (https/http only)
 - **Rate limiting**: IP hash-based, 30s cooldown between posts
-- **XSS prevention**: URL protocol check before href insertion. OGP escapeHtml
+- **XSS prevention**: URL protocol check before href insertion. OGP escapeHtml. OGP画像URLにキャッシュバスティング(?v=2)追加（静的index.html・動的share/[id].ts両方）
 - **CORS**: Production domains only
 - **Reaction dedup**: Server-side UNIQUE constraint + client-side localStorage
 - **Post deletion**: Delete key verification
-- **Dynamic OGP**: UUID validation, HTML escaping
+- **Dynamic OGP**: UUID validation, HTML escaping, videoId encodeURIComponent
 
 ## Design Theme
 
