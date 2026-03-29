@@ -88,9 +88,9 @@ export default function PostCard({ post, showPlayer = false }: Props) {
           {post.id.slice(0, 8)}
         </button>
         <span className="text-white/10">|</span>
-        <span className="font-sans">{post.nickname || "Anonymous"}</span>
-        <span className="text-white/10">|</span>
         <time dateTime={post.createdAt}>{post.createdAt.slice(0, 10)}</time>
+        <span className="text-white/10">|</span>
+        <span className="font-sans">{post.nickname || "Anonymous"}</span>
       </div>
 
       <Reactions postId={post.id} initialReactions={post.reactions} />
