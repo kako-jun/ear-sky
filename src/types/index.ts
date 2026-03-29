@@ -74,12 +74,12 @@ export const CURATED_EMOJI = [
   { emoji: "👂", label: "聴こえた", labelEn: "Heard it" },
   { emoji: "🤣", label: "笑った", labelEn: "Laughed" },
   { emoji: "😂", label: "ウケる", labelEn: "LOL" },
-  { emoji: "🫠", label: "ヤバい", labelEn: "Crazy" },
-  { emoji: "🤯", label: "衝撃", labelEn: "Mind-blown" },
   { emoji: "🥹", label: "エモい", labelEn: "Emotional" },
-  { emoji: "👀", label: "気になる", labelEn: "Interesting" },
-  // Symbol emoji
+  { emoji: "🤯", label: "衝撃", labelEn: "Mind-blown" },
+  { emoji: "🫠", label: "ヤバい", labelEn: "Crazy" },
   { emoji: "👏", label: "すごい", labelEn: "Amazing" },
+  // Symbol emoji
+  { emoji: "👀", label: "気になる", labelEn: "Interesting" },
   { emoji: "✨", label: "天才", labelEn: "Genius" },
   { emoji: "❤️", label: "好き", labelEn: "Love" },
   { emoji: "🎉", label: "最高", labelEn: "Best" },

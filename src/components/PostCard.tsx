@@ -65,7 +65,7 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
           {post.era && (
             <span className="ml-1.5 text-white/25">({post.era})</span>
           )}
-          <span className="ml-1.5 text-white/20">{post.sourceLang}→{post.targetLang}</span>
+          <span className="ml-1.5 text-white/20">{post.sourceLang.toUpperCase()}→{post.targetLang.toUpperCase()}</span>
         </p>
       </div>
 
