@@ -68,31 +68,42 @@
 - **`from={sec}` パラメータは動作する**: シーク位置の指定は効く
 - **ユーザーのネイティブ再生ボタン押下は動作する**: overlayやspinnerで隠さなければ、ユーザーが直接ニコニコの再生ボタンを押して再生できる
 
-### 現在の実装（セッション94時点）
+### 現在の実装
 
 | | YouTube | Niconico | SoundCloud |
 |---|---|---|---|
-| マウント方式 | mount-on-click | mount-on-click | mount-on-click |
-| API先読み | IFrame APIスクリプト(IntersectionObserver) | なし | なし |
-| 再生トリガー | `autoplay:1` (playerVars) | `autoplay=1` (URL、効かない) + ネイティブボタン | `auto_play=true` (URL) |
+| マウント方式 | mount-on-click | **pre-mount** (IntersectionObserver) | mount-on-click |
+| API先読み | IFrame APIスクリプト(IO 400px) | iframe自体(IO 200px) | なし |
+| 再生トリガー | `autoplay:1` (playerVars) | ユーザーがネイティブ再生ボタンをクリック | `auto_play=true` (URL) |
 | シーク | `start` playerVar | `from` URLパラメータ | `seekTo(ms)` on READY |
 | 時間取得 | `getCurrentTime()` poll (100ms) | `Date.now()` elapsed推定 | `PLAY_PROGRESS` イベント |
-| 区間終了 | `pauseVideo()` | タイマー→iframe unmount | `widget.pause()` |
-| スピナー | `!hasPlayed`の間表示 | **非表示**（ネイティブボタンを隠さないため） | `!hasPlayed`の間表示 |
-| interaction overlay | `hasPlayed`後に表示 | **非表示**（同上） | `hasPlayed`後に表示 |
-| 字幕タイマー開始 | `onStateChange(PLAYING)` | iframe `onLoad` | `PLAY` イベント |
-| 字幕同期精度 | 高（実再生検出） | 低（onLoad起点、手動再生まで遅延あり） | 高（実再生検出） |
+| 区間終了 | `pauseVideo()` | タイマー→iframe再マウント(key変更) | `widget.pause()` |
+| スピナー | `!hasPlayed`の間表示 | **非表示** | `!hasPlayed`の間表示 |
+| interaction overlay | `hasPlayed`後に表示 | **非表示** | `hasPlayed`後に表示 |
+| 字幕タイマー開始 | `onStateChange(PLAYING)` | `window.blur` + `activeElement`検出 | `PLAY` イベント |
+| 字幕同期精度 | 高（実再生検出） | 中（バッファリング遅延1.2s補正） | 高（実再生検出） |
 
-### 未解決: ニコニコの字幕同期
+### ニコニコの穴あきオーバーレイ方式
 
-ニコニコでは再生開始を検出する手段がない（postMessage受信不可、playerStatusChange非送信）。
-現在のタイマーはiframe onLoadから開始するが、ユーザーがネイティブ再生ボタンを押すまでの
-遅延分だけ字幕が先行する。改善案:
+postMessage・autoplayが一切効かないため、ユーザーにニコニコの純正再生ボタンを
+直接クリックしてもらう。その検出と字幕同期を以下の仕組みで実現:
 
-1. **タイマー開始をやめ、字幕なしで動画のみ再生** — 機能縮退だが確実
-2. **「字幕開始」ボタンを別途表示** — ユーザーが再生ボタンを押した直後にタップ→タイマー開始
-3. **ニコニコのみpre-mount+postMessageを再調査** — embed APIの仕様変更を追跡
-4. **現状維持（onLoad起点、ズレ許容）** — 最もシンプルだがUXは劣る
+1. **pre-mount**: IntersectionObserverでiframeを先にマウント。ニコニコはJSコールバックを
+   持たないため、pre-mountしても壊れるものがない
+2. **穴あきオーバーレイ**: 4つのdivブロック（上下左右）がiframeを覆い、中央に矩形の穴を残す。
+   穴の部分はDOM要素が存在しないため、クリックがiframeに透過する。
+   CSS mask-image/SVG maskは見た目だけ透過しpointer-eventsは通さないため使用不可
+3. **自前Playアイコン**: 穴の中央にpointer-events:noneのPlayアイコンを重ねて表示。
+   見た目は自前ボタンだが、クリックはiframeに到達する
+4. **再生検出**: `window.blur`イベント + `document.activeElement`確認。
+   iframe内クリック→親windowがblur→`activeElement`がiframe要素→確定。
+   アプリ切替・マスク部分クリック→離脱では`activeElement`がiframeにならず誤発火しない
+5. **オーバーレイ即消去**: blur検出時に`hideOverlay()`を即呼出。タイマー遅延(1.2s)に
+   引きずられない
+6. **バッファリング補正**: blur検出→1.2秒遅延→タイマー開始。ニコニコのバッファリング時間を
+   補正する固定値（環境依存でズレる可能性あり）
+7. **区間終了**: タイマー満了→`nicoKey++`でNiconicoPlayerを再マウント（iframe再生成で停止）。
+   穴あきオーバーレイが復活し、1クリックで再再生可能
 
 ## Header (position: fixed)
 

@@ -50,8 +50,8 @@ These are hard-won lessons. Violating them WILL break the app:
 
 1. **Player iframes: platform-specific mount strategy** — 隠す方法は全て壊れる
    (display:none/clip-path/visibility→JSコールバック死)。常時描画もYouTube同時制限で壊れる。
-   YouTube/SoundCloud: mount-on-click+autoplay。Niconico: mount-on-click+autoplay(効かない)
-   →ネイティブ再生ボタン依存、字幕同期は不完全。
+   YouTube/SoundCloud: mount-on-click+autoplay。Niconico: pre-mount+穴あきオーバーレイ
+   +window.blur+activeElement検出。
    See `docs/architecture.md § Playback` for full investigation results.
 
 2. **Subtitle hooks: no early return before useLayoutEffect** — `Subtitle.tsx`
