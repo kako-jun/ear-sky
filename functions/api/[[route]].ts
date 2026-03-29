@@ -289,11 +289,10 @@ app.post("/posts", async (c) => {
   }
 
   // Default first reaction (Reddit-style seed)
-  const ipHash = await hashIp(getClientIp(c));
   statements.push(
     c.env.DB.prepare(
       "INSERT INTO reactions (post_id, reaction_key, ip_hash) VALUES (?, ?, ?)"
-    ).bind(id, "👂", ipHash)
+    ).bind(id, "🎵", ipHash)
   );
 
   await c.env.DB.batch(statements);

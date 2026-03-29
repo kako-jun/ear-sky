@@ -71,11 +71,12 @@ migrations/
 | PUT | /api/posts/:id/reaction | Set/switch emoji reaction (1 per user per post) |
 | DELETE | /api/posts/:id/reaction | Remove your reaction |
 | POST | /api/posts/:id/play | Increment play count (fire-and-forget, no dedup) |
-| GET | /share/:id | Dynamic OGP (meta tags for bots, redirect for browsers). Title: `{artist}「{song}」の空耳`（ネタバレ防止）. Description: 固定テンプレ「この部分、こう聴こえない？ 再生して確かめよう」. Image: YouTube投稿はhqdefaultサムネイル、その他はサイトOGPにフォールバック. twitter:card: summary_large_image |
+| GET | /share/:id | Dynamic OGP (meta tags for bots, redirect for browsers). Title: `{artist}「{song}」の空耳`（ネタバレ防止: 曲名のみ）. Description: 固定テンプレ「この部分、こう聴こえない？ 再生して確かめよう」. Image: YouTube投稿はhqdefaultサムネイル+キャッシュバスティング(?v=2)、その他はサイトOGPにフォールバック. twitter:card: summary_large_image |
 
 ## Reaction System
 
 - **Emoji picker**: 16 curated emoji, user picks ONE per post
+- **Default reaction**: 投稿作成時にAPIがバッチ内で🎵を自動シード（投稿者のipHash）。Reddit式の初期スコア
 - **Server**: `UNIQUE(post_id, ip_hash)` constraint — one reaction per user per post
 - **Switching**: PUT with new emoji replaces the old one
 - **Removal**: DELETE removes the reaction entirely
@@ -96,7 +97,7 @@ migrations/
 - **Multiple cues per post**: Each post has N subtitle cues stored in `cues` table (0004_cues.sql)
 - **Type**: `SubtitleCue { text, originalText?, showAt, duration }` — `Post.cues: SubtitleCue[]`
 - **No CSS animation**: Progress computed directly from `currentTime - cue.showAt` / `cue.duration`; `background-position` set via inline style
-- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (transparent→white, fill layer uses background-clip:text, no textShadow). スイープ境界は2%グラデーション帯（49%→51% rgba(255,255,255,0.5)）でハードカットではなく滑らかに遷移。After sweep completes, text remains visible (bar-style residual). Subtitle persists after playback ends
+- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (transparent→white, fill layer uses background-clip:text, no textShadow). スイープ境界は2%幅グラデーション帯（49%-51%, rgba(255,255,255,0.5)）でハードカットではなく滑らかに遷移。After sweep completes, text remains visible (bar-style residual). Subtitle persists after playback ends
 - **VideoSegment.tsx**: Shared component wrapping video player + Subtitle, used by both PostCard and PickupCorner
 - **Frontend cue limit**: Max 3 cues per post (PostEditor enforces)
 
@@ -116,7 +117,7 @@ migrations/
 ## Pickup Corner
 
 - **Data**: `public/pickups/` monthly JSONs. Generated locally → git commit → deploy
-- **Format**: Master (wine/blue) introduces song (1曲目「まずは」, 2曲目以降「続いては」) → サムネイルクリックで展開（autoExpand廃止: ページロード時の一斉再生バグ修正のため） → cue区間到達で空耳テキスト+掛け合い自動展開。専用revealボタンなし
+- **Format**: Master (wine/blue) introduces song (1曲目「まずは」, 2曲目以降「続いては」) → サムネイルクリックで展開（autoExpand廃止） → cue区間到達で空耳テキスト+掛け合い自動展開。専用revealボタンなし
 - **Layout**: 通常の投稿カードと同じ見た目（VideoSegment共通コンポーネント使用）
 - **Archive**: "Past picks" expandable below the latest
 - **JSON**: `{ id, title, publishedAt, picks: [{ artistName, songTitle, year, videoUrl, startSec, endSec, misheardText, originalText?, banter: [{speaker, text}] }] }`
@@ -129,7 +130,9 @@ migrations/
 - **No ytRef**: YouTubePlayerHandle (ytRef) is removed from PostEditor. getDuration/seekTo are not available through PostCard
 - **videoDuration fixed**: Since duration cannot be queried via PostCard, videoDuration defaults to 300 (5 minutes)
 - **PostCard preview mode**: When `preview=true`, PostCard shows skeleton placeholders (animate-pulse) for ID and date fields, and hides the reaction UI entirely
-- **ClearableInput**: All text inputs have a clear (×) button on the right edge, visible only when the field has a value
+- **ClearableInput**: All text inputs have a clear (×) button on the right edge (right-3, pr-10 — left paddingと対称), visible only when the field has a value
+- **Section naming**: 「あなたについて/About you」→「投稿者名・削除キー/Nickname & delete key」
+- **deleteKey**: localStorageから復元（初期値）、投稿成功時に保存。type=password, autoComplete=off
 - **Cue hint**: A single note is displayed once below the subtitle section header (not per cue), explaining that the time range is for the misheard part and playback starts 5 sec before automatically
 
 ## i18n
@@ -137,6 +140,8 @@ migrations/
 - English is the default language, Japanese is one of many translations
 - `src/i18n/en.ts` defines the `Messages` type, `ja.ts` implements it
 - `useI18n()` hook returns messages based on `navigator.language`
+- alias/closingからダッシュ文字(—)を除去済み。footer.siteAlias追加
+- **ダッシュ装飾**: テキストの「—」→CSSグラデーション線（from-white/30 to-transparent, w-10〜w-12）。Header alias, PickupCorner closing, Footer siteAlias の3箇所
 - Language toggle UI planned for future
 
 ## Security
