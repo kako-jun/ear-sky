@@ -154,7 +154,6 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
         src={embedUrl}
         className="w-full h-full"
         allow="autoplay; fullscreen"
-        allowFullScreen
         title={`${videoId} — Niconico`}
         onLoad={handleIframeLoad}
         onError={() => setError(true)}
