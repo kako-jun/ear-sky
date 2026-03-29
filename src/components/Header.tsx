@@ -19,9 +19,11 @@ export default function Header() {
         </h1>
       </div>
       {t.header.alias && (
-        <p className="text-xs text-white/40 tracking-widest">
-          {t.header.alias}
-        </p>
+        <div className="flex items-center justify-center gap-3 mt-1">
+          <div className="w-12 h-px bg-gradient-to-l from-white/30 to-transparent" aria-hidden="true" />
+          <p className="text-xs text-white/40 tracking-widest">{t.header.alias}</p>
+          <div className="w-12 h-px bg-gradient-to-r from-white/30 to-transparent" aria-hidden="true" />
+        </div>
       )}
       <p className="text-sm text-white/50 mt-3">
         {t.header.subtitle}

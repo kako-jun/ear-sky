@@ -322,6 +322,13 @@ function Footer() {
       <div className="mx-auto max-w-xs h-px bg-gradient-to-r from-transparent via-neon-pink/40 to-transparent mb-6" aria-hidden="true" />
 
       <p className="text-white/25 font-bold tracking-wider">{t.footer.siteName}</p>
+      {t.footer.siteAlias && (
+        <div className="flex items-center justify-center gap-3">
+          <div className="w-10 h-px bg-gradient-to-l from-white/20 to-transparent" aria-hidden="true" />
+          <p className="text-xs text-white/30 tracking-widest">{t.footer.siteAlias}</p>
+          <div className="w-10 h-px bg-gradient-to-r from-white/20 to-transparent" aria-hidden="true" />
+        </div>
+      )}
 
       <p className="leading-relaxed text-white/20">
         {t.footer.disclaimer}<br />

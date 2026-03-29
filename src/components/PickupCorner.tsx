@@ -120,8 +120,10 @@ function PickupContent({ pickup }: { pickup: Pickup }) {
         <PickupItem key={i} pick={pick} index={i} pickupId={pickup.id} />
       ))}
 
-      <div className="text-center pt-2 pb-1">
-        <p className="text-xs text-white/25">— {t.pickup.closing} —</p>
+      <div className="flex items-center justify-center gap-3 pt-2 pb-1">
+        <div className="w-10 h-px bg-gradient-to-l from-white/20 to-transparent" aria-hidden="true" />
+        <p className="text-xs text-white/25">{t.pickup.closing}</p>
+        <div className="w-10 h-px bg-gradient-to-r from-white/20 to-transparent" aria-hidden="true" />
       </div>
     </div>
   );

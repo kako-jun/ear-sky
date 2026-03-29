@@ -76,6 +76,7 @@ const en = {
   },
   footer: {
     siteName: "Ear in the Sky Diamond",
+    siteAlias: "",
     disclaimer: "Videos and audio use embedded players from their respective platforms.",
     noHosting: "This site does not host any content.",
     madeBy: "Made by",

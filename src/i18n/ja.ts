@@ -77,7 +77,8 @@ const ja: Messages = {
     watchVideo: "動画を見る",
   },
   footer: {
-    siteName: "Ear in the Sky Diamond — イヤスカ",
+    siteName: "Ear in the Sky Diamond",
+    siteAlias: "イヤスカ",
     disclaimer: "動画・音声は各プラットフォームの埋め込みを利用しています。",
     noHosting: "当サイトはコンテンツを一切ホスティングしていません。",
     madeBy: "Made by",
@@ -92,7 +93,7 @@ const ja: Messages = {
   },
   header: {
     subtitle: "あの歌、こう聴こえない？",
-    alias: "— イヤスカ —",
+    alias: "イヤスカ",
   },
   niconico: {
     fallbackLink: "ニコニコ動画で再生",
