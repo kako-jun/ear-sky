@@ -328,6 +328,17 @@ function Footer() {
         {t.footer.noHosting}
       </p>
 
+      {/* QR code */}
+      <div className="pt-2">
+        <img
+          src="/qr.webp"
+          alt="QR code"
+          width={96}
+          height={96}
+          className="mx-auto opacity-40 invert sepia saturate-[5] hue-rotate-[170deg]"
+        />
+      </div>
+
       {/* Author & links */}
       <div className="flex items-center justify-center gap-4 text-white/30 pt-2">
         <span>
@@ -364,17 +375,6 @@ function Footer() {
         <Heart size={12} />
         Sponsor
       </a>
-
-      {/* QR code */}
-      <div className="pt-2">
-        <img
-          src="/qr.webp"
-          alt="QR code"
-          width={96}
-          height={96}
-          className="mx-auto opacity-40 invert sepia saturate-[5] hue-rotate-[170deg]"
-        />
-      </div>
 
       <div className="flex items-center justify-center gap-4 text-white/15 pt-2">
         <span>
