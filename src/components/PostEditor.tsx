@@ -36,13 +36,13 @@ function ClearableInput({ value, onChange, className, ...props }: React.InputHTM
         {...props}
         value={value}
         onChange={onChange}
-        className={`${className} pr-8`}
+        className={`${className} pr-10`}
       />
       {value && (
         <button
           type="button"
           onClick={() => onChange({ target: { value: "" } } as React.ChangeEvent<HTMLInputElement>)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
           tabIndex={-1}
           aria-label="Clear"
         >
@@ -81,7 +81,9 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
   const [nickname, setNickname] = useState(() => {
     try { return localStorage.getItem("ear-sky-nickname") || ""; } catch { return ""; }
   });
-  const [deleteKey, setDeleteKey] = useState("");
+  const [deleteKey, setDeleteKey] = useState(() => {
+    try { return localStorage.getItem("ear-sky-delete-key") || ""; } catch { return ""; }
+  });
   const [comment, setComment] = useState("");
 
   // UI state
@@ -233,7 +235,10 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     if (!data || submitting) return;
     setSubmitting(true);
     if (draftId) deleteDraft(draftId);
-    try { localStorage.setItem("ear-sky-nickname", nickname.trim()); } catch { /* ignore */ }
+    try {
+      localStorage.setItem("ear-sky-nickname", nickname.trim());
+      if (deleteKey.trim()) localStorage.setItem("ear-sky-delete-key", deleteKey.trim());
+    } catch { /* ignore */ }
     try {
       await onPublished(data);
     } catch {
@@ -594,10 +599,11 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           <OptionalLabel text={t.editor.optional} />
         </label>
         <ClearableInput
-          type="text"
+          type="password"
           value={deleteKey}
           onChange={(e) => setDeleteKey(e.target.value)}
           placeholder=""
+          autoComplete="off"
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
                      placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />

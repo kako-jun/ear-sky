@@ -288,6 +288,14 @@ app.post("/posts", async (c) => {
     return c.json({ error: "at least one valid cue is required" }, 400);
   }
 
+  // Default first reaction (Reddit-style seed)
+  const ipHash = await hashIp(getClientIp(c));
+  statements.push(
+    c.env.DB.prepare(
+      "INSERT INTO reactions (post_id, reaction_key, ip_hash) VALUES (?, ?, ?)"
+    ).bind(id, "👂", ipHash)
+  );
+
   await c.env.DB.batch(statements);
 
   return c.json({ id }, 201);
