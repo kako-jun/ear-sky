@@ -42,11 +42,11 @@ function ClearableInput({ value, onChange, className, ...props }: React.InputHTM
         <button
           type="button"
           onClick={() => onChange({ target: { value: "" } } as React.ChangeEvent<HTMLInputElement>)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
+          className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/20 hover:text-white/50 transition-colors"
           tabIndex={-1}
           aria-label="Clear"
         >
-          <X size={14} />
+          <X size={18} />
         </button>
       )}
     </div>
