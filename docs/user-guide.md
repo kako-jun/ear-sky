@@ -78,7 +78,7 @@ The post form is a step-by-step wizard:
 - Tap the **globe icon** (🌐) in the top-right of the header to cycle between **EN** and **JA**
 - Your choice is saved to the browser
 
-## Sticky Header
+## Header
 
 - When you scroll down, the header shrinks to a **compact bar** showing the site name
 - Click/tap the title to scroll back to the top
