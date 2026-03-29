@@ -146,14 +146,12 @@ export default function VideoSegment({
   };
 
   return (
-    <div ref={rootRef}>
-      {/* Player: mounted when visible (IntersectionObserver), visually hidden when collapsed.
-         Using absolute+clip-path instead of display:none so iframes keep their dimensions
-         and stay initialized (YouTube API requires non-zero container). */}
+    <div ref={rootRef} className="relative">
+      {/* Player: pre-mounted in normal flow when visible. Never hidden —
+         the play button overlay sits on top. This guarantees YouTube/Niconico/
+         SoundCloud iframes stay fully initialized with working JS callbacks. */}
       {hasPlayer && visible && (
-        <div className={expanded ? "relative" : "absolute w-full pointer-events-none"}
-          style={expanded ? undefined : { clipPath: "inset(100%)" }}
-        >
+        <div className="relative">
           {parsed.platform === "youtube" && (
             <YouTubePlayer ref={ytRef} videoId={parsed.videoId} {...playerProps} />
           )}
@@ -171,15 +169,22 @@ export default function VideoSegment({
             </div>
           )}
 
-          {/* Overlay: blocks iframe interaction */}
-          <div
-            onClick={stoppable ? () => setExpanded(false) : undefined}
-            className={`absolute inset-0 z-10 rounded-lg ${stoppable ? "cursor-pointer" : ""}`}
-            role={stoppable ? "button" : undefined}
-            aria-label={stoppable ? "Stop" : undefined}
-          />
-          <Subtitle cues={activeCues} currentTime={currentTime} />
+          {/* Overlay: blocks iframe interaction during playback */}
+          {expanded && (
+            <div
+              onClick={stoppable ? () => setExpanded(false) : undefined}
+              className={`absolute inset-0 z-10 rounded-lg ${stoppable ? "cursor-pointer" : ""}`}
+              role={stoppable ? "button" : undefined}
+              aria-label={stoppable ? "Stop" : undefined}
+            />
+          )}
+          {expanded && <Subtitle cues={activeCues} currentTime={currentTime} />}
         </div>
+      )}
+
+      {/* Placeholder before player is mounted (keeps layout stable) */}
+      {hasPlayer && !visible && (
+        <div className="w-full aspect-video bg-black/30 rounded-lg" />
       )}
 
       {/* "other" platform: mount/unmount (no iframe to pre-mount) */}
@@ -207,25 +212,15 @@ export default function VideoSegment({
         </div>
       )}
 
-      {/* Play button overlay — shown when collapsed */}
+      {/* Play button overlay — sits on top of the pre-mounted player */}
       {!expanded && (
         <button
           onClick={handlePlayClick}
           aria-label={t.postCard.play}
-          className="relative w-full hover:opacity-90 transition-opacity
+          className="absolute inset-0 z-20 w-full hover:opacity-90 transition-opacity
                      focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
-          {parsed.platform === "youtube" ? (
-            <img
-              src={`https://img.youtube.com/vi/${parsed.videoId}/mqdefault.jpg`}
-              alt=""
-              className="w-full aspect-video object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full aspect-video bg-black/30" />
-          )}
-          <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-1 text-white/80">
+          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-1 text-white/80 rounded-lg">
             <Play size={36} />
             <span className="text-xs text-white/60">
               {formatTime(startSec)} 〜 {formatTime(endSec)}
