@@ -25,7 +25,7 @@ export function getAllDrafts(): Draft[] {
 }
 
 export function saveDraft(
-  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions">,
+  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions" | "playCount">,
   existingId?: string
 ): Draft {
   const drafts = getAllDrafts();

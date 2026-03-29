@@ -39,7 +39,7 @@ export async function fetchPost(id: string): Promise<Post | null> {
 }
 
 export async function createPost(
-  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions"> & { deleteKey?: string }
+  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions" | "playCount"> & { deleteKey?: string }
 ): Promise<string> {
   const res = await fetch(`${API_BASE}/posts`, {
     method: "POST",
@@ -75,6 +75,10 @@ export async function setReaction(
   const data = await parseJsonSafe(res);
   if (!res.ok) throw new ApiError(data.error || "Failed to react", res.status);
   return data;
+}
+
+export async function recordPlay(postId: string): Promise<void> {
+  fetch(`${API_BASE}/posts/${postId}/play`, { method: "POST" }).catch(() => {});
 }
 
 export async function removeReaction(

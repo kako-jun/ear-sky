@@ -56,7 +56,8 @@ migrations/
 ├── 0001_init.sql        # posts + reactions tables
 ├── 0002_security.sql    # ip_hash, delete_key columns
 ├── 0003_emoji_reactions.sql  # emoji reactions + era/comment columns
-└── 0004_cues.sql        # cues table (multiple subtitle cues per post)
+├── 0004_cues.sql        # cues table (multiple subtitle cues per post)
+└── 0005_play_count.sql  # play_count column on posts
 ```
 
 ## API Endpoints
@@ -69,6 +70,7 @@ migrations/
 | DELETE | /api/posts/:id | Delete post (deleteKey required) |
 | PUT | /api/posts/:id/reaction | Set/switch emoji reaction (1 per user per post) |
 | DELETE | /api/posts/:id/reaction | Remove your reaction |
+| POST | /api/posts/:id/play | Increment play count (fire-and-forget, no dedup) |
 | GET | /share/:id | Dynamic OGP (meta tags for bots, redirect for browsers). Title: `{artist}「{song}」の空耳`（ネタバレ防止）. Description: 固定テンプレ「この部分、こう聴こえない？ 再生して確かめよう」. Image: YouTube投稿はhqdefaultサムネイル、その他はサイトOGPにフォールバック. twitter:card: summary_large_image |
 
 ## Reaction System
@@ -80,12 +82,21 @@ migrations/
 - **Client tracking**: localStorage stores `{ postId: emoji }` map
 - **No legacy code**: Migration helpers (migrateReactionsStorage etc.) have been removed
 
+## Play Count
+
+- **DB**: `play_count INTEGER NOT NULL DEFAULT 0` on posts table (0005_play_count.sql)
+- **API**: `POST /api/posts/:id/play` increments play_count by 1. No authentication, no dedup — 1 user can count multiple times
+- **Frontend**: VideoSegment's `onFirstPlay` callback fires once per component mount (guarded by `firstPlayFired` ref). PostCard calls `recordPlay(post.id)` via fire-and-forget fetch (`.catch(() => {})`)
+- **Preview mode**: `preview=true` skips the recordPlay call
+- **Display**: PostCard meta row, right-aligned with `ml-auto`. Hidden when playCount is 0
+- **Omit type**: `playCount` is omitted from PostData, Draft, createPost, saveDraft (server-managed field)
+
 ## Subtitle System (cues)
 
 - **Multiple cues per post**: Each post has N subtitle cues stored in `cues` table (0004_cues.sql)
 - **Type**: `SubtitleCue { text, originalText?, showAt, duration }` — `Post.cues: SubtitleCue[]`
 - **No CSS animation**: Progress computed directly from `currentTime - cue.showAt` / `cue.duration`; `background-position` set via inline style
-- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (transparent→white, fill layer uses background-clip:text, no textShadow). スイープ境界は4%グラデーション帯（46%→50% rgba(255,255,255,0.3)→54%）でハードカットではなく滑らかに遷移。After sweep completes, text remains visible (bar-style residual). Subtitle persists after playback ends
+- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (transparent→white, fill layer uses background-clip:text, no textShadow). スイープ境界は2%グラデーション帯（49%→51% rgba(255,255,255,0.5)）でハードカットではなく滑らかに遷移。After sweep completes, text remains visible (bar-style residual). Subtitle persists after playback ends
 - **VideoSegment.tsx**: Shared component wrapping video player + Subtitle, used by both PostCard and PickupCorner
 - **Frontend cue limit**: Max 3 cues per post (PostEditor enforces)
 

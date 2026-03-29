@@ -90,7 +90,7 @@ function AppInner() {
   }, [tab, loadFame]);
 
   const handlePublished = useCallback(
-    async (data: Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions"> & { deleteKey?: string }) => {
+    async (data: Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions" | "playCount"> & { deleteKey?: string }) => {
       try {
         const id = await createPost(data);
         showToast(t.toast.posted);

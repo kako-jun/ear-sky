@@ -10,7 +10,7 @@ import { Save, Send, X, Plus, ExternalLink } from "lucide-react";
 
 // Preview uses PostCard directly — all player/subtitle rendering is delegated.
 
-type PostData = Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions"> & { deleteKey?: string };
+type PostData = Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions" | "playCount"> & { deleteKey?: string };
 
 interface CueInput {
   id: string;
@@ -189,6 +189,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     createdAt: new Date().toISOString(),
     reactions: {},
     totalReactions: 0,
+    playCount: 0,
     era: era.trim() || undefined,
     comment: comment.trim() || undefined,
     cues: subtitleCues,

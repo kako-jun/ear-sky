@@ -25,12 +25,13 @@ export interface Post {
   totalReactions: number;
   era?: string;
   comment?: string;
+  playCount: number;
   cues: SubtitleCue[];
 }
 
 export interface Draft {
   id: string;
-  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions">;
+  data: Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions" | "playCount">;
   updatedAt: string;
 }
 

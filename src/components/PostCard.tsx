@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Post } from "@/types";
 import { parseVideoUrl } from "@/lib/video";
+import { recordPlay } from "@/lib/api";
 import { useI18n } from "@/i18n";
 import VideoSegment from "./VideoSegment";
 import Reactions from "./Reactions";
@@ -67,6 +68,7 @@ export default function PostCard({ post, showPlayer = false, preview = false }: 
         cues={post.cues}
         autoExpand={showPlayer}
         onCueReached={() => setRevealed(true)}
+        onFirstPlay={() => { if (!preview) recordPlay(post.id); }}
       />
 
       {/* Reveal — only after playback reaches cue region */}
@@ -117,6 +119,9 @@ export default function PostCard({ post, showPlayer = false, preview = false }: 
         )}
         <span className="text-white/10">|</span>
         <span className="font-sans">{post.nickname || "Anonymous"}</span>
+        {!preview && post.playCount > 0 && (
+          <span className="ml-auto">{post.playCount} plays</span>
+        )}
       </div>
 
       {!preview && <Reactions postId={post.id} initialReactions={post.reactions} />}

@@ -114,6 +114,7 @@ function mapRow(row: Record<string, unknown>, cueRows?: Record<string, unknown>[
     totalReactions,
     era: row.era || undefined,
     comment: row.comment || undefined,
+    playCount: (row.play_count as number) || 0,
     cues,
   };
 }
@@ -368,6 +369,15 @@ app.delete("/posts/:id/reaction", async (c) => {
 
   const reactions = await getReactionCounts(c.env.DB, id);
   return c.json({ reactions, myEmoji: null });
+});
+
+// POST /api/posts/:id/play — increment play count
+app.post("/posts/:id/play", async (c) => {
+  const id = c.req.param("id");
+  await c.env.DB.prepare(
+    "UPDATE posts SET play_count = play_count + 1 WHERE id = ?"
+  ).bind(id).run();
+  return c.json({ ok: true });
 });
 
 export const onRequest = handle(app);
