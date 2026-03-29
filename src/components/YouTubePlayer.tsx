@@ -114,6 +114,8 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
       el.appendChild(div);
 
       playerRef.current = new window.YT.Player(div.id, {
+        width: "100%",
+        height: "100%",
         videoId,
         playerVars: {
           start: Math.floor(playStart),
