@@ -122,9 +122,9 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
           {/* Bottom block */}
           <div className="absolute bottom-0 left-0 right-0 h-[35%] bg-black/50 z-10" />
           {/* Left block */}
-          <div className="absolute top-[35%] left-0 w-[30%] h-[30%] bg-black/50 z-10" />
+          <div className="absolute top-[35%] left-0 w-[40%] h-[30%] bg-black/50 z-10" />
           {/* Right block */}
-          <div className="absolute top-[35%] right-0 w-[30%] h-[30%] bg-black/50 z-10" />
+          <div className="absolute top-[35%] right-0 w-[40%] h-[30%] bg-black/50 z-10" />
           {/* Visual play icon (pointer-events-none, doesn't block) */}
           <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none text-white/80">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
