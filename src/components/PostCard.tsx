@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Post } from "@/types";
-import { useI18n, getLocale } from "@/i18n";
+import { useI18n } from "@/i18n";
 import VideoSegment from "./VideoSegment";
 import Reactions from "./Reactions";
 import { Eye, Copy, Check } from "lucide-react";
@@ -89,7 +89,7 @@ export default function PostCard({ post, showPlayer = false }: Props) {
         <span className="text-white/10">|</span>
         <span className="font-sans">{post.nickname || "Anonymous"}</span>
         <span className="text-white/10">|</span>
-        <time dateTime={post.createdAt}>{new Date(post.createdAt).toLocaleDateString(getLocale())}</time>
+        <time dateTime={post.createdAt}>{post.createdAt.slice(0, 10)}</time>
         <span className="text-white/10">|</span>
         <span>{post.sourceLang}→{post.targetLang}</span>
       </div>

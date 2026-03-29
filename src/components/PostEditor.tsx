@@ -3,7 +3,7 @@ import { LANGUAGES, Post, SubtitleCue } from "@/types";
 import { parseVideoUrl, formatTime } from "@/lib/video";
 import { saveDraft, getAllDrafts, deleteDraft } from "@/lib/storage";
 import { fetchVideoTitle, splitArtistTitle } from "@/lib/oembed";
-import { useI18n, getLocale } from "@/i18n";
+import { useI18n } from "@/i18n";
 import YouTubePlayer, { YouTubePlayerHandle } from "./YouTubePlayer";
 import NiconicoPlayer from "./NiconicoPlayer";
 import Subtitle from "./Subtitle";
@@ -640,7 +640,7 @@ function DraftsList({
           >
             {draft.data.misheardText || draft.data.videoUrl || "(untitled)"}
             <span className="text-white/30 text-xs ml-2">
-              {new Date(draft.updatedAt).toLocaleDateString(getLocale())}
+              {draft.updatedAt.slice(0, 10)}
             </span>
           </button>
           <button
