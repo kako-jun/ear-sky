@@ -145,19 +145,17 @@ export default function NiconicoPlayer({
             onError={() => setError(true)}
           />
         </div>
-        {/* Block iframe interaction during playback */}
-        {playing && !segmentEnded && (
-          <div className="absolute inset-0 z-10" />
-        )}
-        {segmentEnded && (
-          <button
-            onClick={handlePlay}
-            className="absolute inset-0 z-10 rounded-lg bg-black/30 flex items-center justify-center cursor-pointer
-                       hover:bg-black/20 transition-colors"
-            aria-label={t.niconico.playSegment}
+        {/* Overlay: blocks iframe interaction; shows replay icon only after segment ends */}
+        {(playing || segmentEnded) && (
+          <div
+            onClick={segmentEnded ? handlePlay : undefined}
+            className={`absolute inset-0 z-10 rounded-lg flex items-center justify-center
+              ${segmentEnded ? "bg-black/30 cursor-pointer hover:bg-black/20 transition-colors" : ""}`}
+            role={segmentEnded ? "button" : undefined}
+            aria-label={segmentEnded ? t.niconico.playSegment : undefined}
           >
-            <RotateCcw size={40} className="text-white/70" />
-          </button>
+            {segmentEnded && <RotateCcw size={40} className="text-white/70" />}
+          </div>
         )}
       </div>
       {ready && !segmentEnded && (
