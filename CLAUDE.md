@@ -154,6 +154,15 @@ migrations/
 - **ダッシュ装飾**: テキストの「—」→CSSグラデーション線（from-white/30 to-transparent, w-10〜w-12）。Header alias, PickupCorner closing, Footer siteAlias の3箇所
 - Language toggle UI planned for future
 
+## Post Deletion (Frontend)
+
+- **UI flow**: PostCard has a small Trash2 icon (white/15, bottom-right). Click → delete key input field appears (type=password) → submit → `deletePost(id, key)` API call → on success, `onDeleted?.(id)` callback removes card from feed
+- **localStorage pre-fill**: Delete key input initializes from `localStorage.getItem("ear-sky-delete-key")` (saved by PostEditor on successful post). Shared across all PostCards. Wrong key for another user's post is rejected server-side (ApiError)
+- **Error state**: `deleteError` turns input border red. No text message shown. User can retry or close (✕ button)
+- **preview=false only**: Entire delete UI is gated by `!preview`
+- **Feed tab**: `onDeleted` callback filters the post out of `feedPosts` state immediately
+- **Hall of Fame tab**: `onDeleted` is not passed. Deletion succeeds on API but card remains in UI until reload. `deleting` state stays true (button shows "...") — user can close the form via ✕
+
 ## Security
 
 - **Input validation**: Type/length/enum checks on all fields. URL protocol check (https/http only)
