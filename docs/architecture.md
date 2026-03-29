@@ -1,6 +1,6 @@
 # Architecture
 
-## Overview
+## System Overview
 
 ```
 [Browser] → [CF Pages (static SPA)] → [Pages Functions (Hono API)] → [D1 (SQLite)]
@@ -12,179 +12,154 @@
                           [/pickups/*.json → Static pickup data]
 ```
 
-## Data Flow
+## API Endpoints
 
-### Posting (Wizard Flow)
-1. User pastes a video URL → instant preview loads (URL未入力時はYouTube/niconico/SoundCloudへのExternalLink付きリンクを表示)
-2. URL parsed to extract platform/videoId/startSec (`video.ts` — YouTube `/watch?v=`, `/shorts/`, `/live/`, `/embed/`, `youtu.be/`, `?list=...&v=...` 対応; `?t=`/`&t=`/`?start=` で開始時刻取得; niconico `?from=` も同様; SoundCloud `soundcloud.com/:artist/:track` + query/hash除去 + `#t=M:SS`/`#t=sec` で開始時刻取得。`on.soundcloud.com` 短縮URLは非対応—クライアント側でリダイレクト解決できないため)
-3. **Song info step**: Video title auto-fetched via oEmbed → artist/song auto-filled (user can correct)
-4. **Cues step**: User defines 1–3 subtitle cues via DualRangeSlider (dual-thumb, ◀▶ 1s adjust, drag→seekTo)
-   - If URL has `?t=`/`?start=`/`?from=`, first cue's start/end are auto-initialized from that time
-   - First cue: specify start + end
-   - Additional cues (+ button, max 3): start = previous cue's end, only end is specified
-5. **About you step**: Nickname, delete key, comment (optional fields styled neon-blue/40)
-6. POST /api/posts → saved to D1 (post row + cues rows, with IP hash)
-7. Immediately appears in feed
+| Method | Path | Description |
+|---|---|---|
+| GET | /api/posts | List posts (?sort=new\|likes&q=&sourceLang=&targetLang=&tags=&limit&offset) |
+| GET | /api/posts/:id | Get single post |
+| POST | /api/posts | Create post (rate limit: 30s/1 per IP) |
+| DELETE | /api/posts/:id | Delete post (deleteKey required) |
+| PUT | /api/posts/:id/reaction | Set/switch emoji reaction (1 per user per post) |
+| DELETE | /api/posts/:id/reaction | Remove your reaction |
+| POST | /api/posts/:id/play | Increment play count (fire-and-forget) |
+| GET | /share/:id | Dynamic OGP for bots, redirect for browsers |
 
-### Playback — via VideoSegment (pre-mount architecture)
+## Playback Architecture (mount-on-click)
 
-All platform iframes are **pre-mounted and hidden** when collapsed. On user tap,
-`play()` is called synchronously inside the click handler so that the user gesture
-propagates to the cross-origin iframe. This avoids autoplay being blocked by
-in-app browsers (e.g. LINE) where the async gap between tap → React mount → iframe
-init → playVideo() causes the gesture to expire.
+Player iframes are created **only when the user clicks play**. No pre-mounting.
 
-Each player component exposes an imperative `play()` handle via `forwardRef` +
-`useImperativeHandle`. VideoSegment holds refs to all three and calls the
-appropriate one on click.
+Pre-mounting was tried and failed in all forms:
+- **Hidden iframes** (display:none, clip-path, visibility:hidden) → YouTube/Niconico/SoundCloud JS callbacks (onStateChange, onReady, PLAY_PROGRESS) stop firing
+- **Visible pre-mount** (multiple iframes on page) → YouTube's concurrent player initialization fails with postMessage origin errors; 3rd+ players break
 
-**YouTube**
-1. YouTube IFrame API with `autoplay:0`, `playsinline:1`
-2. `onReady` signals iframe is ready; `play()` calls `seekTo(startSec - 5s)` + `playVideo()`
-3. onTimeUpdate → Subtitle sync; karaoke sweep via `background-position`
-4. Subtitle font auto-scales: base 1.875rem, shrinks to fit 1 line (floor 1.25rem), wraps beyond. Max 30 chars per cue (input maxLength). Up to ~3 lines on mobile
-5. Auto-stops at `endSec + 0.3s`; overlay blocks direct iframe interaction
+### Current flow
 
-**Niconico**
-1. embed.nicovideo.jp iframe (commentLayerMode=0, comments OFF)
-2. `play()` sends postMessage seek + play commands
-3. Simulated time updates (Date.now-based) for subtitle sync
-4. Timer-based segment end detection
+1. **API script pre-load**: IntersectionObserver (400px margin) triggers `preloadYTApi()` which loads the YouTube IFrame API script (no iframe). Lightweight, shared across all cards
+2. **User clicks play** → `setExpanded(true)` → player component mounts → iframe created
+3. **YouTube**: `autoplay:1` in playerVars. Browser's user activation window (~5s after click) allows autoplay inside the iframe. `start` param seeks to `startSec - 5s` (PRE_MARGIN)
+4. **Niconico**: iframe loads with `from={startSec-5}`. `postMessage` sends seek+play commands
+5. **SoundCloud**: Widget API loads, `seekTo(ms)` + `play()` on READY event
+6. **onStateChange/PLAYING** fires → `hasPlayed=true` → interaction overlay appears (blocks iframe clicks, enables stoppable mode for editor preview)
+7. **Timer** (100ms interval) polls `getCurrentTime()` → drives Subtitle sweep + segment end detection
+8. **Segment end**: `currentTime >= endSec + 0.3s` → pause + collapse (setExpanded=false)
 
-**SoundCloud**
-1. SoundCloud Widget API (`w.soundcloud.com/player`) with `auto_play=false`
-2. `play()` calls `seekTo` + `widget.play()`; `PLAY_PROGRESS` for time tracking
-3. `segmentEndedRef` prevents multi-fire of segment end detection
+### Autoplay fallback
 
-### Spoiler/Reveal
-1. PostCard initially hides cue texts
-2. Reveal triggers: playback reaches end of LAST cue (via VideoSegment onCueReached) — no manual reveal button, playback only
-3. Text appears with fade-in animation
-4. Karaoke subtitle plays during each cue with time-synced sweep (progress-based), stays visible after sweep
+If autoplay is blocked (e.g. LINE in-app browser), the interaction overlay is NOT shown until `hasPlayed=true`. The user can click YouTube's native play button directly. Once playback starts, the overlay activates.
 
-### Reactions (Emoji Picker)
-1. User taps "+reaction" label (shown when 0 reactions) or "+" button → emoji picker popover with 12 curated emoji
-2. Each user (IP) can pick exactly ONE emoji per post
-3. Clicking a different emoji switches the reaction
-4. Clicking the current emoji removes it (toggle off)
-5. Optimistic UI update + server sync via PUT/DELETE /api/posts/:id/reaction
-6. localStorage tracks the user's emoji per post
-7. Server enforces UNIQUE(post_id, ip_hash) constraint
+### Platform-specific details
 
-### Pickup Corner
-1. Fetch `public/pickups/index.json` for available pickup IDs
-2. Load latest pickup JSON
-3. Display in same card layout as regular posts (VideoSegment shared component)
-4. Master intro (1曲目「まずは」, 2曲目以降「続いては」) → video plays → cue区間到達で空耳テキスト+掛け合い(banter)が自動展開（専用revealボタンなし、再生で自動展開）
-5. "Jump to latest posts" link above pickup corner for quick navigation
-6. Gradient divider + spacing separates pickup corner from new posts below
-7. Pickup date shows "updated" label
-8. Past pickups lazy-loaded on demand
+| | YouTube | Niconico | SoundCloud |
+|---|---|---|---|
+| API | IFrame API (global script) | Direct iframe embed | Widget API (script) |
+| Play | autoplay:1 + seekTo + playVideo | postMessage seek + play | widget.seekTo(ms) + play() |
+| Time tracking | getCurrentTime() poll (100ms) | Date.now() elapsed estimation | PLAY_PROGRESS event |
+| Segment end | pauseVideo() | postMessage pause | widget.pause() |
+| Time values | Seconds | Seconds | Milliseconds |
 
-### Dynamic OGP
-1. Access `/share/:id`
-2. Bot detection via User-Agent
-3. Bot: fetch post from D1 → return HTML with OGP meta tags
-4. Browser: redirect to `/#post-{id}`
+## Header (position: fixed)
+
+The header uses `position: fixed` (not sticky) with a spacer div measured once on mount.
+
+`position: sticky` was tried and failed: height changes (shrink ↔ expand) cause scroll-position feedback loops. The sticky element's reserved flow space changes → document height changes → browser scroll anchoring adjusts scrollY → crosses threshold → re-toggles → oscillation (3+ times per scroll).
+
+- `useShrunk()` hook: shrink at scrollY > 80px, expand at scrollY < 40px (hysteresis)
+- Expanded content (subtitle, alias, decorative line) uses `max-h-0 overflow-hidden` (not conditional rendering) to avoid DOM churn
+- `transition-colors duration-300` on the wrapper for background/blur/shadow fade
+
+## Subtitle System
+
+- **Multiple cues per post**: stored in `cues` table (migration 0004)
+- **Type**: `SubtitleCue { text, originalText?, showAt, duration }`
+- **Rendering**: `useLayoutEffect` (not useEffect) measures text width and auto-scales font size (base 1.875rem → floor 1.25rem, wraps beyond). The early return `if (!hasCues) return null` is placed AFTER the hook to prevent React Error #310
+- **Karaoke sweep**: `background-clip: text` with `background-position` driven by `currentTime`. 2% gradient band at the sweep edge for smooth transition
+- **Backdrop**: 1.5s fade-in before first cue (opacity ramp on background + blur)
+
+## Spoiler/Reveal
+
+- PostCard hides cue texts initially
+- Reveal fires when playback reaches end of the LAST cue (not first)
+- In preview mode (`preview=true`), revealed from the start
+- Pre-margin: 5s before startSec. Post-margin: 0.3s after endSec
+
+## Reaction System
+
+- 12 curated emoji, user picks ONE per post
+- Default: 🎵 auto-seeded on post creation (Reddit-style initial score)
+- Server: `UNIQUE(post_id, ip_hash)` — PUT switches, DELETE removes
+- Client: localStorage tracks `{ postId: emoji }` map
+
+## Pickup Corner
+
+- Monthly JSONs in `public/pickups/` (generated locally → git commit → deploy)
+- Master (wine icon, blue) introduces songs → video plays → cue reveal triggers banter
+- Share URL: `/share/${pick.postId}` (OGP-compatible)
+- Cue fallback: synthesizes single cue from `misheardText/startSec/endSec` when `cues` is absent
+
+## PostEditor
+
+- Wizard flow: URL → song info (oEmbed auto-fill) → cues (DualRangeSlider) → about you
+- Preview via `PostCard(preview=true)` — no direct player usage
+- Delete key: localStorage pre-fill, type=password
+- Cue editing: changing cue N's start auto-updates cue N-1's end
 
 ## i18n
 
-- English is the default language
-- Japanese detected via `navigator.language`
-- All UI strings externalized in `src/i18n/en.ts` and `src/i18n/ja.ts`
-- `useI18n()` hook provides messages to components
-- Language toggle implemented in header right (globe icon, EN↔JA cycle, saved to localStorage)
+- English default, Japanese translation
+- `useI18n()` hook, locale toggle in header (Globe icon, EN↔JA, localStorage)
+- Decorative dashes replaced with CSS gradient lines (Header alias, PickupCorner closing, Footer)
 
-## Table Schema
+## Service Worker
+
+- `public/sw.js`: network-first with cache fallback for same-origin static assets
+- **Must skip third-party origins** (`url.origin !== self.location.origin`) — otherwise Cloudflare analytics, YouTube CDN etc. cause "Failed to convert value to Response"
+- API calls (`/api/`) are network-only
+- Cache name includes build date for automatic invalidation
+
+## Security
+
+- Input validation: type/length/enum checks, URL protocol check (https/http only)
+- Rate limiting: IP hash-based, 30s cooldown
+- XSS prevention: OGP HTML escaping, URL protocol check
+- CORS: production domains only
+- Reaction dedup: server UNIQUE constraint + client localStorage
+
+## Database Schema
 
 ### posts
-| Column | Type | Description |
+| Column | Type | Notes |
 |---|---|---|
 | id | TEXT PK | UUID |
-| video_url | TEXT | Original video URL |
-| platform | TEXT | youtube / niconico / soundcloud / other |
-| video_id | TEXT | Platform-specific ID |
-| start_sec | REAL | Start second |
-| end_sec | REAL | End second |
-| misheard_text | TEXT | Misheard text |
-| original_text | TEXT? | Original lyrics |
-| artist_name | TEXT | Artist name |
-| song_title | TEXT | Song title |
-| source_lang | TEXT | Original language |
-| target_lang | TEXT | Target language |
-| nickname | TEXT | Poster nickname |
-| likes | INTEGER | Legacy (unused, kept for compat) |
-| ip_hash | TEXT | Poster IP hash |
-| delete_key | TEXT? | Deletion key |
-| era | TEXT? | Era/year (e.g. "1985", "90s") |
-| comment | TEXT? | One-liner comment |
-| play_count | INTEGER | Play count (DEFAULT 0) |
-| created_at | TEXT | Created timestamp |
-
-### reactions
-| Column | Type | Description |
-|---|---|---|
-| id | INTEGER PK | Auto-increment |
-| post_id | TEXT FK | Post ID |
-| reaction_key | TEXT | Emoji character (e.g. "👂", "🤣", "❤️") |
-| ip_hash | TEXT | Reactor IP hash |
+| video_url, platform, video_id | TEXT | Video source |
+| start_sec, end_sec | REAL | Segment boundaries |
+| misheard_text, original_text | TEXT | Cue text (legacy single-cue) |
+| artist_name, song_title | TEXT | Song metadata |
+| source_lang, target_lang | TEXT | Language pair |
+| nickname, ip_hash, delete_key | TEXT | Poster info |
+| era, comment | TEXT? | Optional metadata |
+| play_count | INTEGER | DEFAULT 0 |
 | created_at | TEXT | Timestamp |
 
-**Constraints:** UNIQUE(post_id, ip_hash) — one reaction per user per post. `post_id` FK has ON DELETE CASCADE (migration 0007).
-
-### cues
-| Column | Type | Description |
+### cues (migration 0004)
+| Column | Type | Notes |
 |---|---|---|
-| id | INTEGER PK | Auto-increment |
-| post_id | TEXT FK | Post ID (CASCADE delete) |
-| text | TEXT | Misheard/subtitle text |
-| original_text | TEXT? | Original lyrics |
-| show_at | REAL | Time (seconds) when cue appears |
-| duration | REAL | Cue duration (seconds) for sweep |
-| sort_order | INTEGER | Display order (0-based) |
-| created_at | TEXT | Timestamp |
+| post_id | TEXT FK CASCADE | Parent post |
+| text, original_text | TEXT | Subtitle content |
+| show_at, duration | REAL | Timing |
+| sort_order | INTEGER | Display order |
 
-**Index:** `idx_cues_post_id` on `post_id`.
-**Migration (0004):** Existing posts' `misheard_text + start_sec + end_sec` auto-migrated to one cue each.
+### reactions (migration 0003, CASCADE via 0007)
+UNIQUE(post_id, ip_hash). Columns: post_id FK, reaction_key (emoji), ip_hash.
 
-### post_tags
-| Column | Type | Description |
-|---|---|---|
-| id | INTEGER PK | Auto-increment |
-| post_id | TEXT FK | Post ID (ON DELETE CASCADE) |
-| tag | TEXT | Tag string |
-| created_at | TEXT | Timestamp |
+### post_tags (migration 0006, CASCADE via 0007)
+UNIQUE(post_id, tag). 10 valid tags: anime/game/vocaloid/movie/drama/cm/rock/pop/hiphop/metal.
 
-**Constraints:** UNIQUE(post_id, tag) — one tag per post per value. `post_id` FK has ON DELETE CASCADE (migration 0007).
+## Design Theme
 
-## Search & Pagination
-
-- `GET /api/posts` supports query parameters:
-  - `q` — text search (LIKE with proper escape of `%`, `_`, `\`)
-  - `sourceLang` — filter by source language
-  - `targetLang` — filter by target language
-  - `tags` — comma-separated tags (validated against VALID_TAGS whitelist, max 3)
-- Pagination via `limit`/`offset`, `PAGE_SIZE=10`
-- 4 tabs in the UI: feed / fame / search / post
-
-## Sticky Header
-
-- Header shrinks on scroll with hysteresis (shrink at 80px, expand at 40px). All transitions are **instant** (no CSS transition) to prevent scroll-position feedback loops that cause jitter. Alias/subtitle are conditionally rendered (not animated) so height changes happen in a single layout pass
-- Header + nav wrapped in sticky container (`z-40`)
-- Click title to scroll to top
-
-## Extracted Components
-
-- `EmptyState.tsx` — empty state display
-- `ShareButton.tsx` — share/link copy button
-- `Paginator.tsx` — pagination controls
-- `RankingList.tsx` — fame/ranking tab list
-- `Footer.tsx` — site footer
-
-## Migrations
-
-| Migration | Description |
-|---|---|
-| 0004 | Cues table + auto-migration from legacy fields |
-| 0006_tags.sql | `post_tags` table (id, post_id FK CASCADE, tag, UNIQUE(post_id, tag)) |
-| 0007_cascade_delete.sql | Rebuild reactions/post_tags FKs with ON DELETE CASCADE |
+- Background: night-deep → bar-wall gradient + day-rotating Gemini images (7 webp)
+- Accents: Neon Pink (#ff2d78), Neon Blue (#00d4ff), Neon Yellow (#ffe156)
+- Text contrast: white/50+ for interactive (WCAG AA)
+- Icon: Copilot cloud-cat-ear mascot
+- `prefers-reduced-motion` supported
+- Mobile: `100lvh` prevents address bar jitter
