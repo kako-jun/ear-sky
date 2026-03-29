@@ -119,13 +119,16 @@ export default function VideoSegment({
             <SoundCloudPlayer ref={scRef} trackUrl={parsed.videoId} {...playerProps} />
           )}
 
-          {!hasPlayed && (
+          {/* Spinner + interaction overlay: skip for Niconico.
+             Niconico's autoplay is unreliable and postMessage control doesn't work,
+             so the user may need to click Niconico's native play button. */}
+          {!hasPlayed && parsed.platform !== "niconico" && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 rounded-lg pointer-events-none">
               <Loader2 size={36} className="animate-spin text-white/70" />
             </div>
           )}
 
-          {hasPlayed && (
+          {hasPlayed && parsed.platform !== "niconico" && (
             <div
               onClick={stoppable ? () => setExpanded(false) : undefined}
               className={`absolute inset-0 z-10 rounded-lg ${stoppable ? "cursor-pointer" : ""}`}
