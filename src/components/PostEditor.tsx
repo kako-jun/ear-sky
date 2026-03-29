@@ -221,8 +221,11 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     });
   }, []);
 
+  const MAX_CUES = 3;
+
   const addCue = useCallback(() => {
     setCues((prev) => {
+      if (prev.length >= MAX_CUES) return prev;
       const last = prev[prev.length - 1];
       if (last.endSec >= videoDuration) return prev; // no room
       return [...prev, {
@@ -508,16 +511,18 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
         </div>
       ))}
 
-      {/* Add cue button */}
-      <button
-        onClick={addCue}
-        className="w-full py-2.5 rounded-lg border border-dashed border-white/15 text-white/40
-                   hover:border-white/30 hover:text-white/60 transition-all flex items-center justify-center gap-1.5
-                   focus-visible:outline-2 focus-visible:outline-neon-blue"
-      >
-        <Plus size={14} />
-        {t.editor.addCue}
-      </button>
+      {/* Add cue button (max 3) */}
+      {cues.length < MAX_CUES && (
+        <button
+          onClick={addCue}
+          className="w-full py-2.5 rounded-lg border border-dashed border-white/15 text-white/40
+                     hover:border-white/30 hover:text-white/60 transition-all flex items-center justify-center gap-1.5
+                     focus-visible:outline-2 focus-visible:outline-neon-blue"
+        >
+          <Plus size={14} />
+          {t.editor.addCue}
+        </button>
+      )}
 
       {/* === Section: About You === */}
       <SectionHeader text={t.editor.sectionAboutYou} />
