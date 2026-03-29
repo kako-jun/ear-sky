@@ -33,9 +33,9 @@ src/
 │   ├── PostCard.tsx     # Flat post layout (song→artist(era) lang→video→reveal→ID|date|poster). Song title is external link to source platform with PlatformIcon. preview prop: preview=true shows skeleton ID/date (animate-pulse) and hides reactions
 │   ├── PickupCorner.tsx # Pickup corner (master & regular banter)
 │   ├── VideoSegment.tsx # Shared video+subtitle component (PostCard/PickupCorner共通)
-│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, width/height 100%, post-play overlay+replay, no `end` playerVar). 再生中は透明オーバーレイでiframe操作遮断＋クリックでpauseVideo()（playing=trueまで非表示）
-│   ├── NiconicoPlayer.tsx # Niconico embed segment playback
-│   ├── SoundCloudPlayer.tsx # SoundCloud Widget API segment playback
+│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, width/height 100%, no `end` playerVar). 統合オーバーレイ: playing||segmentEndedで表示、再生中は透明でiframe操作遮断、segmentEnded時はbg-black/30+RotateCcw+handlePlay
+│   ├── NiconicoPlayer.tsx # Niconico embed segment playback. 統合オーバーレイ: YouTubeと同パターン（handlePlay）
+│   ├── SoundCloudPlayer.tsx # SoundCloud Widget API segment playback. 統合オーバーレイ: YouTubeと同パターン（handleReplay）
 │   ├── PlatformIcon.tsx # Platform SVG icons (YouTube/Niconico/SoundCloud)
 │   ├── Subtitle.tsx     # Karaoke subtitle (currentTime→progress直接計算, 複数cue対応)
 │   ├── DualRangeSlider.tsx # Dual-thumb range slider (◀▶ 1s adjust, drag→seekTo連動)
@@ -112,9 +112,10 @@ migrations/
 - Karaoke-style subtitle appears when playback reaches each cue's showAt (time-synced via currentTime), stays visible after sweep (番組風)
 - Playback has pre-margin (5s) and post-margin (0.3s) around the segment (POST_MARGIN=0.3s, all players)
 - After playback ends, swept subtitle text remains visible (not cleared)
-- YouTube: segment end triggers replay overlay (RotateCcw, bg-black/30); user pause does not. No `end` playerVar (prevents seek-to-start on replay)
-- Niconico: pause postMessage sent at segment end; replay overlay same as YouTube
-- SoundCloud: Widget API seek/pause for segment playback; replay overlay same as YouTube
+- **統合オーバーレイ（3プレイヤー共通）**: 1つのdivが再生中ブロック＋リプレイを兼ねる。条件 `(playing || segmentEnded)` で表示。再生中は透明でiframe操作遮断（onClick=undefined）、segmentEnded時はbg-black/30+RotateCcw+role="button"+aria-label。再生前（両方false）はオーバーレイ非表示
+- YouTube: handlePlayでリプレイ。No `end` playerVar (prevents seek-to-start on replay)
+- Niconico: handlePlayでリプレイ。pause postMessage sent at segment end
+- SoundCloud: handleReplayでリプレイ。Widget API seek/pause for segment playback
 - `animate-fade-in` CSS animation on reveal
 
 ## Pickup Corner
