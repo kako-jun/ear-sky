@@ -31,7 +31,8 @@ let apiLoaded = false;
 let apiReady = false;
 const readyCallbacks: (() => void)[] = [];
 
-function loadYTApi() {
+/** Pre-load the YouTube IFrame API script (no iframe created). */
+export function preloadYTApi() {
   if (apiLoaded) return;
   apiLoaded = true;
   const tag = document.createElement("script");
@@ -49,7 +50,7 @@ function whenApiReady(cb: () => void) {
     cb();
   } else {
     readyCallbacks.push(cb);
-    loadYTApi();
+    preloadYTApi();
   }
 }
 
@@ -130,7 +131,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
         videoId,
         playerVars: {
           start: Math.floor(playStart),
-          autoplay: 0,
+          autoplay: 1,
           playsinline: 1,
           controls: 1,
           disablekb: 1,

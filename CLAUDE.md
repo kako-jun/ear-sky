@@ -121,7 +121,7 @@ migrations/
 - Playback has pre-margin (5s) and post-margin (0.3s) around the segment (POST_MARGIN=0.3s, all players)
 - After playback ends, swept subtitle text remains visible (not cleared)
 - **統合オーバーレイ（3プレイヤー共通）**: 1つのdivが再生中ブロック＋リプレイを兼ねる。条件 `(playing || segmentEnded)` で表示。再生中は透明でiframe操作遮断（onClick=undefined）、segmentEnded時はbg-black/30+RotateCcw+role="button"+aria-label。再生前（両方false）はオーバーレイ非表示
-- **Pre-mount strategy**: VideoSegmentはiframeを**隠さずにそのまま描画**する。Playボタンは`absolute inset-0 z-20`のオーバーレイとしてプレイヤーの上に被せる。`display: none` / `clip-path: inset(100%)` / `visibility: hidden` はいずれもiframeのJSコールバック（onStateChange等）を阻害するため使用禁止。プレイヤーが常に描画ツリー内で可視状態であることが、全3プラットフォームでの確実な動作の前提
+- **Mount-on-click strategy**: iframeはクリック時にのみ生成（pre-mount禁止）。pre-mountは以下の理由で全て失敗した: (1) 隠す方法（display:none/clip-path/visibility:hidden）→JSコールバックが死ぬ (2) 隠さず常時描画→YouTube同時プレイヤー制限で3個目以降が壊れる。代わりにYouTube APIスクリプトだけIntersectionObserverで先読みし、クリック→iframe生成→autoplay:1でブラウザのユーザーアクティベーション（5秒）内に再生開始。interaction overlayはhasPlayed後にのみ表示（autoplayブロック時にYouTubeネイティブボタンを押せるフォールバック）
 - YouTube: handlePlayでリプレイ。No `end` playerVar (prevents seek-to-start on replay)
 - Niconico: handlePlayでリプレイ。pause postMessage sent at segment end
 - SoundCloud: handleReplayでリプレイ。Widget API seek/pause for segment playback
