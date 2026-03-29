@@ -33,13 +33,18 @@ export function parseVideoUrl(url: string): {
     }
   }
 
-  // Niconico — ?from= parameter
-  const nicoPattern = /nicovideo\.jp\/watch\/(sm\d+|nm\d+|\d+)/;
-  const nm = url.match(nicoPattern);
-  if (nm) {
-    const fromMatch = url.match(/[?&]from=(\d+)/);
-    const startSec = fromMatch ? parseInt(fromMatch[1]) : undefined;
-    return { platform: "niconico", videoId: nm[1], startSec };
+  // Niconico — nicovideo.jp/watch/ and nico.ms/ short URLs, ?from= parameter
+  const nicoPatterns = [
+    /nicovideo\.jp\/watch\/(sm\d+|nm\d+|\d+)/,
+    /nico\.ms\/(sm\d+|nm\d+|\d+)/,
+  ];
+  for (const nicoPattern of nicoPatterns) {
+    const nm = url.match(nicoPattern);
+    if (nm) {
+      const fromMatch = url.match(/[?&]from=(\d+)/);
+      const startSec = fromMatch ? parseInt(fromMatch[1]) : undefined;
+      return { platform: "niconico", videoId: nm[1], startSec };
+    }
   }
 
   // SoundCloud — https://soundcloud.com/artist/track (exclude system paths)
