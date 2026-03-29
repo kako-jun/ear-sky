@@ -116,7 +116,7 @@ export default function VideoSegment({
     let timerId: ReturnType<typeof setTimeout>;
     const onBlur = () => {
       setExpanded(true);
-      timerId = setTimeout(() => nicoRef.current?.play(), 2000);
+      timerId = setTimeout(() => nicoRef.current?.play(), 1500);
     };
     window.addEventListener("blur", onBlur);
     return () => {
