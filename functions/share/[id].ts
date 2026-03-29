@@ -37,7 +37,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   // Fetch post from D1
   const row = await context.env.DB.prepare(
-    "SELECT misheard_text, artist_name, song_title, original_text FROM posts WHERE id = ?"
+    "SELECT artist_name, song_title, platform, video_id FROM posts WHERE id = ?"
   ).bind(id).first();
 
   if (!row) {
@@ -46,6 +46,14 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   const artist = escapeHtml(row.artist_name as string);
   const song = escapeHtml(row.song_title as string);
+  const platform = row.platform as string;
+  const videoId = row.video_id as string;
+
+  // Use video thumbnail when available, fall back to site OGP
+  let ogImage = `${SITE_URL}/ogp.png?v=2`;
+  if (platform === "youtube") {
+    ogImage = `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`;
+  }
 
   const title = `${artist}「${song}」の空耳`;
   const description = "この部分、こう聴こえない？ 再生して確かめよう";
@@ -60,13 +68,13 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   <meta property="og:description" content="${description}" />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="${SITE_URL}/share/${escapeHtml(id)}" />
-  <meta property="og:image" content="${SITE_URL}/ogp.png?v=2" />
+  <meta property="og:image" content="${ogImage}" />
   <meta property="og:site_name" content="${SITE_NAME}" />
   <meta property="og:locale" content="ja_JP" />
-  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
-  <meta name="twitter:image" content="${SITE_URL}/ogp.png?v=2" />
+  <meta name="twitter:image" content="${ogImage}" />
   <meta http-equiv="refresh" content="0;url=${SITE_URL}/#post-${escapeHtml(id)}" />
 </head>
 <body>
