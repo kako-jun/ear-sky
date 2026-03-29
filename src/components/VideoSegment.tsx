@@ -17,8 +17,8 @@ interface Props {
   autoExpand?: boolean;
   /** Called when playback enters a cue region */
   onCueReached?: () => void;
-  /** Called when playback starts for the first time */
-  onFirstPlay?: () => void;
+  /** Called every time playback starts */
+  onPlay?: () => void;
 }
 
 /**
@@ -32,7 +32,7 @@ export default function VideoSegment({
   cues,
   autoExpand = false,
   onCueReached,
-  onFirstPlay,
+  onPlay,
 }: Props) {
   const t = useI18n();
   const [currentTime, setCurrentTime] = useState(0);
@@ -55,25 +55,17 @@ export default function VideoSegment({
     }
   }, [cues, onCueReached]);
 
-  const firstPlayFired = useRef(false);
-  const fireFirstPlay = useCallback(() => {
-    if (!firstPlayFired.current) {
-      firstPlayFired.current = true;
-      onFirstPlay?.();
-    }
-  }, [onFirstPlay]);
-
   const handleYTStateChange = useCallback((state: number) => {
-    if (state === 1) { setHasPlayed(true); fireFirstPlay(); }
-  }, [fireFirstPlay]);
+    if (state === 1) { setHasPlayed(true); onPlay?.(); }
+  }, [onPlay]);
 
   const handleNicoStateChange = useCallback((state: "playing" | "paused" | "ended") => {
-    if (state === "playing") { setHasPlayed(true); fireFirstPlay(); }
-  }, [fireFirstPlay]);
+    if (state === "playing") { setHasPlayed(true); onPlay?.(); }
+  }, [onPlay]);
 
   const handleSCStateChange = useCallback((state: "playing" | "paused" | "ended") => {
-    if (state === "playing") { setHasPlayed(true); fireFirstPlay(); }
-  }, [fireFirstPlay]);
+    if (state === "playing") { setHasPlayed(true); onPlay?.(); }
+  }, [onPlay]);
 
   // Keep subtitles visible after segment ends (last cue stays on screen)
   const activeCues = hasPlayed ? cues : [];

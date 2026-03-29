@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Pickup, PickupEntry, BanterLine } from "@/types";
 import { useI18n } from "@/i18n";
+import { recordPlay } from "@/lib/api";
 import VideoSegment from "@/components/VideoSegment";
 import { Mic, Wine, ChevronDown, ChevronUp, Share2 } from "lucide-react";
 
@@ -194,6 +195,7 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
         endSec={pick.endSec}
         cues={pickupCues}
         onCueReached={() => setRevealed(true)}
+        onPlay={() => { if (pick.postId) recordPlay(pick.postId); }}
       />
 
       {/* Misheard text + banter — auto-revealed on playback */}

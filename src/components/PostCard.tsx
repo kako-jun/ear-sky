@@ -68,7 +68,7 @@ export default function PostCard({ post, showPlayer = false, preview = false }: 
         cues={post.cues}
         autoExpand={showPlayer}
         onCueReached={() => setRevealed(true)}
-        onFirstPlay={() => { if (!preview) recordPlay(post.id); }}
+        onPlay={() => { if (!preview) recordPlay(post.id); }}
       />
 
       {/* Reveal — only after playback reaches cue region */}
