@@ -54,7 +54,6 @@ export default function Subtitle({ cues, currentTime }: Props) {
           WebkitBackgroundClip: "text",
           backgroundClip: "text",
           color: "transparent",
-          textShadow: "-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000",
         }}
       >
         {activeCue.text}
