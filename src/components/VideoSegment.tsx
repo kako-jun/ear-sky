@@ -139,10 +139,12 @@ export default function VideoSegment({
   const otherMounted = !isNiconico && hasPlayer && expanded;
 
   return (
-    <div ref={rootRef} className={nicoMounted ? "relative" : ""}>
-      {/* Niconico: pre-mounted in DOM, covered by thumbnail until click */}
+    <div ref={rootRef}>
+      {/* Niconico: pre-mounted with display:none. Niconico has no JS callbacks,
+         so display:none doesn't break anything — the iframe loads and Niconico's
+         player JS initializes while hidden. On click, play() + unhide. */}
       {nicoMounted && (
-        <div className={expanded ? "relative" : ""}>
+        <div className={expanded ? "relative" : "hidden"}>
           <NiconicoPlayer ref={nicoRef} videoId={parsed.videoId} {...playerProps} />
           {expanded && hasPlayed && (
             <div
@@ -211,23 +213,23 @@ export default function VideoSegment({
         </div>
       )}
 
-      {/* Play button — opaque thumbnail overlay */}
+      {/* Play button */}
       {!expanded && (
         <button
           onClick={handlePlayClick}
           aria-label={t.postCard.play}
-          className={`${nicoMounted ? "absolute inset-0 z-30" : "relative"} w-full hover:opacity-90 transition-opacity
-                     focus-visible:outline-2 focus-visible:outline-neon-blue`}
+          className="relative w-full hover:opacity-90 transition-opacity
+                     focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
           {parsed.platform === "youtube" ? (
             <img
               src={`https://img.youtube.com/vi/${parsed.videoId}/mqdefault.jpg`}
               alt=""
-              className={`w-full ${nicoMounted ? "h-full" : "aspect-video"} object-cover rounded-lg`}
+              className="w-full aspect-video object-cover rounded-lg"
               loading="lazy"
             />
           ) : (
-            <div className={`w-full ${nicoMounted ? "h-full" : "aspect-video"} bg-black/30 rounded-lg`} />
+            <div className="w-full aspect-video bg-black/30 rounded-lg" />
           )}
           <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-1 text-white/80 rounded-lg">
             <Play size={36} />
