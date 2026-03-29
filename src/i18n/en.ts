@@ -19,7 +19,9 @@ const en = {
   postCard: {
     play: "Play",
     revealHint: "Play the video to reveal",
-    spoilerPlaceholder: "???",
+    deleteKeyPlaceholder: "Delete key",
+    deleteConfirm: "Delete",
+    deleteTitle: "Delete this post",
   },
   reactions: {
     add: "Add reaction",

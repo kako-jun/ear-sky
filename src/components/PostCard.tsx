@@ -1,24 +1,31 @@
 import { useState, useCallback } from "react";
 import { Post } from "@/types";
 import { parseVideoUrl } from "@/lib/video";
-import { recordPlay } from "@/lib/api";
+import { recordPlay, deletePost } from "@/lib/api";
 import { useI18n } from "@/i18n";
 import VideoSegment from "./VideoSegment";
 import Reactions from "./Reactions";
 import PlatformIcon from "./PlatformIcon";
-import { Eye, Copy, Check, ExternalLink, Headphones } from "lucide-react";
+import { Eye, Copy, Check, ExternalLink, Headphones, Trash2 } from "lucide-react";
 
 interface Props {
   post: Post;
   showPlayer?: boolean;
   /** Preview mode: show skeleton for ID/date, hide reactions */
   preview?: boolean;
+  onDeleted?: (id: string) => void;
 }
 
-export default function PostCard({ post, showPlayer = false, preview = false }: Props) {
+export default function PostCard({ post, showPlayer = false, preview = false, onDeleted }: Props) {
   const t = useI18n();
   const [revealed, setRevealed] = useState(preview);
   const [idCopied, setIdCopied] = useState(false);
+  const [showDeleteInput, setShowDeleteInput] = useState(false);
+  const [deleteKeyInput, setDeleteKeyInput] = useState(() => {
+    try { return localStorage.getItem("ear-sky-delete-key") || ""; } catch { return ""; }
+  });
+  const [deleteError, setDeleteError] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const copyId = useCallback(() => {
     navigator.clipboard.writeText(post.id).then(() => {
@@ -141,6 +148,65 @@ export default function PostCard({ post, showPlayer = false, preview = false }: 
           </span>
         )}
       </div>
+
+      {/* Delete */}
+      {!preview && (
+        showDeleteInput ? (
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!deleteKeyInput.trim() || deleting) return;
+              setDeleting(true);
+              setDeleteError(false);
+              try {
+                await deletePost(post.id, deleteKeyInput.trim());
+                onDeleted?.(post.id);
+              } catch {
+                setDeleteError(true);
+                setDeleting(false);
+              }
+            }}
+            className="flex items-center gap-2"
+          >
+            <input
+              type="password"
+              value={deleteKeyInput}
+              onChange={(e) => { setDeleteKeyInput(e.target.value); setDeleteError(false); }}
+              placeholder={t.postCard.deleteKeyPlaceholder}
+              autoComplete="off"
+              className={`flex-1 bg-black/30 border rounded px-2 py-1 text-xs text-white
+                placeholder:text-white/20 focus:outline-none focus:border-neon-blue/50
+                ${deleteError ? "border-red-400" : "border-white/20"}`}
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={!deleteKeyInput.trim() || deleting}
+              className="text-xs text-red-400 hover:text-red-300 disabled:opacity-30
+                         min-h-[32px] px-2 focus-visible:outline-2 focus-visible:outline-neon-blue"
+            >
+              {deleting ? "..." : t.postCard.deleteConfirm}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowDeleteInput(false); setDeleteError(false); }}
+              className="text-xs text-white/30 hover:text-white/50 min-h-[32px] px-1"
+            >
+              ✕
+            </button>
+          </form>
+        ) : (
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowDeleteInput(true)}
+              className="text-white/15 hover:text-red-400/60 transition-colors p-1"
+              title={t.postCard.deleteTitle}
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        )
+      )}
 
       {!preview && <Reactions postId={post.id} initialReactions={post.reactions} />}
     </article>

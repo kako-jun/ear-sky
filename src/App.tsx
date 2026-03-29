@@ -199,7 +199,11 @@ function AppInner() {
               <>
                 {feedPosts.map((post) => (
                   <div key={post.id} id={`post-${post.id}`}>
-                    <PostCard post={post} showPlayer={highlightId === post.id} />
+                    <PostCard
+                      post={post}
+                      showPlayer={highlightId === post.id}
+                      onDeleted={(id) => setFeedPosts((prev) => prev.filter((p) => p.id !== id))}
+                    />
                     <ShareButton onShare={() => handleShare(post.id)} />
                   </div>
                 ))}

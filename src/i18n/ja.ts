@@ -21,7 +21,9 @@ const ja: Messages = {
   postCard: {
     play: "再生",
     revealHint: "再生すると表示されます",
-    spoilerPlaceholder: "???",
+    deleteKeyPlaceholder: "削除キー",
+    deleteConfirm: "削除",
+    deleteTitle: "この投稿を削除",
   },
   reactions: {
     add: "リアクション",
