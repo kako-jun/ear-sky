@@ -30,10 +30,10 @@ src/
 ├── components/
 │   ├── Header.tsx       # Neon title
 │   ├── PostEditor.tsx   # Post form (wizard: URL→preview→info→cues→about you)
-│   ├── PostCard.tsx     # Flat post layout (song→artist→video→reveal→meta)
+│   ├── PostCard.tsx     # Flat post layout (song→artist(era) lang→video→reveal→ID|date|poster)
 │   ├── PickupCorner.tsx # Pickup corner (master & regular banter)
 │   ├── VideoSegment.tsx # Shared video+subtitle component (PostCard/PickupCorner共通)
-│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, post-play overlay+replay)
+│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, width/height 100%, post-play overlay+replay)
 │   ├── NiconicoPlayer.tsx # Niconico embed segment playback
 │   ├── Subtitle.tsx     # Karaoke subtitle (currentTime→progress直接計算, 複数cue対応)
 │   ├── DualRangeSlider.tsx # Dual-thumb range slider (◀▶ 1s adjust, drag→seekTo連動)
@@ -76,7 +76,7 @@ migrations/
 - **Switching**: PUT with new emoji replaces the old one
 - **Removal**: DELETE removes the reaction entirely
 - **Client tracking**: localStorage stores `{ postId: emoji }` map
-- **Legacy migration**: Old array-based localStorage auto-migrated on load
+- **No legacy code**: Migration helpers (migrateReactionsStorage etc.) have been removed
 
 ## Subtitle System (cues)
 
@@ -126,7 +126,7 @@ migrations/
 - Day-rotating background images (7 Gemini-generated night scenes, webp)
 - Accents: Neon Pink (#ff2d78), Neon Blue (#00d4ff), Neon Yellow (#ffe156)
 - Text: white/60+ (AA contrast)
-- Subtitle: Karaoke left→right sweep (white→yellow) + thick black stroke, progress driven by currentTime (no CSS animation)
+- Subtitle: Karaoke left→right sweep (white→yellow) + 2px black stroke, progress driven by currentTime (no CSS animation)
 - Icon: Copilot-generated cloud-cat-ear mascot (public/icon-*.png), used in Header and EmptyState
 - prefers-reduced-motion supported
 - Mobile background: `100lvh` to prevent jitter from address bar toggle

@@ -43,12 +43,10 @@ function getClientIp(c: { req: { raw: Request } }): string {
   return c.req.raw.headers.get("cf-connecting-ip") || "unknown";
 }
 
-function hashIp(ip: string): string {
-  let h = 0;
-  for (let i = 0; i < ip.length; i++) {
-    h = ((h << 5) - h + ip.charCodeAt(i)) | 0;
-  }
-  return h.toString(36);
+async function hashIp(ip: string): Promise<string> {
+  const data = new TextEncoder().encode(ip);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
 }
 
 function sanitizeUrl(url: string): string | null {
@@ -184,7 +182,7 @@ app.get("/posts/:id", async (c) => {
 // POST /api/posts — with validation & rate limit
 app.post("/posts", async (c) => {
   const ip = getClientIp(c);
-  const ipHash = hashIp(ip);
+  const ipHash = await hashIp(ip);
 
   // Rate limit: 1 post per 30s per IP
   const recent = await c.env.DB.prepare(
@@ -263,11 +261,13 @@ app.post("/posts", async (c) => {
     )
   );
 
-  // Cue statements (required)
-  const cuesArray = Array.isArray(rawCues) ? rawCues : [];
+  // Cue statements (required, max 20)
+  const MAX_CUES = 20;
+  const cuesArray = Array.isArray(rawCues) ? rawCues.slice(0, MAX_CUES) : [];
   if (cuesArray.length === 0) {
     return c.json({ error: "at least one cue is required" }, 400);
   }
+  let validCueCount = 0;
   for (let i = 0; i < cuesArray.length; i++) {
     const cue = cuesArray[i] as Record<string, unknown>;
     const cueText = typeof cue.text === "string" ? cue.text.trim() : "";
@@ -276,11 +276,15 @@ app.post("/posts", async (c) => {
     const showAt = Number(cue.showAt) || 0;
     const duration = Number(cue.duration) || 0;
     if (showAt < 0 || duration <= 0) continue;
+    validCueCount++;
     statements.push(
       c.env.DB.prepare(
         "INSERT INTO cues (post_id, text, original_text, show_at, duration, sort_order) VALUES (?, ?, ?, ?, ?, ?)"
       ).bind(id, truncate(cueText, MAX_TEXT), cueOriginal, showAt, duration, i)
     );
+  }
+  if (validCueCount === 0) {
+    return c.json({ error: "at least one valid cue is required" }, 400);
   }
 
   await c.env.DB.batch(statements);
@@ -308,9 +312,11 @@ app.delete("/posts/:id", async (c) => {
     return c.json({ error: "Delete key mismatch" }, 403);
   }
 
-  await c.env.DB.prepare("DELETE FROM cues WHERE post_id = ?").bind(id).run();
-  await c.env.DB.prepare("DELETE FROM reactions WHERE post_id = ?").bind(id).run();
-  await c.env.DB.prepare("DELETE FROM posts WHERE id = ?").bind(id).run();
+  await c.env.DB.batch([
+    c.env.DB.prepare("DELETE FROM cues WHERE post_id = ?").bind(id),
+    c.env.DB.prepare("DELETE FROM reactions WHERE post_id = ?").bind(id),
+    c.env.DB.prepare("DELETE FROM posts WHERE id = ?").bind(id),
+  ]);
 
   return c.json({ success: true });
 });
@@ -326,7 +332,7 @@ app.put("/posts/:id/reaction", async (c) => {
     return c.json({ error: "invalid emoji" }, 400);
   }
 
-  const ipHash = hashIp(getClientIp(c));
+  const ipHash = await hashIp(getClientIp(c));
 
   // Check if post exists
   const post = await c.env.DB.prepare("SELECT id FROM posts WHERE id = ?").bind(id).first();
@@ -354,7 +360,7 @@ app.put("/posts/:id/reaction", async (c) => {
 // DELETE /api/posts/:id/reaction — remove your reaction
 app.delete("/posts/:id/reaction", async (c) => {
   const id = c.req.param("id");
-  const ipHash = hashIp(getClientIp(c));
+  const ipHash = await hashIp(getClientIp(c));
 
   await c.env.DB.prepare(
     "DELETE FROM reactions WHERE post_id = ? AND ip_hash = ?"

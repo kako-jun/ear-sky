@@ -185,14 +185,14 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     setTimeout(() => setSavedMsg(""), 2000);
   }, [buildData, draftId, t]);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     const data = buildData();
     if (!data || submitting) return;
     setSubmitting(true);
     if (draftId) deleteDraft(draftId);
     try { localStorage.setItem("ear-sky-nickname", nickname.trim()); } catch { /* ignore */ }
     try {
-      onPublished(data);
+      await onPublished(data);
     } catch {
       setSubmitting(false);
     }

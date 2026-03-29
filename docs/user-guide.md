@@ -27,26 +27,30 @@ The post form is a step-by-step wizard:
 
 - The misheard text is **hidden by default** — you see the song title, artist name (era), and video
 - It reveals when you **play the video** or tap **"Show mishearing"**
-- Below the video: meta info line showing post ID (copyable), poster nickname, date, and language
+- Below the video: language pair (e.g. en→ja) shown after artist name and era, then meta line with post ID (copyable), date (ISO format), and poster nickname
 - This way you can listen first and see if you hear it too!
 
 ## Reactions
 
-- Tap the **+** button to open the emoji picker
+- Tap the **+reaction** label (or **+** button if reactions already exist) to open the emoji picker
 - Choose ONE emoji per post — your reaction
 - Tap a different emoji to switch, or tap your current emoji to remove it
 - Reactions are shown as emoji badges with counts (like Slack)
 
 ## Pickup Corner
 
-- Featured picks appear at the top of the feed
+- A **jump link** at the top lets you skip straight to the latest posts
+- Featured picks appear below the jump link
 - The **master** introduces each song → **play the video** → tap **"Show the mishearing"** to reveal
 - Enjoy the short banter between the master and a regular
+- Pickup dates show an "updated" label
+- A gradient divider separates the pickup corner from new posts
 - Tap **Past picks** for archives
 
 ## Hall of Fame
 
 - The **Hall of Fame** tab shows posts ranked by total reactions
+- Rank numbers are displayed prominently (large bold text) next to each post
 - Top emoji are displayed next to each ranking
 
 ## Sharing

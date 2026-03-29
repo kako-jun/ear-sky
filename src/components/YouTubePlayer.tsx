@@ -120,6 +120,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
         playerVars: {
           start: Math.floor(playStart),
           end: Math.ceil(playEnd),
+          autoplay: 1,
           controls: 1,
           disablekb: 1,
           modestbranding: 1,
@@ -155,7 +156,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
         }
       }
     };
-  }, [videoId, startSec, endSec, startTimer]);
+  }, [videoId, startTimer]); // Only recreate on videoId change; startSec/endSec use seekTo via ref
 
   const handlePlay = useCallback(() => {
     if (!playerRef.current) return;

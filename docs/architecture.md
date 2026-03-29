@@ -47,7 +47,7 @@
 4. Karaoke subtitle plays during each cue with time-synced sweep (progress-based), stays visible after sweep
 
 ### Reactions (Emoji Picker)
-1. User taps "+" button → emoji picker popover with 16 curated emoji
+1. User taps "+reaction" label (shown when 0 reactions) or "+" button → emoji picker popover with 16 curated emoji
 2. Each user (IP) can pick exactly ONE emoji per post
 3. Clicking a different emoji switches the reaction
 4. Clicking the current emoji removes it (toggle off)
@@ -60,7 +60,10 @@
 2. Load latest pickup JSON
 3. Display in talk-show format: master intro → video → reveal → banter
 4. Uses VideoSegment component (shared with PostCard) for video + karaoke subtitle
-5. Past pickups lazy-loaded on demand
+5. "Jump to latest posts" link above pickup corner for quick navigation
+6. Gradient divider + spacing separates pickup corner from new posts below
+7. Pickup date shows "updated" label
+8. Past pickups lazy-loaded on demand
 
 ### Dynamic OGP
 1. Access `/share/:id`
