@@ -6,6 +6,7 @@ const POST_MARGIN = 0.3;
 
 export interface NiconicoPlayerHandle {
   play: () => void;
+  hideOverlay: () => void;
 }
 
 interface Props {
@@ -49,6 +50,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
   const onTimeUpdateRef = useRef(onTimeUpdate);
   onTimeUpdateRef.current = onTimeUpdate;
   const [error, setError] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(true);
 
   const playStart = Math.max(0, startSec - PRE_MARGIN);
   const playEnd = endSec + POST_MARGIN;
@@ -76,6 +78,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
 
   useImperativeHandle(ref, () => ({
     play: startTimer,
+    hideOverlay: () => setShowOverlay(false),
   }), [startTimer]);
 
   useEffect(() => {
@@ -115,7 +118,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
       {/* Hole overlay: blocks clicks everywhere except the center play button area.
          The center ~30% area is empty (no element), so clicks pass through to Niconico.
          VideoSegment detects the iframe click via window.blur and starts the timer. */}
-      {!startedRef.current && (
+      {showOverlay && (
         <>
           {/* Top block */}
           <div className="absolute top-0 left-0 right-0 h-[35%] bg-black/50 z-10" />
