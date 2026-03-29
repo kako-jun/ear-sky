@@ -118,7 +118,7 @@ function PickupContent({ pickup }: { pickup: Pickup }) {
       </div>
 
       {pickup.picks.map((pick, i) => (
-        <PickupItem key={i} pick={pick} index={i} pickupId={pickup.id} />
+        <PickupItem key={i} pick={pick} index={i} />
       ))}
 
       <div className="flex items-center justify-center gap-3 pt-2 pb-1">
@@ -130,7 +130,7 @@ function PickupContent({ pickup }: { pickup: Pickup }) {
   );
 }
 
-function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: number; pickupId: string }) {
+function PickupItem({ pick, index }: { pick: PickupEntry; index: number }) {
   const t = useI18n();
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -145,7 +145,8 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
       }];
 
   const handleShare = () => {
-    const url = `${window.location.origin}${window.location.pathname}#pickup-${pickupId}-${index}`;
+    if (!pick.postId) return;
+    const url = `${window.location.origin}/share/${pick.postId}`;
     if (navigator.share) {
       navigator.share({
         title: `"${pick.misheardText}" — ${pick.artistName}`,
