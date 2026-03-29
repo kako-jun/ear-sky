@@ -26,16 +26,15 @@ interface Props {
 /**
  * Shared video player + karaoke subtitle component.
  *
- * Platform iframes are pre-mounted (hidden) once the card enters the viewport
- * (IntersectionObserver). On user tap, play() is called synchronously inside
- * the click handler so the user gesture propagates to cross-origin iframes.
- * This avoids autoplay being blocked by in-app browsers (e.g. LINE).
+ * Iframes are pre-mounted (IntersectionObserver) and kept fully visible in the
+ * DOM — any form of hiding (display:none, clip-path, visibility:hidden) breaks
+ * YouTube/Niconico/SoundCloud JS callbacks. An opaque thumbnail overlay covers
+ * the player until the user clicks. On click, play() fires synchronously so
+ * the user gesture propagates to cross-origin iframes.
  *
- * When stoppable=true (editor preview): tap during playback collapses back to
- * Play overlay. Next play always uses the latest props (slider/subtitle edits).
- *
- * When stoppable=false (default, posted cards): playback runs to segment end,
- * then auto-collapses. No interruption.
+ * The interaction-blocking overlay appears only AFTER playback starts, so if
+ * autoplay is blocked (e.g. LINE in-app browser) the user can still tap
+ * YouTube's native play button.
  */
 export default function VideoSegment({
   videoUrl,
@@ -63,7 +62,7 @@ export default function VideoSegment({
 
   const parsed = parseVideoUrl(videoUrl);
 
-  // Pre-mount iframe only when the card scrolls into the viewport
+  // Pre-mount iframe when the card scrolls near the viewport
   useEffect(() => {
     const el = rootRef.current;
     if (!el || parsed?.platform === "other") return;
@@ -122,7 +121,7 @@ export default function VideoSegment({
       else if (parsed?.platform === "soundcloud") scRef.current?.play();
       setExpanded(true);
     } else {
-      // iframe not ready yet — show loading, play when ready arrives
+      // iframe not ready yet — mount + show loading, play when ready arrives
       setVisible(true);
       setPending(true);
       setExpanded(true);
@@ -147,9 +146,8 @@ export default function VideoSegment({
 
   return (
     <div ref={rootRef} className="relative">
-      {/* Player: pre-mounted in normal flow when visible. Never hidden —
-         the play button overlay sits on top. This guarantees YouTube/Niconico/
-         SoundCloud iframes stay fully initialized with working JS callbacks. */}
+      {/* Player: pre-mounted when visible, always in normal flow (never hidden).
+         Covered by opaque thumbnail overlay until user clicks play. */}
       {hasPlayer && visible && (
         <div className="relative">
           {parsed.platform === "youtube" && (
@@ -162,15 +160,17 @@ export default function VideoSegment({
             <SoundCloudPlayer ref={scRef} trackUrl={parsed.videoId} {...playerProps} />
           )}
 
-          {/* Loading spinner while waiting for iframe ready */}
-          {pending && !hasPlayed && (
+          {/* Loading spinner while waiting for playback to start */}
+          {expanded && pending && !hasPlayed && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 rounded-lg">
               <Loader2 size={36} className="animate-spin text-white/70" />
             </div>
           )}
 
-          {/* Overlay: blocks iframe interaction during playback */}
-          {expanded && (
+          {/* Interaction overlay — only after playback starts.
+             Before hasPlayed, iframe is unblocked so YouTube's native
+             play button remains clickable as autoplay fallback. */}
+          {expanded && hasPlayed && (
             <div
               onClick={stoppable ? () => setExpanded(false) : undefined}
               className={`absolute inset-0 z-10 rounded-lg ${stoppable ? "cursor-pointer" : ""}`}
@@ -180,11 +180,6 @@ export default function VideoSegment({
           )}
           {expanded && <Subtitle cues={activeCues} currentTime={currentTime} />}
         </div>
-      )}
-
-      {/* Placeholder before player is mounted (keeps layout stable) */}
-      {hasPlayer && !visible && (
-        <div className="w-full aspect-video bg-black/30 rounded-lg" />
       )}
 
       {/* "other" platform: mount/unmount (no iframe to pre-mount) */}
@@ -212,21 +207,36 @@ export default function VideoSegment({
         </div>
       )}
 
-      {/* Play button overlay — sits on top of the pre-mounted player */}
+      {/* Opaque thumbnail overlay — completely covers the pre-mounted player.
+         Removed when user clicks (expanded=true). */}
       {!expanded && (
         <button
           onClick={handlePlayClick}
           aria-label={t.postCard.play}
-          className="absolute inset-0 z-20 w-full hover:opacity-90 transition-opacity
+          className="absolute inset-0 z-30 w-full hover:opacity-90 transition-opacity
                      focus-visible:outline-2 focus-visible:outline-neon-blue"
         >
-          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-1 text-white/80 rounded-lg">
+          {parsed.platform === "youtube" ? (
+            <img
+              src={`https://img.youtube.com/vi/${parsed.videoId}/mqdefault.jpg`}
+              alt=""
+              className="w-full h-full object-cover rounded-lg"
+            />
+          ) : (
+            <div className="w-full h-full bg-night-deep rounded-lg" />
+          )}
+          <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-1 text-white/80 rounded-lg">
             <Play size={36} />
             <span className="text-xs text-white/60">
               {formatTime(startSec)} 〜 {formatTime(endSec)}
             </span>
           </div>
         </button>
+      )}
+
+      {/* Placeholder when player not yet pre-mounted */}
+      {hasPlayer && !visible && (
+        <div className="w-full aspect-video bg-black/30 rounded-lg" />
       )}
     </div>
   );
