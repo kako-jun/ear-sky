@@ -46,6 +46,7 @@ export default function VideoSegment({
   const [expanded, setExpanded] = useState(autoExpand);
   const [hasPlayed, setHasPlayed] = useState(false);
   const [nicoVisible, setNicoVisible] = useState(autoExpand);
+  const [nicoKey, setNicoKey] = useState(0);
   const cueReachedRef = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -97,17 +98,16 @@ export default function VideoSegment({
 
   const handleSegmentEnd = useCallback(() => {
     setExpanded(false);
-    // Niconico: unmount iframe to stop playback (postMessage pause doesn't work)
-    if (isNiconico) setNicoVisible(false);
+    // Niconico: remount iframe (new key) to stop playback. Hole overlay resets.
+    if (isNiconico) {
+      setNicoKey(k => k + 1);
+      setHasPlayed(false);
+    }
   }, [isNiconico]);
 
   const handlePlayClick = useCallback(() => {
     setExpanded(true);
-    if (isNiconico) {
-      setNicoVisible(true);
-      setHasPlayed(false);
-    }
-  }, [isNiconico]);
+  }, []);
 
   // Niconico: detect iframe click via window.blur.
   // Delay timer start by ~2s to account for Niconico's buffering time.
@@ -145,7 +145,7 @@ export default function VideoSegment({
       {/* Niconico: pre-mounted, always in DOM when visible. Hole overlay on top. */}
       {isNiconico && nicoVisible && (
         <div className="relative">
-          <NiconicoPlayer ref={nicoRef} videoId={parsed.videoId} {...playerProps} />
+          <NiconicoPlayer key={nicoKey} ref={nicoRef} videoId={parsed.videoId} {...playerProps} />
           {expanded && <Subtitle cues={activeCues} currentTime={currentTime} />}
         </div>
       )}
@@ -203,8 +203,8 @@ export default function VideoSegment({
         </div>
       )}
 
-      {/* Play button: YouTube/SoundCloud always, Niconico after segment end */}
-      {((!isNiconico && !expanded) || (isNiconico && !nicoVisible)) && (
+      {/* Play button: YouTube/SoundCloud only (Niconico uses hole overlay) */}
+      {!isNiconico && !expanded && (
         <button
           onClick={handlePlayClick}
           aria-label={t.postCard.play}
