@@ -67,6 +67,7 @@
 - **`playerStatusChange` イベントが来ない**: ニコニコembedからの再生状態通知を`window.addEventListener("message")`で受信しようとしたが、イベントが発火しない
 - **`from={sec}` パラメータは動作する**: シーク位置の指定は効く
 - **ユーザーのネイティブ再生ボタン押下は動作する**: overlayやspinnerで隠さなければ、ユーザーが直接ニコニコの再生ボタンを押して再生できる
+- **弾幕(コメント)の非表示パラメータが効かない**: `commentLayerMode=0`、`defaultNoComment=1`いずれも無効。プレイヤーUI内の手動切替でのみ消せる
 
 ### 現在の実装
 
