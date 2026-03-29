@@ -245,10 +245,10 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     } catch { /* ignore */ }
     try {
       await onPublished(data);
-    } catch {
+    } finally {
       setSubmitting(false);
     }
-  }, [buildData, draftId, onPublished, nickname, submitting]);
+  }, [buildData, draftId, onPublished, nickname, deleteKey, submitting]);
 
   // Cue management
   const updateCue = useCallback((index: number, patch: Partial<CueInput>) => {
@@ -385,7 +385,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
 
       {/* === 2. Live PostCard preview (appears immediately after valid URL) === */}
       {parsed && parsed.platform !== "other" && (
-        <PostCard post={previewPost} showPlayer preview />
+        <PostCard post={previewPost} preview />
       )}
 
       {/* === 3. Song info (auto-filled from oEmbed, user corrects if needed) === */}

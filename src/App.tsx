@@ -168,13 +168,13 @@ function AppInner() {
         showToast(msg, "error");
       }
     },
-    [loadFeed, clearSearch, showToast, t]
+    [loadFeed, clearSearch, showToast, t, langFilter, filterTags]
   );
 
   const handleShare = useCallback((postId: string) => {
     const url = `${window.location.origin}/share/${postId}`;
     if (navigator.share) {
-      navigator.share({ title: "Ear in the Sky Diamond", url });
+      navigator.share({ title: "Ear in the Sky Diamond", url }).catch(() => {});
     } else {
       navigator.clipboard.writeText(url).then(
         () => showToast(t.toast.urlCopied),

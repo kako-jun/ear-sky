@@ -150,9 +150,10 @@ app.get("/posts", async (c) => {
   }
 
   if (q && q.length <= 100) {
-    const like = `%${q}%`;
+    const escaped = q.replace(/%/g, "\\%").replace(/_/g, "\\_");
+    const like = `%${escaped}%`;
     conditions.push(
-      "(p.misheard_text LIKE ? OR p.original_text LIKE ? OR p.artist_name LIKE ? OR p.song_title LIKE ? OR p.nickname LIKE ?)"
+      "(p.misheard_text LIKE ? ESCAPE '\\' OR p.original_text LIKE ? ESCAPE '\\' OR p.artist_name LIKE ? ESCAPE '\\' OR p.song_title LIKE ? ESCAPE '\\' OR p.nickname LIKE ? ESCAPE '\\')"
     );
     condParams.push(like, like, like, like, like);
   }

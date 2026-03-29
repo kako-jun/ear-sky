@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Pickup, PickupEntry, BanterLine } from "@/types";
 import { useI18n } from "@/i18n";
-import { recordPlay } from "@/lib/api";
+import { recordPlay, fetchPost } from "@/lib/api";
 import VideoSegment from "@/components/VideoSegment";
+import Reactions from "@/components/Reactions";
 import { Mic, Wine, ChevronDown, ChevronUp, Share2 } from "lucide-react";
 
 function interpolate(template: string, vars: Record<string, string | number>): string {
@@ -134,6 +135,15 @@ function PickupItem({ pick, index }: { pick: PickupEntry; index: number }) {
   const t = useI18n();
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [postReactions, setPostReactions] = useState<Record<string, number>>({});
+
+  // Fetch reactions for linked post
+  useEffect(() => {
+    if (!pick.postId) return;
+    fetchPost(pick.postId).then((post) => {
+      if (post) setPostReactions(post.reactions);
+    });
+  }, [pick.postId]);
 
   const pickupCues = pick.cues && pick.cues.length > 0
     ? pick.cues
@@ -151,7 +161,7 @@ function PickupItem({ pick, index }: { pick: PickupEntry; index: number }) {
       navigator.share({
         title: `"${pick.misheardText}" — ${pick.artistName}`,
         url,
-      });
+      }).catch(() => {});
     } else {
       navigator.clipboard.writeText(url).then(() => {
         setCopied(true);
@@ -232,6 +242,11 @@ function PickupItem({ pick, index }: { pick: PickupEntry; index: number }) {
               <BanterBubble key={j} line={line} />
             ))}
           </div>
+
+          {/* Reactions */}
+          {pick.postId && (
+            <Reactions postId={pick.postId} initialReactions={postReactions} />
+          )}
 
           {/* Share */}
           <div className="flex justify-end">

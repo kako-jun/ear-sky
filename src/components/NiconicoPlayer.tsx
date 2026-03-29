@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useI18n } from "@/i18n";
-import { Play, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 
 const PRE_MARGIN = 5;
 const POST_MARGIN = 0.3;
@@ -29,8 +29,6 @@ export default function NiconicoPlayer({
   onStateChangeRef.current = onStateChange;
   const onTimeUpdateRef = useRef(onTimeUpdate);
   onTimeUpdateRef.current = onTimeUpdate;
-  const [ready, setReady] = useState(false);
-  const [playing, setPlaying] = useState(false);
   const [segmentEnded, setSegmentEnded] = useState(false);
   const [error, setError] = useState(false);
 
@@ -62,8 +60,11 @@ export default function NiconicoPlayer({
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
+  const handlePlayRef = useRef<() => void>(() => {});
+
   const handleIframeLoad = useCallback(() => {
-    setReady(true);
+    // Auto-play once iframe is ready
+    setTimeout(() => handlePlayRef.current(), 300);
   }, []);
 
   useEffect(() => {
@@ -84,7 +85,7 @@ export default function NiconicoPlayer({
         "https://embed.nicovideo.jp"
       );
       onStateChangeRef.current?.("playing");
-      setPlaying(true);
+
       setSegmentEnded(false);
 
       // Simulated time updates (niconico embed doesn't expose currentTime)
@@ -108,12 +109,13 @@ export default function NiconicoPlayer({
           );
         }
         setSegmentEnded(true);
-        setPlaying(false);
+
         onStateChangeRef.current?.("ended");
         if (intervalRef.current) clearInterval(intervalRef.current);
       }, duration);
     }
   }, [playStart, playEnd]);
+  handlePlayRef.current = handlePlay;
 
   if (error) {
     return (
@@ -145,29 +147,17 @@ export default function NiconicoPlayer({
             onError={() => setError(true)}
           />
         </div>
-        {/* Overlay: blocks iframe interaction; shows replay icon only after segment ends */}
-        {(playing || segmentEnded) && (
-          <div
-            onClick={segmentEnded ? handlePlay : undefined}
-            className={`absolute inset-0 z-10 rounded-lg flex items-center justify-center
-              ${segmentEnded ? "bg-black/30 cursor-pointer hover:bg-black/20 transition-colors" : ""}`}
-            role={segmentEnded ? "button" : undefined}
-            aria-label={segmentEnded ? t.niconico.playSegment : undefined}
-          >
-            {segmentEnded && <RotateCcw size={40} className="text-white/70" />}
-          </div>
-        )}
-      </div>
-      {ready && !segmentEnded && (
-        <button
-          onClick={handlePlay}
-          className="mt-3 w-full py-2 rounded-lg bg-neon-pink text-white font-bold
-                     hover:brightness-110 active:scale-[0.98] transition-all
-                     focus-visible:outline-2 focus-visible:outline-neon-blue"
+        {/* Overlay: always blocks iframe interaction; shows replay icon after segment ends */}
+        <div
+          onClick={segmentEnded ? handlePlay : undefined}
+          className={`absolute inset-0 z-10 rounded-lg flex items-center justify-center
+            ${segmentEnded ? "bg-black/30 cursor-pointer hover:bg-black/20 transition-colors" : ""}`}
+          role={segmentEnded ? "button" : undefined}
+          aria-label={segmentEnded ? t.niconico.playSegment : undefined}
         >
-          <Play size={16} className="inline mr-1" />{t.niconico.playSegment}
-        </button>
-      )}
+          {segmentEnded && <RotateCcw size={40} className="text-white/70" />}
+        </div>
+      </div>
     </div>
   );
 }

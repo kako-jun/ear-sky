@@ -33,12 +33,17 @@ export default function Header() {
         aria-hidden="true"
       />
 
-      <div className="flex items-center justify-center gap-3 mb-2">
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="inline-flex items-center justify-center gap-3 mb-2 cursor-pointer
+                   hover:opacity-80 transition-opacity
+                   focus-visible:outline-2 focus-visible:outline-neon-blue focus-visible:outline-offset-2"
+      >
         <img src="/icon-192.png" alt="" width={48} height={48} className="rounded-lg opacity-80" aria-hidden="true" />
         <h1 className="text-2xl md:text-3xl font-bold neon-text tracking-wider">
           Ear in the Sky Diamond
         </h1>
-      </div>
+      </button>
       {t.header.alias && (
         <div className="flex items-center justify-center gap-3 mt-1">
           <div className="w-12 h-px bg-gradient-to-l from-white/30 to-transparent" aria-hidden="true" />
