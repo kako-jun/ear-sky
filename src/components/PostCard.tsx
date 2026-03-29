@@ -24,7 +24,7 @@ export default function PostCard({ post, showPlayer = false }: Props) {
 
   return (
     <article className="space-y-3">
-      {/* Song title / Artist / Era */}
+      {/* Song title / Artist / Era / Lang */}
       <div>
         <p className="text-sm text-white/70 font-medium truncate">{post.songTitle}</p>
         <p className="text-xs text-white/40 truncate">
@@ -32,6 +32,7 @@ export default function PostCard({ post, showPlayer = false }: Props) {
           {post.era && (
             <span className="ml-1.5 text-white/25">({post.era})</span>
           )}
+          <span className="ml-1.5 text-white/20">{post.sourceLang}→{post.targetLang}</span>
         </p>
       </div>
 
@@ -90,8 +91,6 @@ export default function PostCard({ post, showPlayer = false }: Props) {
         <span className="font-sans">{post.nickname || "Anonymous"}</span>
         <span className="text-white/10">|</span>
         <time dateTime={post.createdAt}>{post.createdAt.slice(0, 10)}</time>
-        <span className="text-white/10">|</span>
-        <span>{post.sourceLang}→{post.targetLang}</span>
       </div>
 
       <Reactions postId={post.id} initialReactions={post.reactions} />
