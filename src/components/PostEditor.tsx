@@ -29,6 +29,30 @@ function OptionalLabel({ text }: { text: string }) {
   return <span className="text-neon-blue/40 text-xs ml-1.5">{text}</span>;
 }
 
+function ClearableInput({ value, onChange, className, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+  return (
+    <div className="relative">
+      <input
+        {...props}
+        value={value}
+        onChange={onChange}
+        className={`${className} pr-8`}
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange({ target: { value: "" } } as React.ChangeEvent<HTMLInputElement>)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
+          tabIndex={-1}
+          aria-label="Clear"
+        >
+          <X size={14} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function SectionHeader({ text }: { text: string }) {
   return (
     <h3 className="text-xs font-bold text-white/30 uppercase tracking-widest border-b border-white/10 pb-1 mb-3">
@@ -316,7 +340,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
       {/* === 1. URL (first thing the user does) === */}
       <div className="space-y-1">
         <label className="block text-sm text-white/60">{t.editor.urlLabel}</label>
-        <input
+        <ClearableInput
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
@@ -358,7 +382,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="block text-sm text-white/60">{t.editor.artistLabel}</label>
-              <input
+              <ClearableInput
                 type="text"
                 value={artistName}
                 onChange={(e) => setArtistName(e.target.value)}
@@ -369,7 +393,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
             </div>
             <div className="space-y-1">
               <label className="block text-sm text-white/60">{t.editor.songLabel}</label>
-              <input
+              <ClearableInput
                 type="text"
                 value={songTitle}
                 onChange={(e) => setSongTitle(e.target.value)}
@@ -414,7 +438,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
               {t.editor.eraLabel}
               <OptionalLabel text={t.editor.optional} />
             </label>
-            <input
+            <ClearableInput
               type="text"
               value={era}
               onChange={(e) => setEra(e.target.value)}
@@ -482,7 +506,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           {/* Misheard text */}
           <div className="space-y-1">
             <label className="block text-sm text-white/60">{t.editor.misheardLabel}</label>
-            <input
+            <ClearableInput
               type="text"
               value={cue.text}
               onChange={(e) => updateCue(i, { text: e.target.value })}
@@ -498,7 +522,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
               {t.editor.originalLabel}
               <OptionalLabel text={t.editor.optional} />
             </label>
-            <input
+            <ClearableInput
               type="text"
               value={cue.originalText}
               onChange={(e) => updateCue(i, { originalText: e.target.value })}
@@ -532,7 +556,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           {t.editor.commentLabel}
           <OptionalLabel text={t.editor.optional} />
         </label>
-        <input
+        <ClearableInput
           type="text"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
@@ -549,7 +573,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           {t.editor.nicknameLabel}
           <OptionalLabel text={t.editor.optional} />
         </label>
-        <input
+        <ClearableInput
           type="text"
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
@@ -565,7 +589,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           {t.editor.deleteKeyLabel}
           <OptionalLabel text={t.editor.optional} />
         </label>
-        <input
+        <ClearableInput
           type="text"
           value={deleteKey}
           onChange={(e) => setDeleteKey(e.target.value)}
