@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { Pickup, PickupEntry, BanterLine } from "@/types";
 import { useI18n } from "@/i18n";
 import VideoSegment from "@/components/VideoSegment";
-import { Mic, Wine, ChevronDown, ChevronUp, Eye, Share2 } from "lucide-react";
+import { Mic, Wine, ChevronDown, ChevronUp, Share2 } from "lucide-react";
 
 function interpolate(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, key) => String(vars[key] ?? key));
@@ -183,7 +183,7 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
         </div>
       </div>
 
-      {/* Video player — shared component */}
+      {/* Video player — same as a regular post */}
       <VideoSegment
         videoUrl={pick.videoUrl}
         startSec={pick.startSec}
@@ -193,21 +193,9 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
         onCueReached={() => setRevealed(true)}
       />
 
-      {/* Reveal button or revealed content */}
-      {!revealed ? (
-        <button
-          onClick={() => setRevealed(true)}
-          className="w-full py-3 rounded-lg border border-neon-blue/30 text-neon-blue text-sm font-bold
-                     hover:bg-neon-blue/10 active:scale-[0.98] transition-all
-                     flex items-center justify-center gap-2
-                     focus-visible:outline-2 focus-visible:outline-neon-blue"
-        >
-          <Eye size={16} />
-          {t.pickup.reveal}
-        </button>
-      ) : (
+      {/* Misheard text + banter — auto-revealed on playback */}
+      {revealed && (
         <div className="space-y-3 animate-fade-in">
-          {/* Misheard text reveal */}
           <div className="neon-border rounded-lg p-3 space-y-1 text-center">
             <p className="text-lg font-bold text-white/90">
               &ldquo;{pick.misheardText}&rdquo;
@@ -217,14 +205,14 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
             )}
           </div>
 
-          {/* Short banter */}
+          {/* Banter */}
           <div className="space-y-2 pl-2">
             {pick.banter.map((line, j) => (
               <BanterBubble key={j} line={line} />
             ))}
           </div>
 
-          {/* Share button */}
+          {/* Share */}
           <div className="flex justify-end">
             <button
               onClick={handleShare}
