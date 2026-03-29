@@ -1,10 +1,31 @@
-import { useI18n } from "@/i18n";
+import { useI18n, useI18nState } from "@/i18n";
+import { Globe } from "lucide-react";
 
 export default function Header() {
   const t = useI18n();
+  const { locale, setLocale, availableLocales } = useI18nState();
+
+  const cycleLocale = () => {
+    const idx = availableLocales.findIndex((l) => l.code === locale);
+    const next = availableLocales[(idx + 1) % availableLocales.length];
+    setLocale(next.code);
+  };
 
   return (
     <header className="text-center pt-8 pb-4 px-4 relative">
+      {/* Language toggle — top right */}
+      <button
+        onClick={cycleLocale}
+        className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded
+                   text-xs text-white/40 hover:text-white/70 hover:bg-white/5
+                   transition-colors
+                   focus-visible:outline-2 focus-visible:outline-neon-blue"
+        aria-label="Switch language"
+      >
+        <Globe size={14} />
+        <span className="font-bold">{locale.toUpperCase()}</span>
+      </button>
+
       {/* Subtle neon glow behind title */}
       <div
         className="absolute top-4 left-1/2 -translate-x-1/2 w-64 h-16 rounded-full opacity-20 blur-3xl pointer-events-none"

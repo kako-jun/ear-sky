@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
-import { Post } from "@/types";
+import { Post, VALID_TAGS } from "@/types";
 import { parseVideoUrl } from "@/lib/video";
 import { recordPlay, deletePost } from "@/lib/api";
-import { useI18n } from "@/i18n";
+import { useI18n, useI18nState } from "@/i18n";
 import VideoSegment from "./VideoSegment";
 import Reactions from "./Reactions";
 import PlatformIcon from "./PlatformIcon";
@@ -18,6 +18,7 @@ interface Props {
 
 export default function PostCard({ post, showPlayer = false, preview = false, onDeleted }: Props) {
   const t = useI18n();
+  const { locale } = useI18nState();
   const [revealed, setRevealed] = useState(preview);
   const [idCopied, setIdCopied] = useState(false);
   const [showDeleteInput, setShowDeleteInput] = useState(false);
@@ -117,6 +118,21 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
               &ldquo;{post.comment}&rdquo;
             </p>
           )}
+        </div>
+      )}
+
+      {/* Tags */}
+      {post.tags && post.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          {post.tags.map((tagId) => {
+            const tag = VALID_TAGS.find((t) => t.id === tagId);
+            if (!tag) return null;
+            return (
+              <span key={tagId} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/5 text-white/35 border border-white/10">
+                {locale === "ja" ? tag.labelJa : tag.labelEn}
+              </span>
+            );
+          })}
         </div>
       )}
 

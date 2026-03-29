@@ -7,10 +7,14 @@ type Bindings = {
 };
 
 const VALID_PLATFORMS = ["youtube", "niconico", "soundcloud", "other"] as const;
+const VALID_TAGS = new Set([
+  "anime", "game", "vocaloid", "movie", "drama", "cm",
+  "rock", "pop", "hiphop", "metal",
+]);
+const MAX_TAGS = 3;
 const VALID_EMOJI = new Set([
-  "👂", "🤣", "👏", "🎉", "✨", "🫠",
-  "❤️", "🔥", "😭", "🤯", "💀", "👀",
-  "🎵", "🙏", "😂", "🥹",
+  "👂", "🤣", "😂", "🫠", "🤯", "🥹", "👀",
+  "👏", "✨", "❤️", "🎉", "🎵",
 ]);
 const MAX_TEXT = 200;
 const MAX_NAME = 30;
@@ -82,7 +86,7 @@ async function getReactionCounts(db: D1Database, postId: string): Promise<Record
 
 // --- Row mapper ---
 
-function mapRow(row: Record<string, unknown>, cueRows?: Record<string, unknown>[]) {
+function mapRow(row: Record<string, unknown>, cueRows?: Record<string, unknown>[], tagRows?: string[]) {
   const reactions = row.reactions_json ? JSON.parse(row.reactions_json as string) : {};
   const totalReactions = Object.values(reactions).reduce((sum: number, n) => sum + (n as number), 0);
 
@@ -116,6 +120,7 @@ function mapRow(row: Record<string, unknown>, cueRows?: Record<string, unknown>[
     comment: row.comment || undefined,
     playCount: (row.play_count as number) || 0,
     cues,
+    tags: tagRows || [],
   };
 }
 
@@ -128,33 +133,71 @@ const REACTIONS_SUBQUERY = `(SELECT json_group_object(reaction_key, cnt) FROM (
 app.get("/posts", async (c) => {
   const sort = c.req.query("sort") || "new";
   const month = c.req.query("month");
-  const limit = Math.min(parseInt(c.req.query("limit") || "50"), 100);
+  const q = c.req.query("q")?.trim();
+  const sourceLang = c.req.query("sourceLang")?.trim();
+  const targetLang = c.req.query("targetLang")?.trim();
+  const tagsParam = c.req.query("tags")?.trim();
+  const limit = Math.min(parseInt(c.req.query("limit") || "20"), 100);
   const offset = Math.max(parseInt(c.req.query("offset") || "0"), 0);
 
-  let query: string;
-  const params: unknown[] = [];
+  // Build WHERE clause
+  const conditions: string[] = [];
+  const condParams: unknown[] = [];
 
   if (month && /^\d{4}-\d{2}$/.test(month)) {
-    query = `SELECT p.*, ${REACTIONS_SUBQUERY} FROM posts p
-      WHERE p.created_at LIKE ? || '%'
-      ORDER BY (SELECT COUNT(*) FROM reactions WHERE post_id = p.id) DESC, p.created_at DESC LIMIT ? OFFSET ?`;
-    params.push(month, limit, offset);
-  } else if (sort === "likes") {
-    query = `SELECT p.*, ${REACTIONS_SUBQUERY} FROM posts p
-      ORDER BY (SELECT COUNT(*) FROM reactions WHERE post_id = p.id) DESC, p.created_at DESC LIMIT ? OFFSET ?`;
-    params.push(limit, offset);
-  } else {
-    query = `SELECT p.*, ${REACTIONS_SUBQUERY} FROM posts p
-      ORDER BY p.created_at DESC LIMIT ? OFFSET ?`;
-    params.push(limit, offset);
+    conditions.push("p.created_at LIKE ? || '%'");
+    condParams.push(month);
   }
 
+  if (q && q.length <= 100) {
+    const like = `%${q}%`;
+    conditions.push(
+      "(p.misheard_text LIKE ? OR p.original_text LIKE ? OR p.artist_name LIKE ? OR p.song_title LIKE ? OR p.nickname LIKE ?)"
+    );
+    condParams.push(like, like, like, like, like);
+  }
+
+  if (sourceLang && /^[a-z]{2,10}$/.test(sourceLang)) {
+    conditions.push("p.source_lang = ?");
+    condParams.push(sourceLang);
+  }
+
+  if (targetLang && /^[a-z]{2,10}$/.test(targetLang)) {
+    conditions.push("p.target_lang = ?");
+    condParams.push(targetLang);
+  }
+
+  // Tag filter: comma-separated, e.g. "anime,game"
+  if (tagsParam) {
+    const filterTags = tagsParam.split(",").filter((t) => VALID_TAGS.has(t));
+    if (filterTags.length > 0) {
+      const placeholders = filterTags.map(() => "?").join(",");
+      conditions.push(`p.id IN (SELECT post_id FROM post_tags WHERE tag IN (${placeholders}))`);
+      condParams.push(...filterTags);
+    }
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const orderBy = sort === "likes"
+    ? "ORDER BY (SELECT COUNT(*) FROM reactions WHERE post_id = p.id) DESC, p.created_at DESC"
+    : "ORDER BY p.created_at DESC";
+
+  // Count total
+  const countQuery = `SELECT COUNT(*) as cnt FROM posts p ${where}`;
+  const countRow = await c.env.DB.prepare(countQuery).bind(...condParams).first();
+  const total = (countRow?.cnt as number) || 0;
+
+  // Fetch page
+  const query = `SELECT p.*, ${REACTIONS_SUBQUERY} FROM posts p ${where} ${orderBy} LIMIT ? OFFSET ?`;
+  const params = [...condParams, limit, offset];
+
   const { results } = await c.env.DB.prepare(query).bind(...params).all();
-  // Load cues for all posts in one query
   const postIds = (results || []).map((r) => r.id as string);
   let cuesByPost: Record<string, Record<string, unknown>[]> = {};
+  let tagsByPost: Record<string, string[]> = {};
   if (postIds.length > 0) {
     const placeholders = postIds.map(() => "?").join(",");
+    // Load cues
     const { results: cueResults } = await c.env.DB.prepare(
       `SELECT * FROM cues WHERE post_id IN (${placeholders}) ORDER BY sort_order`
     ).bind(...postIds).all();
@@ -163,8 +206,22 @@ app.get("/posts", async (c) => {
       if (!cuesByPost[pid]) cuesByPost[pid] = [];
       cuesByPost[pid].push(c);
     }
+    // Load tags
+    const { results: tagResults } = await c.env.DB.prepare(
+      `SELECT post_id, tag FROM post_tags WHERE post_id IN (${placeholders})`
+    ).bind(...postIds).all();
+    for (const t of tagResults || []) {
+      const pid = t.post_id as string;
+      if (!tagsByPost[pid]) tagsByPost[pid] = [];
+      tagsByPost[pid].push(t.tag as string);
+    }
   }
-  return c.json({ posts: (results || []).map((r) => mapRow(r, cuesByPost[r.id as string])) });
+  return c.json({
+    posts: (results || []).map((r) => mapRow(r, cuesByPost[r.id as string], tagsByPost[r.id as string])),
+    total,
+    limit,
+    offset,
+  });
 });
 
 app.get("/posts/:id", async (c) => {
@@ -177,7 +234,10 @@ app.get("/posts/:id", async (c) => {
   const { results: cueRows } = await c.env.DB.prepare(
     "SELECT * FROM cues WHERE post_id = ? ORDER BY sort_order"
   ).bind(id).all();
-  return c.json({ post: mapRow(row, cueRows || []) });
+  const { results: tagRows } = await c.env.DB.prepare(
+    "SELECT tag FROM post_tags WHERE post_id = ?"
+  ).bind(id).all();
+  return c.json({ post: mapRow(row, cueRows || [], (tagRows || []).map((r) => r.tag as string)) });
 });
 
 // POST /api/posts — with validation & rate limit
@@ -195,7 +255,7 @@ app.post("/posts", async (c) => {
 
   let body: Record<string, unknown>;
   try { body = await c.req.json(); } catch { return c.json({ error: "invalid body" }, 400); }
-  const { videoUrl, platform, videoId, startSec, endSec, misheardText, originalText, artistName, songTitle, sourceLang, targetLang, nickname, deleteKey, era, comment, cues: rawCues } = body;
+  const { videoUrl, platform, videoId, startSec, endSec, misheardText, originalText, artistName, songTitle, sourceLang, targetLang, nickname, deleteKey, era, comment, cues: rawCues, tags: rawTags } = body;
 
   // Validate required fields exist and are strings
   if (
@@ -288,6 +348,16 @@ app.post("/posts", async (c) => {
     return c.json({ error: "at least one valid cue is required" }, 400);
   }
 
+  // Tags (optional, max MAX_TAGS)
+  const tagsArray = Array.isArray(rawTags) ? rawTags.filter((t): t is string => typeof t === "string" && VALID_TAGS.has(t)).slice(0, MAX_TAGS) : [];
+  for (const tag of tagsArray) {
+    statements.push(
+      c.env.DB.prepare(
+        "INSERT INTO post_tags (post_id, tag) VALUES (?, ?)"
+      ).bind(id, tag)
+    );
+  }
+
   // Default first reaction (Reddit-style seed)
   statements.push(
     c.env.DB.prepare(
@@ -321,6 +391,7 @@ app.delete("/posts/:id", async (c) => {
   }
 
   await c.env.DB.batch([
+    c.env.DB.prepare("DELETE FROM post_tags WHERE post_id = ?").bind(id),
     c.env.DB.prepare("DELETE FROM cues WHERE post_id = ?").bind(id),
     c.env.DB.prepare("DELETE FROM reactions WHERE post_id = ?").bind(id),
     c.env.DB.prepare("DELETE FROM posts WHERE id = ?").bind(id),

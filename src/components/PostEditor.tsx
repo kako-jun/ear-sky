@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { LANGUAGES, Post, SubtitleCue } from "@/types";
+import { LANGUAGES, Post, SubtitleCue, VALID_TAGS, MAX_TAGS } from "@/types";
 import { parseVideoUrl } from "@/lib/video";
 import { saveDraft, getAllDrafts, deleteDraft } from "@/lib/storage";
 import { fetchVideoTitle, splitArtistTitle } from "@/lib/oembed";
-import { useI18n } from "@/i18n";
+import { useI18n, useI18nState } from "@/i18n";
 import DualRangeSlider from "./DualRangeSlider";
 import PostCard from "./PostCard";
 import { Save, Send, X, Plus, ExternalLink } from "lucide-react";
@@ -63,6 +63,7 @@ function SectionHeader({ text }: { text: string }) {
 
 export default function PostEditor({ onPublished, initialDraftId }: Props) {
   const t = useI18n();
+  const { locale } = useI18nState();
 
   // Song info
   const [url, setUrl] = useState("");
@@ -85,6 +86,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     try { return localStorage.getItem("ear-sky-delete-key") || ""; } catch { return ""; }
   });
   const [comment, setComment] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
 
   // UI state
   const [draftId, setDraftId] = useState<string | undefined>(initialDraftId);
@@ -195,7 +197,8 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     era: era.trim() || undefined,
     comment: comment.trim() || undefined,
     cues: subtitleCues,
-  }), [url, parsed, playStartSec, playEndSec, cues, subtitleCues, artistName, songTitle, sourceLang, targetLang, nickname, era, comment]);
+    tags,
+  }), [url, parsed, playStartSec, playEndSec, cues, subtitleCues, artistName, songTitle, sourceLang, targetLang, nickname, era, comment, tags]);
 
   const buildData = useCallback((): PostData | null => {
     if (!parsed) return null;
@@ -218,8 +221,9 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
       era: era.trim() || undefined,
       comment: comment.trim() || undefined,
       cues: subtitleCues,
+      tags,
     };
-  }, [url, parsed, cues, subtitleCues, artistName, songTitle, sourceLang, targetLang, nickname, deleteKey, era, comment]);
+  }, [url, parsed, cues, subtitleCues, artistName, songTitle, sourceLang, targetLang, nickname, deleteKey, era, comment, tags]);
 
   const handleSaveDraft = useCallback(() => {
     const data = buildData();
@@ -457,6 +461,43 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
               className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
                          placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
             />
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-1">
+            <label className="block text-sm text-white/60">
+              {t.editor.tagsLabel}
+              <OptionalLabel text={t.editor.tagsHint} />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {VALID_TAGS.map((tag) => {
+                const selected = tags.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => {
+                      setTags((prev) =>
+                        selected
+                          ? prev.filter((t) => t !== tag.id)
+                          : prev.length < MAX_TAGS
+                            ? [...prev, tag.id]
+                            : prev
+                      );
+                    }}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors
+                      ${selected
+                        ? "bg-neon-pink/20 text-neon-pink border border-neon-pink/40"
+                        : tags.length >= MAX_TAGS
+                          ? "text-white/15 border border-white/5 cursor-default"
+                          : "text-white/40 border border-white/15 hover:text-white/60 hover:border-white/25"
+                      }`}
+                  >
+                    {locale === "ja" ? tag.labelJa : tag.labelEn}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </>
       )}

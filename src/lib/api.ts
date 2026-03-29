@@ -19,16 +19,33 @@ async function parseJsonSafe(res: Response) {
   }
 }
 
-export async function fetchPosts(
-  sort: "new" | "likes" = "new",
-  month?: string
-): Promise<Post[]> {
-  const params = new URLSearchParams({ sort });
-  if (month) params.set("month", month);
+export interface PostsResult {
+  posts: Post[];
+  total: number;
+}
+
+export async function fetchPosts(opts: {
+  sort?: "new" | "likes";
+  month?: string;
+  q?: string;
+  sourceLang?: string;
+  targetLang?: string;
+  tags?: string[];
+  limit?: number;
+  offset?: number;
+} = {}): Promise<PostsResult> {
+  const params = new URLSearchParams({ sort: opts.sort || "new" });
+  if (opts.month) params.set("month", opts.month);
+  if (opts.q) params.set("q", opts.q);
+  if (opts.sourceLang) params.set("sourceLang", opts.sourceLang);
+  if (opts.targetLang) params.set("targetLang", opts.targetLang);
+  if (opts.tags && opts.tags.length > 0) params.set("tags", opts.tags.join(","));
+  if (opts.limit != null) params.set("limit", String(opts.limit));
+  if (opts.offset != null) params.set("offset", String(opts.offset));
   const res = await fetch(`${API_BASE}/posts?${params}`);
-  if (!res.ok) return [];
+  if (!res.ok) return { posts: [], total: 0 };
   const data = await parseJsonSafe(res);
-  return data.posts;
+  return { posts: data.posts, total: data.total ?? data.posts.length };
 }
 
 export async function fetchPost(id: string): Promise<Post | null> {
