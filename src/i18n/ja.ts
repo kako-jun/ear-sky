@@ -21,6 +21,7 @@ const ja: Messages = {
   postCard: {
     play: "再生",
     reveal: "空耳を見る",
+    revealHint: "再生すると表示されます",
     spoilerPlaceholder: "???",
   },
   reactions: {

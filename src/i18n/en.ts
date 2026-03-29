@@ -19,6 +19,7 @@ const en = {
   postCard: {
     play: "Play",
     reveal: "Show mishearing",
+    revealHint: "Play the video to reveal",
     spoilerPlaceholder: "???",
   },
   reactions: {

@@ -16,7 +16,7 @@ interface Props {
 
 export default function PostCard({ post, showPlayer = false, preview = false }: Props) {
   const t = useI18n();
-  const [revealed, setRevealed] = useState(false);
+  const [revealed, setRevealed] = useState(preview);
   const [idCopied, setIdCopied] = useState(false);
 
   const copyId = useCallback(() => {
@@ -69,18 +69,13 @@ export default function PostCard({ post, showPlayer = false, preview = false }: 
         onCueReached={() => setRevealed(true)}
       />
 
-      {/* Reveal */}
+      {/* Reveal — only after playback reaches cue region */}
       {!revealed ? (
-        <button
-          onClick={() => setRevealed(true)}
-          className="w-full py-3 rounded-lg border border-neon-blue/30 text-neon-blue text-sm font-bold
-                     hover:bg-neon-blue/10 active:scale-[0.98] transition-all
-                     flex items-center justify-center gap-2
-                     focus-visible:outline-2 focus-visible:outline-neon-blue"
-        >
+        <div className="w-full py-3 rounded-lg border border-white/10 text-white/25 text-sm
+                        flex items-center justify-center gap-2">
           <Eye size={16} />
-          {t.postCard.reveal}
-        </button>
+          {t.postCard.revealHint}
+        </div>
       ) : (
         <div className="space-y-3 animate-fade-in">
           <div className="neon-border rounded-lg p-3 space-y-1 text-center">
