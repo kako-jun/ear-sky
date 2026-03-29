@@ -87,7 +87,8 @@ migrations/
 
 - **DB**: `play_count INTEGER NOT NULL DEFAULT 0` on posts table (0005_play_count.sql)
 - **API**: `POST /api/posts/:id/play` increments play_count by 1. No authentication, no dedup — 1 user can count multiple times
-- **Frontend**: VideoSegment's `onFirstPlay` callback fires once per component mount (guarded by `firstPlayFired` ref). PostCard calls `recordPlay(post.id)` via fire-and-forget fetch (`.catch(() => {})`)
+- **Frontend**: VideoSegment's `onPlay` callback fires every time playback enters "playing" state (YouTube state===1, Niconico/SoundCloud "playing"). This includes initial play, pause→resume, and replay. PostCard and PickupCorner both call `recordPlay(postId)` via fire-and-forget fetch (`.catch(() => {})`)
+- **PickupCorner**: `recordPlay` is called with `pick.postId` when available (`postId` is optional in PickupEntry; guarded by `if (pick.postId)`)
 - **Preview mode**: `preview=true` skips the recordPlay call
 - **Display**: PostCard meta row, right-aligned with `ml-auto`, Headphones icon (lucide-react) + count. Hidden when playCount is 0
 - **Omit type**: `playCount` is omitted from PostData, Draft, createPost, saveDraft (server-managed field)
@@ -127,6 +128,7 @@ migrations/
 - **JSON**: `{ id, title, publishedAt, picks: [{ artistName, songTitle, year, videoUrl, startSec, endSec, misheardText, originalText?, cues?: SubtitleCue[], banter: [{speaker, text}] }] }`
 - **Cue fallback**: `PickupEntry.cues` is optional. When `cues` is undefined or empty, PickupCorner synthesizes a single cue from `misheardText`/`startSec`/`endSec`. Existing pickup JSONs without `cues` work unchanged
 - **Multi-cue reveal**: When `pickupCues.length > 1`, each cue is displayed as a separate block (same pattern as PostCard). Single cue uses legacy `misheardText` display
+- **シェアURL**: PickupItemのシェアボタンは `/share/${pick.postId}` を生成（OGP対応）。旧アンカー方式（`#pickup-{id}-{index}`）は廃止。`postId` がない場合はシェアボタン無効（早期return）
 - **URL入力欄**: URL未入力時にYouTube/niconico/SoundCloudへのExternalLinkアイコン付きリンクを表示
 - **startSec自動取得**: parseVideoUrlの戻り値に `startSec?: number` を追加。URL中の `?t=` / `&t=` / `?start=` (YouTube) / `?from=` (niconico) から開始時刻を取得し、PostEditorで字幕cue初期値に反映
 
