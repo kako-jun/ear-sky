@@ -91,6 +91,18 @@ export default function VideoSegment({
     setExpanded(true);
   }, []);
 
+  // Niconico: detect iframe click via window.blur (cross-origin click detection)
+  const isNiconico = parsed?.platform === "niconico";
+  useEffect(() => {
+    if (!isNiconico || !expanded || hasPlayed) return;
+    const onBlur = () => {
+      // Window lost focus → user clicked inside the Niconico iframe → start timer
+      nicoRef.current?.play();
+    };
+    window.addEventListener("blur", onBlur);
+    return () => window.removeEventListener("blur", onBlur);
+  }, [isNiconico, expanded, hasPlayed]);
+
   const activeCues = hasPlayed ? cues : [];
 
   if (!parsed) return null;

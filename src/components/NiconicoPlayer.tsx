@@ -19,15 +19,15 @@ interface Props {
 }
 
 /**
- * Niconico embed player — mount-on-click + autoplay=1.
+ * Niconico embed player.
  *
- * postMessage control (seek/play/pause) does not reliably work with
- * Niconico's current embed player. Instead, we rely on URL parameters:
- * - `from={sec}` for seeking to the segment start
- * - `autoplay=1` for automatic playback
+ * postMessage control and autoplay=1 do not work with the current Niconico
+ * embed player. The user must click Niconico's native play button.
  *
- * The subtitle timer starts on iframe load. Segment end is enforced
- * by navigating away (collapsing the player / unmounting the iframe).
+ * Detection: when the user clicks inside the cross-origin iframe, the parent
+ * window loses focus (blur event). VideoSegment detects this and starts the
+ * subtitle timer. A "hole overlay" blocks clicks everywhere except the center
+ * play button area, preventing unwanted interactions.
  */
 const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function NiconicoPlayer({
   videoId,
@@ -36,27 +36,26 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
   onTimeUpdate,
   onPlaying,
   onSegmentEnd,
-  onReady,
 }, ref) {
   const t = useI18n();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const playStartTimeRef = useRef<number>(0);
+  const startedRef = useRef(false);
   const onPlayingRef = useRef(onPlaying);
   onPlayingRef.current = onPlaying;
   const onSegmentEndRef = useRef(onSegmentEnd);
   onSegmentEndRef.current = onSegmentEnd;
   const onTimeUpdateRef = useRef(onTimeUpdate);
   onTimeUpdateRef.current = onTimeUpdate;
-  const onReadyRef = useRef(onReady);
-  onReadyRef.current = onReady;
   const [error, setError] = useState(false);
 
   const playStart = Math.max(0, startSec - PRE_MARGIN);
   const playEnd = endSec + POST_MARGIN;
 
   const startTimer = useCallback(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
     onPlayingRef.current?.();
 
     playStartTimeRef.current = Date.now();
@@ -79,12 +78,6 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
     play: startTimer,
   }), [startTimer]);
 
-  const handleIframeLoad = useCallback(() => {
-    onReadyRef.current?.();
-    // Start timer on iframe load — autoplay=1 in URL handles playback
-    startTimer();
-  }, [startTimer]);
-
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -92,7 +85,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
     };
   }, []);
 
-  const embedUrl = `https://embed.nicovideo.jp/watch/${videoId}?from=${Math.floor(playStart)}&autoplay=1&mute=0&commentLayerMode=0`;
+  const embedUrl = `https://embed.nicovideo.jp/watch/${videoId}?from=${Math.floor(playStart)}&autoplay=0&mute=0&commentLayerMode=0`;
 
   if (error) {
     return (
@@ -110,16 +103,36 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
   }
 
   return (
-    <div className="aspect-video w-full rounded-lg overflow-hidden bg-black/50">
+    <div className="aspect-video w-full rounded-lg overflow-hidden bg-black/50 relative">
       <iframe
-        ref={iframeRef}
         src={embedUrl}
         className="w-full h-full"
-        allow="autoplay; fullscreen"
+        allow="fullscreen"
         title={`${videoId} — Niconico`}
-        onLoad={handleIframeLoad}
         onError={() => setError(true)}
       />
+
+      {/* Hole overlay: blocks clicks everywhere except the center play button area.
+         The center ~30% area is empty (no element), so clicks pass through to Niconico.
+         VideoSegment detects the iframe click via window.blur and starts the timer. */}
+      {!startedRef.current && (
+        <>
+          {/* Top block */}
+          <div className="absolute top-0 left-0 right-0 h-[35%] bg-black/50 z-10" />
+          {/* Bottom block */}
+          <div className="absolute bottom-0 left-0 right-0 h-[35%] bg-black/50 z-10" />
+          {/* Left block */}
+          <div className="absolute top-[35%] left-0 w-[30%] h-[30%] bg-black/50 z-10" />
+          {/* Right block */}
+          <div className="absolute top-[35%] right-0 w-[30%] h-[30%] bg-black/50 z-10" />
+          {/* Visual play icon (pointer-events-none, doesn't block) */}
+          <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none text-white/80">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5,3 19,12 5,21" />
+            </svg>
+          </div>
+        </>
+      )}
     </div>
   );
 });
