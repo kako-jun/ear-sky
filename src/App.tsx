@@ -295,7 +295,7 @@ function AppInner() {
               <div className="mx-auto max-w-xs h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
             </div>
 
-            <div id="new-posts" className="text-center space-y-1">
+            <div id="new-posts" className="text-center space-y-1 scroll-mt-24">
               <h2 className="text-lg font-bold neon-text-blue flex items-center justify-center gap-2">
                 <Sparkles size={18} aria-hidden="true" />
                 {t.feed.newPosts}
@@ -313,7 +313,7 @@ function AppInner() {
               <EmptyState onPost={() => setTab("post")} />
             ) : (
               <>
-                <Paginator page={feedPage} total={feedTotal} onPage={(p) => { loadFeed(p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+                <Paginator page={feedPage} total={feedTotal} onPage={(p) => { loadFeed(p); document.getElementById("new-posts")?.scrollIntoView({ behavior: "smooth" }); }} />
                 {feedPosts.map((post) => (
                   <div key={post.id} id={`post-${post.id}`}>
                     <PostCard
@@ -324,7 +324,7 @@ function AppInner() {
                     <ShareButton onShare={() => handleShare(post.id)} />
                   </div>
                 ))}
-                <Paginator page={feedPage} total={feedTotal} onPage={(p) => { loadFeed(p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
+                <Paginator page={feedPage} total={feedTotal} onPage={(p) => { loadFeed(p); document.getElementById("new-posts")?.scrollIntoView({ behavior: "smooth" }); }} />
               </>
             )}
           </>

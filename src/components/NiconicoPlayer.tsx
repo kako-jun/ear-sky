@@ -86,8 +86,10 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
 
   const handleIframeLoad = useCallback(() => {
     onReadyRef.current?.();
-    // Auto-play on mount (mount-on-click: iframe only exists after user click)
-    doPlay();
+    // Auto-play on mount (mount-on-click: iframe only exists after user click).
+    // Delay needed: iframe onLoad fires when the HTML loads, but Niconico's
+    // internal player JS needs time to initialize before accepting postMessage.
+    setTimeout(() => doPlay(), 1500);
   }, [doPlay]);
 
   useEffect(() => {
