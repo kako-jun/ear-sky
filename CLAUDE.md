@@ -99,7 +99,8 @@ migrations/
 ## Pickup Corner
 
 - **Data**: `public/pickups/` monthly JSONs. Generated locally → git commit → deploy
-- **Format**: Master (wine/blue) introduces song → video plays → "Show mishearing" reveal → master & regular (beer mug/yellow) banter
+- **Format**: Master (wine/blue) introduces song → video plays → cue区間到達で空耳テキスト+掛け合い自動展開。専用revealボタンなし
+- **Layout**: 通常の投稿カードと同じ見た目（VideoSegment共通コンポーネント使用）
 - **Archive**: "Past picks" expandable below the latest
 - **JSON**: `{ id, title, publishedAt, picks: [{ artistName, songTitle, year, videoUrl, startSec, endSec, misheardText, originalText?, banter: [{speaker, text}] }] }`
 

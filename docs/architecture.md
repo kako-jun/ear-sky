@@ -58,8 +58,8 @@
 ### Pickup Corner
 1. Fetch `public/pickups/index.json` for available pickup IDs
 2. Load latest pickup JSON
-3. Display in talk-show format: master intro → video → reveal → banter
-4. Uses VideoSegment component (shared with PostCard) for video + karaoke subtitle
+3. Display in same card layout as regular posts (VideoSegment shared component)
+4. Master intro → video plays → cue区間到達で空耳テキスト+掛け合い(banter)が自動展開（専用revealボタンなし）
 5. "Jump to latest posts" link above pickup corner for quick navigation
 6. Gradient divider + spacing separates pickup corner from new posts below
 7. Pickup date shows "updated" label

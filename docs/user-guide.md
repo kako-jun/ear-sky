@@ -40,9 +40,9 @@ The post form is a step-by-step wizard:
 ## Pickup Corner
 
 - A **jump link** at the top lets you skip straight to the latest posts
-- Featured picks appear below the jump link
-- The **master** introduces each song → **play the video** → tap **"Show the mishearing"** to reveal
-- Enjoy the short banter between the master and a regular
+- Featured picks appear below the jump link, looking just like regular post cards
+- The **master** introduces each song → **play the video** → when playback reaches the cue segment, the misheard text and banter automatically appear
+- No need to tap a separate reveal button — just listen and enjoy the auto-reveal
 - Pickup dates show an "updated" label
 - A gradient divider separates the pickup corner from new posts
 - Tap **Past picks** for archives
