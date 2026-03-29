@@ -283,7 +283,7 @@ function RankingList({
         return (
           <div key={post.id}>
             <div className="flex items-center gap-2 mb-1">
-              <span className={`text-sm font-bold ${i < 3 ? "neon-text" : "text-white/40"}`}>
+              <span className={`text-lg font-black ${i < 3 ? "neon-text" : "text-white/30"}`}>
                 #{i + 1}
               </span>
               {topEmoji.length > 0 ? (
