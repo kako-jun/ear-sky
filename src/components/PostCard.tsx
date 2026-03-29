@@ -77,7 +77,7 @@ export default function PostCard({ post, showPlayer = false, preview = false }: 
           {t.postCard.revealHint}
         </div>
       ) : (
-        <div className="space-y-3 animate-fade-in">
+        <div className={`space-y-3${preview ? "" : " animate-fade-in"}`}>
           <div className="neon-border rounded-lg p-3 space-y-1 text-center">
             <p className="text-lg font-bold text-white/90">
               &ldquo;{post.misheardText}&rdquo;

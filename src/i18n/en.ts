@@ -18,7 +18,6 @@ const en = {
   },
   postCard: {
     play: "Play",
-    reveal: "Show mishearing",
     revealHint: "Play the video to reveal",
     spoilerPlaceholder: "???",
   },
@@ -70,7 +69,6 @@ const en = {
     archive: "Past picks",
     updated: "Updated",
     closing: "See you next month at the counter",
-    reveal: "Show the mishearing",
     copied: "Link copied!",
     introFirst: 'First up: "{songTitle}" by {artistName}, {year}.',
     intro: 'Next up: "{songTitle}" by {artistName}, {year}.',

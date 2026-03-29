@@ -20,7 +20,6 @@ const ja: Messages = {
   },
   postCard: {
     play: "再生",
-    reveal: "空耳を見る",
     revealHint: "再生すると表示されます",
     spoilerPlaceholder: "???",
   },
@@ -72,7 +71,6 @@ const ja: Messages = {
     archive: "過去のピックアップ",
     updated: "更新",
     closing: "また来月、カウンターで",
-    reveal: "空耳を見る",
     copied: "リンクをコピーしました！",
     introFirst: "まずは{artistName}、{year}年の「{songTitle}」です。",
     intro: "続いては{artistName}、{year}年の「{songTitle}」です。",

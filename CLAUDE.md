@@ -91,10 +91,11 @@ migrations/
 
 ## Spoiler/Reveal Mechanism
 
-- PostCard hides cue texts initially (shows "???")
-- Reveal triggers: (1) Video starts playing (onCueReached), or (2) "Show mishearing" button clicked
+- PostCard hides cue texts initially (shows hint text via `revealHint` i18n key)
+- Reveal trigger: Playback reaches a cue region (onCueReached). No manual reveal button — reveal is playback-only
+- In preview mode (`preview=true`), revealed is initially true (no spoiler gate)
 - Karaoke-style subtitle appears when playback reaches each cue's showAt (time-synced via currentTime), stays visible after sweep (番組風)
-- Playback has pre-margin (5s) and post-margin (0.5s) around the segment (POST_MARGIN=0.5s, all players)
+- Playback has pre-margin (5s) and post-margin (0.3s) around the segment (POST_MARGIN=0.3s, all players)
 - After playback ends, swept subtitle text remains visible (not cleared)
 - YouTube: segment end triggers replay overlay (RotateCcw, bg-black/30); user pause does not. No `end` playerVar (prevents seek-to-start on replay)
 - Niconico: pause postMessage sent at segment end; replay overlay same as YouTube
