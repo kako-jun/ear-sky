@@ -48,7 +48,7 @@ const en = {
     sectionSubtitle: "Subtitles",
     sectionAboutYou: "About you",
     cueLabel: "Subtitle",
-    addCue: "+ Add subtitle",
+    addCue: "Add subtitle",
     removeCue: "Remove",
     drafts: "Drafts",
     noDrafts: "No drafts",

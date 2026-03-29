@@ -50,7 +50,7 @@ const ja: Messages = {
     sectionSubtitle: "字幕",
     sectionAboutYou: "あなたについて",
     cueLabel: "字幕",
-    addCue: "＋ 字幕を追加",
+    addCue: "字幕を追加",
     removeCue: "削除",
     drafts: "下書き一覧",
     noDrafts: "下書きはありません",
