@@ -25,38 +25,74 @@
 | POST | /api/posts/:id/play | Increment play count (fire-and-forget) |
 | GET | /share/:id | Dynamic OGP for bots, redirect for browsers |
 
-## Playback Architecture (mount-on-click)
+## Playback Architecture
 
-Player iframes are created **only when the user clicks play**. No pre-mounting.
+### 概要
 
-Pre-mounting was tried and failed in all forms:
-- **Hidden iframes** (display:none, clip-path, visibility:hidden) → YouTube/Niconico/SoundCloud JS callbacks (onStateChange, onReady, PLAY_PROGRESS) stop firing
-- **Visible pre-mount** (multiple iframes on page) → YouTube's concurrent player initialization fails with postMessage origin errors; 3rd+ players break
+3プラットフォームそれぞれ異なる制約があり、共通のアプローチが存在しない。
+以下にセッション94で判明した全調査結果を記録する。
 
-### Current flow
+### 試行した全アプローチと結果
 
-1. **API script pre-load**: IntersectionObserver (400px margin) triggers `preloadYTApi()` which loads the YouTube IFrame API script (no iframe). Lightweight, shared across all cards
-2. **User clicks play** → `setExpanded(true)` → player component mounts → iframe created
-3. **YouTube**: `autoplay:1` in playerVars. Browser's user activation window (~5s after click) allows autoplay inside the iframe. `start` param seeks to `startSec - 5s` (PRE_MARGIN)
-4. **Niconico**: `autoplay=1` in embed URL + `doPlay()` on iframe load (postMessage seek+play)
-5. **SoundCloud**: `auto_play=true` in embed URL + `seekTo(startSec)` on READY event
-6. **onStateChange/PLAYING** fires → `hasPlayed=true` → interaction overlay appears (blocks iframe clicks, enables stoppable mode for editor preview)
-7. **Timer** (100ms interval) polls `getCurrentTime()` → drives Subtitle sweep + segment end detection
-8. **Segment end**: `currentTime >= endSec + 0.3s` → pause + collapse (setExpanded=false)
+#### iframe隠蔽方式（pre-mount + 隠す）
 
-### Autoplay fallback
+| 隠し方 | YouTube | Niconico | SoundCloud |
+|---|---|---|---|
+| `display:none` (Tailwind `hidden`) | onStateChange等JSコールバック死亡 | postMessageが届かない（プレイヤーJS未初期化?） | 未検証 |
+| `clip-path: inset(100%)` | JSコールバック死亡 | 未検証 | 未検証 |
+| `visibility: hidden` | JSコールバック死亡（セッション93で確認） | 未検証 | 未検証 |
+| `opacity: 0` | 未検証 | 未検証 | 未検証 |
 
-If autoplay is blocked (e.g. LINE in-app browser), the interaction overlay is NOT shown until `hasPlayed=true`. The user can click YouTube's native play button directly. Once playback starts, the overlay activates.
+**結論**: iframe を隠すとYouTubeのJSコールバックが壊れる。ニコニコもdisplay:noneでpostMessageに応答しない。
 
-### Platform-specific details
+#### 常時描画方式（pre-mount + 隠さない）
+
+- 不透明サムネイルオーバーレイでプレイヤーを覆い、クリックでオーバーレイ除去+play()同期呼び出し
+- **YouTube**: 同時プレイヤー制限で3個目以降が壊れる（postMessage origin不一致エラー多発）
+- **Niconico**: iframeは見えているがpostMessage playに応答しない
+
+**結論**: 複数YouTubeプレイヤーの同時初期化は不可。ニコニコはpostMessage制御自体が現行embedプレイヤーで動作しない。
+
+#### mount-on-click方式（クリック時にiframe生成）
+
+- クリック→iframe生成→`autoplay`パラメータで再生
+- **YouTube**: `autoplay:1`でブラウザのユーザーアクティベーション(5秒)内に再生開始。**動作する**
+- **SoundCloud**: `auto_play=true` + Widget API `seekTo(ms)` on READY。**動作する**
+- **Niconico**: `autoplay=1&from={sec}`をURL指定。autoplayが効かない。ユーザーがニコニコの純正再生ボタンを押す必要がある。**再生は可能だが自動再生は不可**
+
+### ニコニコ固有の制約
+
+- **postMessage制御が動作しない**: `{ eventName: "play" }` / `{ eventName: "seek" }` をtarget origin `https://embed.nicovideo.jp` に送信しても、現行のニコニコembedプレイヤーが応答しない。エラーも出ない。セッション93時点では動作していたと思われるが、セッション94で全パターンをテストしたところ再現できなかった
+- **`autoplay=1` URLパラメータが効かない**: embed URLに指定しても自動再生されない
+- **`playerStatusChange` イベントが来ない**: ニコニコembedからの再生状態通知を`window.addEventListener("message")`で受信しようとしたが、イベントが発火しない
+- **`from={sec}` パラメータは動作する**: シーク位置の指定は効く
+- **ユーザーのネイティブ再生ボタン押下は動作する**: overlayやspinnerで隠さなければ、ユーザーが直接ニコニコの再生ボタンを押して再生できる
+
+### 現在の実装（セッション94時点）
 
 | | YouTube | Niconico | SoundCloud |
 |---|---|---|---|
-| API | IFrame API (global script) | Direct iframe embed | Widget API (script) |
-| Play | autoplay:1 (iframe param) | autoplay=1 + doPlay() on load | auto_play=true + seekTo on READY |
-| Time tracking | getCurrentTime() poll (100ms) | Date.now() elapsed estimation | PLAY_PROGRESS event |
-| Segment end | pauseVideo() | postMessage pause | widget.pause() |
-| Time values | Seconds | Seconds | Milliseconds |
+| マウント方式 | mount-on-click | mount-on-click | mount-on-click |
+| API先読み | IFrame APIスクリプト(IntersectionObserver) | なし | なし |
+| 再生トリガー | `autoplay:1` (playerVars) | `autoplay=1` (URL、効かない) + ネイティブボタン | `auto_play=true` (URL) |
+| シーク | `start` playerVar | `from` URLパラメータ | `seekTo(ms)` on READY |
+| 時間取得 | `getCurrentTime()` poll (100ms) | `Date.now()` elapsed推定 | `PLAY_PROGRESS` イベント |
+| 区間終了 | `pauseVideo()` | タイマー→iframe unmount | `widget.pause()` |
+| スピナー | `!hasPlayed`の間表示 | **非表示**（ネイティブボタンを隠さないため） | `!hasPlayed`の間表示 |
+| interaction overlay | `hasPlayed`後に表示 | **非表示**（同上） | `hasPlayed`後に表示 |
+| 字幕タイマー開始 | `onStateChange(PLAYING)` | iframe `onLoad` | `PLAY` イベント |
+| 字幕同期精度 | 高（実再生検出） | 低（onLoad起点、手動再生まで遅延あり） | 高（実再生検出） |
+
+### 未解決: ニコニコの字幕同期
+
+ニコニコでは再生開始を検出する手段がない（postMessage受信不可、playerStatusChange非送信）。
+現在のタイマーはiframe onLoadから開始するが、ユーザーがネイティブ再生ボタンを押すまでの
+遅延分だけ字幕が先行する。改善案:
+
+1. **タイマー開始をやめ、字幕なしで動画のみ再生** — 機能縮退だが確実
+2. **「字幕開始」ボタンを別途表示** — ユーザーが再生ボタンを押した直後にタップ→タイマー開始
+3. **ニコニコのみpre-mount+postMessageを再調査** — embed APIの仕様変更を追跡
+4. **現状維持（onLoad起点、ズレ許容）** — 最もシンプルだがUXは劣る
 
 ## Header (position: fixed)
 

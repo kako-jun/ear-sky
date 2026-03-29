@@ -48,11 +48,11 @@ migrations/              # D1 schema (0001–0007)
 
 These are hard-won lessons. Violating them WILL break the app:
 
-1. **Player iframes: mount-on-click only** — Pre-mounting multiple iframes fails:
-   hidden iframes (display:none/clip-path/visibility) break JS callbacks;
-   visible pre-mount hits YouTube's concurrent player limit. Instead, pre-load
-   the YouTube API *script* only, and create the iframe on click with `autoplay:1`.
-   See `docs/architecture.md § Playback` for details.
+1. **Player iframes: platform-specific mount strategy** — 隠す方法は全て壊れる
+   (display:none/clip-path/visibility→JSコールバック死)。常時描画もYouTube同時制限で壊れる。
+   YouTube/SoundCloud: mount-on-click+autoplay。Niconico: mount-on-click+autoplay(効かない)
+   →ネイティブ再生ボタン依存、字幕同期は不完全。
+   See `docs/architecture.md § Playback` for full investigation results.
 
 2. **Subtitle hooks: no early return before useLayoutEffect** — `Subtitle.tsx`
    must call all hooks unconditionally. Moving the `if (!hasCues) return null`
