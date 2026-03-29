@@ -85,7 +85,7 @@ migrations/
 - **Multiple cues per post**: Each post has N subtitle cues stored in `cues` table (0004_cues.sql)
 - **Type**: `SubtitleCue { text, originalText?, showAt, duration }` — `Post.cues: SubtitleCue[]`
 - **No CSS animation**: Progress computed directly from `currentTime - cue.showAt` / `cue.duration`; `background-position` set via inline style
-- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (black→white, fill layer uses background-clip:text, no textShadow). After sweep completes, text remains visible (bar-style residual). Subtitle persists after playback ends
+- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (transparent→white, fill layer uses background-clip:text, no textShadow). After sweep completes, text remains visible (bar-style residual). Subtitle persists after playback ends
 - **VideoSegment.tsx**: Shared component wrapping video player + Subtitle, used by both PostCard and PickupCorner
 - **Frontend cue limit**: Max 3 cues per post (PostEditor enforces)
 
@@ -141,7 +141,7 @@ migrations/
 - Day-rotating background images (7 Gemini-generated night scenes, webp)
 - Accents: Neon Pink (#ff2d78), Neon Blue (#00d4ff), Neon Yellow (#ffe156)
 - Text: white/60+ (AA contrast)
-- Subtitle: Karaoke left→right sweep (black→white) + 2px black stroke, progress driven by currentTime (no CSS animation)
+- Subtitle: Karaoke left→right sweep (transparent→white), progress driven by currentTime (no CSS animation)
 - Icon: Copilot-generated cloud-cat-ear mascot (public/icon-*.png), used in Header and EmptyState. OGP image includes icon
 - prefers-reduced-motion supported
 - Mobile background: `100lvh` to prevent jitter from address bar toggle
