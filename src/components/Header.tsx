@@ -45,13 +45,11 @@ export default function Header({ shrunk }: { shrunk: boolean }) {
       </button>
 
       {/* Subtle neon glow behind title */}
-      {!shrunk && (
-        <div
-          className="absolute top-4 left-1/2 -translate-x-1/2 w-64 h-16 rounded-full blur-3xl pointer-events-none opacity-20"
-          style={{ background: "radial-gradient(ellipse, #ff2d78 0%, transparent 70%)" }}
-          aria-hidden="true"
-        />
-      )}
+      <div
+        className={`absolute top-4 left-1/2 -translate-x-1/2 w-64 h-16 rounded-full blur-3xl pointer-events-none ${shrunk ? "hidden" : "opacity-20"}`}
+        style={{ background: "radial-gradient(ellipse, #ff2d78 0%, transparent 70%)" }}
+        aria-hidden="true"
+      />
 
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
@@ -74,24 +72,22 @@ export default function Header({ shrunk }: { shrunk: boolean }) {
         </h1>
       </button>
 
-      {/* Alias, subtitle, decorative line — instantly shown/hidden */}
-      {!shrunk && (
-        <div>
-          {t.header.alias && (
-            <div className="flex items-center justify-center gap-3 mt-1">
-              <div className="w-12 h-px bg-gradient-to-l from-white/30 to-transparent" aria-hidden="true" />
-              <p className="text-xs text-white/40 tracking-widest">{t.header.alias}</p>
-              <div className="w-12 h-px bg-gradient-to-r from-white/30 to-transparent" aria-hidden="true" />
-            </div>
-          )}
-          <p className="text-sm text-white/50 mt-3">
-            {t.header.subtitle}
-          </p>
+      {/* Alias, subtitle, decorative line — hidden via CSS, no DOM churn */}
+      <div className={shrunk ? "hidden" : ""}>
+        {t.header.alias && (
+          <div className="flex items-center justify-center gap-3 mt-1">
+            <div className="w-12 h-px bg-gradient-to-l from-white/30 to-transparent" aria-hidden="true" />
+            <p className="text-xs text-white/40 tracking-widest">{t.header.alias}</p>
+            <div className="w-12 h-px bg-gradient-to-r from-white/30 to-transparent" aria-hidden="true" />
+          </div>
+        )}
+        <p className="text-sm text-white/50 mt-3">
+          {t.header.subtitle}
+        </p>
 
-          {/* Decorative neon line */}
-          <div className="mt-4 mx-auto max-w-xs h-px bg-gradient-to-r from-transparent via-neon-pink/40 to-transparent" aria-hidden="true" />
-        </div>
-      )}
+        {/* Decorative neon line */}
+        <div className="mt-4 mx-auto max-w-xs h-px bg-gradient-to-r from-transparent via-neon-pink/40 to-transparent" aria-hidden="true" />
+      </div>
     </header>
   );
 }
