@@ -117,6 +117,8 @@ migrations/
 - **No ytRef**: YouTubePlayerHandle (ytRef) is removed from PostEditor. getDuration/seekTo are not available through PostCard
 - **videoDuration fixed**: Since duration cannot be queried via PostCard, videoDuration defaults to 300 (5 minutes)
 - **PostCard preview mode**: When `preview=true`, PostCard shows skeleton placeholders (animate-pulse) for ID and date fields, and hides the reaction UI entirely
+- **ClearableInput**: All text inputs have a clear (×) button on the right edge, visible only when the field has a value
+- **Cue hint**: A single note is displayed once below the subtitle section header (not per cue), explaining that the time range is for the misheard part and playback starts 5 sec before automatically
 
 ## i18n
 
