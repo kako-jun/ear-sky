@@ -17,6 +17,21 @@
         { "speaker": "regular", "text": "ガンダム00のOPだ！ 英語の歌詞なのに完全に日本語じゃん。" },
         { "speaker": "master", "text": "OPのスタッフもこう聴こえてたんじゃないですか。本当にまぶしい空の絵ですからね。" }
       ]
+    },
+    {
+      "postId": "e8618c08-0b4b-4e28-8959-10d76ddd400f",
+      "artistName": "Survivor",
+      "songTitle": "Eye Of The Tiger",
+      "year": 1982,
+      "videoUrl": "https://www.youtube.com/watch?v=btPJPFnesV4",
+      "startSec": 109,
+      "endSec": 113,
+      "misheardText": "アリだ ヒ〜 ハゲた",
+      "originalText": "out in the heat hanging tough",
+      "banter": [
+        { "speaker": "regular", "text": "ロッキーのテーマで脱毛!? 「ヒ〜」のタメがずるい。" },
+        { "speaker": "master", "text": "2段オチの完成度が高すぎますね。アリが出てきてからのハゲは防げません。" }
+      ]
     }
   ]
 }

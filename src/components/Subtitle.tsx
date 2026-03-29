@@ -10,8 +10,19 @@ interface Props {
  * No CSS animation, no setTimeout, no state machine.
  * Multiple cues supported; the active one is determined by currentTime.
  * After a cue's sweep completes, text remains visible (bar-style residual).
+ *
+ * The backdrop bar fades in LEAD_SEC before the first cue starts,
+ * using an opacity ramp so it appears smoothly rather than popping in.
  */
+
+const LEAD_SEC = 1.5; // backdrop starts fading in this many seconds before the first cue
+
 export default function Subtitle({ cues, currentTime }: Props) {
+  if (cues.length === 0) return null;
+
+  const firstShowAt = cues[0].showAt;
+  const leadStart = firstShowAt - LEAD_SEC;
+
   // Find the latest cue that has started (for residual display)
   let activeCue: SubtitleCue | null = null;
   let progress = 0;
@@ -26,14 +37,28 @@ export default function Subtitle({ cues, currentTime }: Props) {
     }
   }
 
-  if (!activeCue) return null;
+  // Backdrop opacity: ramp from 0 to 1 over LEAD_SEC before the first cue
+  let backdropOpacity = 0;
+  if (currentTime >= firstShowAt) {
+    backdropOpacity = 1;
+  } else if (currentTime >= leadStart) {
+    backdropOpacity = (currentTime - leadStart) / LEAD_SEC;
+  }
 
-  // background-position: 100% = all white, 0% = all yellow
-  const bgPos = `${100 - progress * 100}% 0`;
+  // Not yet in the lead-in zone and no cue has played
+  if (backdropOpacity <= 0 && !activeCue) return null;
+
+  // background-position: 100% = all transparent, 0% = all white
+  const bgPos = activeCue ? `${100 - progress * 100}% 0` : "100% 0";
 
   return (
-    <div className="w-full text-center py-4 px-4 -mt-16 relative z-10 backdrop-blur-md bg-black/50 rounded-b-lg">
-      {/* Fill layer — black text swept to white */}
+    <div
+      className="w-full text-center py-4 px-4 -mt-16 relative z-10 backdrop-blur-md rounded-b-lg transition-none"
+      style={{
+        backgroundColor: `rgba(0, 0, 0, ${0.5 * backdropOpacity})`,
+      }}
+    >
+      {/* Fill layer — transparent text swept to white */}
       <p
         className="text-3xl md:text-4xl font-black tracking-wider relative"
         style={{
@@ -43,9 +68,10 @@ export default function Subtitle({ cues, currentTime }: Props) {
           WebkitBackgroundClip: "text",
           backgroundClip: "text",
           color: "transparent",
+          opacity: backdropOpacity,
         }}
       >
-        {activeCue.text}
+        {activeCue?.text ?? cues[0].text}
       </p>
     </div>
   );
