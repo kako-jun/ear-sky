@@ -38,8 +38,8 @@ Pre-mounting was tried and failed in all forms:
 1. **API script pre-load**: IntersectionObserver (400px margin) triggers `preloadYTApi()` which loads the YouTube IFrame API script (no iframe). Lightweight, shared across all cards
 2. **User clicks play** → `setExpanded(true)` → player component mounts → iframe created
 3. **YouTube**: `autoplay:1` in playerVars. Browser's user activation window (~5s after click) allows autoplay inside the iframe. `start` param seeks to `startSec - 5s` (PRE_MARGIN)
-4. **Niconico**: iframe loads with `from={startSec-5}`. `postMessage` sends seek+play commands
-5. **SoundCloud**: Widget API loads, `seekTo(ms)` + `play()` on READY event
+4. **Niconico**: `autoplay=1` in embed URL + `doPlay()` on iframe load (postMessage seek+play)
+5. **SoundCloud**: `auto_play=true` in embed URL + `seekTo(startSec)` on READY event
 6. **onStateChange/PLAYING** fires → `hasPlayed=true` → interaction overlay appears (blocks iframe clicks, enables stoppable mode for editor preview)
 7. **Timer** (100ms interval) polls `getCurrentTime()` → drives Subtitle sweep + segment end detection
 8. **Segment end**: `currentTime >= endSec + 0.3s` → pause + collapse (setExpanded=false)
@@ -53,7 +53,7 @@ If autoplay is blocked (e.g. LINE in-app browser), the interaction overlay is NO
 | | YouTube | Niconico | SoundCloud |
 |---|---|---|---|
 | API | IFrame API (global script) | Direct iframe embed | Widget API (script) |
-| Play | autoplay:1 + seekTo + playVideo | postMessage seek + play | widget.seekTo(ms) + play() |
+| Play | autoplay:1 (iframe param) | autoplay=1 + doPlay() on load | auto_play=true + seekTo on READY |
 | Time tracking | getCurrentTime() poll (100ms) | Date.now() elapsed estimation | PLAY_PROGRESS event |
 | Segment end | pauseVideo() | postMessage pause | widget.pause() |
 | Time values | Seconds | Seconds | Milliseconds |
