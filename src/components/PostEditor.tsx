@@ -8,7 +8,7 @@ import YouTubePlayer, { YouTubePlayerHandle } from "./YouTubePlayer";
 import NiconicoPlayer from "./NiconicoPlayer";
 import Subtitle from "./Subtitle";
 import DualRangeSlider from "./DualRangeSlider";
-import { Save, Send, X, Plus } from "lucide-react";
+import { Save, Send, X, Plus, ExternalLink } from "lucide-react";
 
 // Margins are applied inside YouTubePlayer/NiconicoPlayer, not here.
 
@@ -323,12 +323,12 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
         {!parsed && (
           <div className="flex items-center gap-3 text-[11px] text-white/25">
             <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer"
-               className="hover:text-white/50 transition-colors">
-              YouTube →
+               className="hover:text-white/50 transition-colors inline-flex items-center gap-0.5">
+              YouTube <ExternalLink size={9} />
             </a>
             <a href="https://www.nicovideo.jp" target="_blank" rel="noopener noreferrer"
-               className="hover:text-white/50 transition-colors">
-              niconico →
+               className="hover:text-white/50 transition-colors inline-flex items-center gap-0.5">
+              niconico <ExternalLink size={9} />
             </a>
           </div>
         )}
