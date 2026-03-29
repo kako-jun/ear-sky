@@ -4,6 +4,7 @@ import { formatTime, parseVideoUrl } from "@/lib/video";
 import { useI18n } from "@/i18n";
 import YouTubePlayer from "./YouTubePlayer";
 import NiconicoPlayer from "./NiconicoPlayer";
+import SoundCloudPlayer from "./SoundCloudPlayer";
 import Subtitle from "./Subtitle";
 import { Play } from "lucide-react";
 
@@ -34,6 +35,7 @@ export default function VideoSegment({
   const [currentTime, setCurrentTime] = useState(0);
   const [expanded, setExpanded] = useState(autoExpand);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasPlayed, setHasPlayed] = useState(false);
   const cueReachedRef = useRef(false);
 
   const parsed = parseVideoUrl(videoUrl);
@@ -53,13 +55,21 @@ export default function VideoSegment({
 
   const handleYTStateChange = useCallback((state: number) => {
     setIsPlaying(state === 1);
+    if (state === 1) setHasPlayed(true);
   }, []);
 
   const handleNicoStateChange = useCallback((state: "playing" | "paused" | "ended") => {
     setIsPlaying(state === "playing");
+    if (state === "playing") setHasPlayed(true);
   }, []);
 
-  const activeCues = isPlaying ? cues : [];
+  const handleSCStateChange = useCallback((state: "playing" | "paused" | "ended") => {
+    setIsPlaying(state === "playing");
+    if (state === "playing") setHasPlayed(true);
+  }, []);
+
+  // Keep subtitles visible after segment ends (last cue stays on screen)
+  const activeCues = hasPlayed ? cues : [];
 
   if (!parsed) return null;
 
@@ -83,6 +93,15 @@ export default function VideoSegment({
               endSec={endSec}
               onTimeUpdate={handleTimeUpdate}
               onStateChange={handleNicoStateChange}
+            />
+          )}
+          {parsed.platform === "soundcloud" && (
+            <SoundCloudPlayer
+              trackUrl={parsed.videoId}
+              startSec={startSec}
+              endSec={endSec}
+              onTimeUpdate={handleTimeUpdate}
+              onStateChange={handleSCStateChange}
             />
           )}
           {parsed.platform === "other" && (() => {

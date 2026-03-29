@@ -27,7 +27,7 @@ const en = {
   },
   editor: {
     urlLabel: "Video URL",
-    urlPlaceholder: "https://youtube.com/watch?v=... or nicovideo.jp/watch/sm...",
+    urlPlaceholder: "YouTube / niconico / SoundCloud URL",
     urlInvalid: "Please enter a valid URL",
     sourceLangLabel: "Original language",
     targetLangLabel: "Sounds like",
@@ -58,7 +58,7 @@ const en = {
     submitting: "Posting...",
     previewOpen: "Preview",
     previewClose: "Close preview",
-    previewUnsupported: "Preview is available for YouTube and Niconico videos",
+    previewUnsupported: "Preview is available for YouTube, Niconico, and SoundCloud",
     delete: "Delete",
   },
   pickup: {
@@ -101,9 +101,14 @@ const en = {
     replay: "Play again",
     cannotPlay: "This video cannot be played",
   },
+  soundcloud: {
+    replay: "Play again",
+    cannotPlay: "This track cannot be played",
+  },
   platform: {
     youtube: "YouTube",
     niconico: "Niconico",
+    soundcloud: "SoundCloud",
     other: "External site",
   },
 };

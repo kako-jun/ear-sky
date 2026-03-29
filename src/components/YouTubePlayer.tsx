@@ -10,7 +10,7 @@ declare global {
 }
 
 const PRE_MARGIN = 5; // seconds before the misheard segment
-const POST_MARGIN = 1; // seconds after the misheard segment
+const POST_MARGIN = 0.3; // seconds after the misheard segment
 
 export interface YouTubePlayerHandle {
   seekTo: (sec: number) => void;
@@ -83,7 +83,6 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
   }));
 
   const playStart = Math.max(0, startSec - PRE_MARGIN);
-  const playEnd = endSec + POST_MARGIN;
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -119,7 +118,6 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
         videoId,
         playerVars: {
           start: Math.floor(playStart),
-          end: Math.ceil(playEnd),
           autoplay: 1,
           controls: 1,
           disablekb: 1,
@@ -183,8 +181,8 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
         {segmentEnded && !playing && (
           <button
             onClick={handlePlay}
-            className="absolute inset-0 z-10 rounded-lg bg-black/60 flex items-center justify-center cursor-pointer
-                       hover:bg-black/50 transition-colors"
+            className="absolute inset-0 z-10 rounded-lg bg-black/30 flex items-center justify-center cursor-pointer
+                       hover:bg-black/20 transition-colors"
             aria-label={t.youtube.replay}
           >
             <RotateCcw size={40} className="text-white/70" />

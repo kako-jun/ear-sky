@@ -25,16 +25,18 @@ src/
 ├── lib/
 │   ├── api.ts           # D1 API client (fetch wrapper)
 │   ├── storage.ts       # localStorage (drafts + reaction tracking)
-│   ├── video.ts         # URL parsing (YouTube /live/, ?list=&v=, ?t=, ?start=; Niconico ?from=), time formatting
+│   ├── video.ts         # URL parsing (YouTube /live/, ?list=&v=, ?t=, ?start=; Niconico ?from=; SoundCloud), time formatting
 │   └── oembed.ts        # Video title auto-fetch (oEmbed/noembed)
 ├── components/
 │   ├── Header.tsx       # Neon title
-│   ├── PostEditor.tsx   # Post form (wizard: URL→preview→info→cues→about you)
-│   ├── PostCard.tsx     # Flat post layout (song→artist(era) lang→video→reveal→ID|date|poster)
+│   ├── PostEditor.tsx   # Post form (wizard: URL→preview→info→cues→about you). Preview uses PostCard(preview=true), not direct player components
+│   ├── PostCard.tsx     # Flat post layout (song→artist(era) lang→video→reveal→ID|date|poster). Song title is external link to source platform with PlatformIcon. preview prop: preview=true shows skeleton ID/date (animate-pulse) and hides reactions
 │   ├── PickupCorner.tsx # Pickup corner (master & regular banter)
 │   ├── VideoSegment.tsx # Shared video+subtitle component (PostCard/PickupCorner共通)
-│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, width/height 100%, post-play overlay+replay)
+│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, width/height 100%, post-play overlay+replay, no `end` playerVar)
 │   ├── NiconicoPlayer.tsx # Niconico embed segment playback
+│   ├── SoundCloudPlayer.tsx # SoundCloud Widget API segment playback
+│   ├── PlatformIcon.tsx # Platform SVG icons (YouTube/Niconico/SoundCloud)
 │   ├── Subtitle.tsx     # Karaoke subtitle (currentTime→progress直接計算, 複数cue対応)
 │   ├── DualRangeSlider.tsx # Dual-thumb range slider (◀▶ 1s adjust, drag→seekTo連動)
 │   ├── NightBackground.tsx # Day-rotating night scene background
@@ -83,7 +85,7 @@ migrations/
 - **Multiple cues per post**: Each post has N subtitle cues stored in `cues` table (0004_cues.sql)
 - **Type**: `SubtitleCue { text, originalText?, showAt, duration }` — `Post.cues: SubtitleCue[]`
 - **No CSS animation**: Progress computed directly from `currentTime - cue.showAt` / `cue.duration`; `background-position` set via inline style
-- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (fill layer uses background-clip:text, no textShadow). After sweep completes, text remains visible (bar-style residual)
+- **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (black→white, fill layer uses background-clip:text, no textShadow). After sweep completes, text remains visible (bar-style residual). Subtitle persists after playback ends
 - **VideoSegment.tsx**: Shared component wrapping video player + Subtitle, used by both PostCard and PickupCorner
 - **Frontend cue limit**: Max 3 cues per post (PostEditor enforces)
 
@@ -92,9 +94,11 @@ migrations/
 - PostCard hides cue texts initially (shows "???")
 - Reveal triggers: (1) Video starts playing (onCueReached), or (2) "Show mishearing" button clicked
 - Karaoke-style subtitle appears when playback reaches each cue's showAt (time-synced via currentTime), stays visible after sweep (番組風)
-- Playback has pre-margin (5s) and post-margin (1s) around the segment
-- YouTube: segment end triggers replay overlay (RotateCcw); user pause does not
+- Playback has pre-margin (5s) and post-margin (0.5s) around the segment (POST_MARGIN=0.5s, all players)
+- After playback ends, swept subtitle text remains visible (not cleared)
+- YouTube: segment end triggers replay overlay (RotateCcw, bg-black/30); user pause does not. No `end` playerVar (prevents seek-to-start on replay)
 - Niconico: pause postMessage sent at segment end; replay overlay same as YouTube
+- SoundCloud: Widget API seek/pause for segment playback; replay overlay same as YouTube
 - `animate-fade-in` CSS animation on reveal
 
 ## Pickup Corner
@@ -104,8 +108,15 @@ migrations/
 - **Layout**: 通常の投稿カードと同じ見た目（VideoSegment共通コンポーネント使用）
 - **Archive**: "Past picks" expandable below the latest
 - **JSON**: `{ id, title, publishedAt, picks: [{ artistName, songTitle, year, videoUrl, startSec, endSec, misheardText, originalText?, banter: [{speaker, text}] }] }`
-- **URL入力欄**: URL未入力時にYouTube/niconicoへのExternalLinkアイコン付きリンクを表示
+- **URL入力欄**: URL未入力時にYouTube/niconico/SoundCloudへのExternalLinkアイコン付きリンクを表示
 - **startSec自動取得**: parseVideoUrlの戻り値に `startSec?: number` を追加。URL中の `?t=` / `&t=` / `?start=` (YouTube) / `?from=` (niconico) から開始時刻を取得し、PostEditorで字幕cue初期値に反映
+
+## PostEditor Architecture
+
+- **No direct player usage**: PostEditor does NOT use YouTubePlayer/NiconicoPlayer/SoundCloudPlayer/Subtitle directly. Instead, it renders PostCard with `preview=true` for real-time preview below the URL input
+- **No ytRef**: YouTubePlayerHandle (ytRef) is removed from PostEditor. getDuration/seekTo are not available through PostCard
+- **videoDuration fixed**: Since duration cannot be queried via PostCard, videoDuration defaults to 300 (5 minutes)
+- **PostCard preview mode**: When `preview=true`, PostCard shows skeleton placeholders (animate-pulse) for ID and date fields, and hides the reaction UI entirely
 
 ## i18n
 
@@ -130,8 +141,8 @@ migrations/
 - Day-rotating background images (7 Gemini-generated night scenes, webp)
 - Accents: Neon Pink (#ff2d78), Neon Blue (#00d4ff), Neon Yellow (#ffe156)
 - Text: white/60+ (AA contrast)
-- Subtitle: Karaoke left→right sweep (white→yellow) + 2px black stroke, progress driven by currentTime (no CSS animation)
-- Icon: Copilot-generated cloud-cat-ear mascot (public/icon-*.png), used in Header and EmptyState
+- Subtitle: Karaoke left→right sweep (black→white) + 2px black stroke, progress driven by currentTime (no CSS animation)
+- Icon: Copilot-generated cloud-cat-ear mascot (public/icon-*.png), used in Header and EmptyState. OGP image includes icon
 - prefers-reduced-motion supported
 - Mobile background: `100lvh` to prevent jitter from address bar toggle
 

@@ -33,22 +33,11 @@ export default function Subtitle({ cues, currentTime }: Props) {
 
   return (
     <div className="w-full text-center py-4 px-4 -mt-16 relative z-10 backdrop-blur-md bg-black/50 rounded-b-lg">
-      {/* Stroke layer */}
+      {/* Fill layer — black text swept to white */}
       <p
-        className="text-3xl md:text-4xl font-black tracking-wider absolute inset-0 flex items-center justify-center px-4"
+        className="text-3xl md:text-4xl font-black tracking-wider relative"
         style={{
-          color: "transparent",
-          WebkitTextStroke: "2px #000",
-        }}
-        aria-hidden="true"
-      >
-        {activeCue.text}
-      </p>
-      {/* Fill layer — direct sweep via backgroundPosition */}
-      <p
-        className="text-3xl md:text-4xl font-black tracking-wider relative subtitle-fill"
-        style={{
-          background: "linear-gradient(90deg, #ffe156 0%, #ffe156 50%, #fff 50%, #fff 100%)",
+          background: "linear-gradient(90deg, #fff 0%, #fff 50%, #333 50%, #333 100%)",
           backgroundSize: "200% 100%",
           backgroundPosition: bgPos,
           WebkitBackgroundClip: "text",

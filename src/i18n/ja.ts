@@ -29,7 +29,7 @@ const ja: Messages = {
   },
   editor: {
     urlLabel: "動画URL",
-    urlPlaceholder: "https://youtube.com/watch?v=... or nicovideo.jp/watch/sm...",
+    urlPlaceholder: "YouTube / ニコニコ / SoundCloud の URL",
     urlInvalid: "有効なURLを入力してください",
     sourceLangLabel: "オリジナル言語",
     targetLangLabel: "こう聴こえる",
@@ -60,7 +60,7 @@ const ja: Messages = {
     submitting: "投稿中...",
     previewOpen: "プレビューで確認",
     previewClose: "プレビューを閉じる",
-    previewUnsupported: "プレビューはYouTube・ニコニコ動画に対応しています",
+    previewUnsupported: "プレビューはYouTube・ニコニコ動画・SoundCloudに対応しています",
     delete: "削除",
   },
   pickup: {
@@ -103,9 +103,14 @@ const ja: Messages = {
     replay: "もう一度再生",
     cannotPlay: "この動画は再生できません",
   },
+  soundcloud: {
+    replay: "もう一度再生",
+    cannotPlay: "このトラックは再生できません",
+  },
   platform: {
     youtube: "YouTube",
     niconico: "ニコニコ動画",
+    soundcloud: "SoundCloud",
     other: "外部サイト",
   },
 };

@@ -3,7 +3,7 @@ import { useI18n } from "@/i18n";
 import { Play, RotateCcw } from "lucide-react";
 
 const PRE_MARGIN = 5;
-const POST_MARGIN = 1;
+const POST_MARGIN = 0.3;
 
 interface Props {
   videoId: string;
@@ -145,8 +145,8 @@ export default function NiconicoPlayer({
         {segmentEnded && (
           <button
             onClick={handlePlay}
-            className="absolute inset-0 z-10 rounded-lg bg-black/60 flex items-center justify-center cursor-pointer
-                       hover:bg-black/50 transition-colors"
+            className="absolute inset-0 z-10 rounded-lg bg-black/30 flex items-center justify-center cursor-pointer
+                       hover:bg-black/20 transition-colors"
             aria-label={t.niconico.playSegment}
           >
             <RotateCcw size={40} className="text-white/70" />

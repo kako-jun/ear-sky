@@ -1,7 +1,7 @@
 /**
  * Parse video URL to extract platform and video ID.
  */
-export type Platform = "youtube" | "niconico" | "other";
+export type Platform = "youtube" | "niconico" | "soundcloud" | "other";
 
 export function parseVideoUrl(url: string): {
   platform: Platform;
@@ -40,6 +40,14 @@ export function parseVideoUrl(url: string): {
     const fromMatch = url.match(/[?&]from=(\d+)/);
     const startSec = fromMatch ? parseInt(fromMatch[1]) : undefined;
     return { platform: "niconico", videoId: nm[1], startSec };
+  }
+
+  // SoundCloud — https://soundcloud.com/artist/track (exclude system paths)
+  const scPattern = /soundcloud\.com\/([a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+)/;
+  const scExclude = /soundcloud\.com\/(discover|you|stream|search|upload|pages|settings|charts)\//;
+  const scm = url.match(scPattern);
+  if (scm && !scExclude.test(url)) {
+    return { platform: "soundcloud", videoId: url };
   }
 
   // Any other valid URL — store full URL as videoId

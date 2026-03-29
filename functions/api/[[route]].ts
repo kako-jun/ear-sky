@@ -6,7 +6,7 @@ type Bindings = {
   DB: D1Database;
 };
 
-const VALID_PLATFORMS = ["youtube", "niconico", "other"] as const;
+const VALID_PLATFORMS = ["youtube", "niconico", "soundcloud", "other"] as const;
 const VALID_EMOJI = new Set([
   "👂", "🤣", "👏", "🎉", "✨", "🫠",
   "❤️", "🔥", "😭", "🤯", "💀", "👀",
@@ -216,8 +216,8 @@ app.post("/posts", async (c) => {
     return c.json({ error: "invalid URL" }, 400);
   }
 
-  // Validate video ID for other platform
-  if (platform === "other") {
+  // Validate video ID for URL-based platforms
+  if (platform === "other" || platform === "soundcloud") {
     const safeVideoId = sanitizeUrl(videoId);
     if (!safeVideoId) return c.json({ error: "invalid video URL" }, 400);
   }
@@ -244,7 +244,7 @@ app.post("/posts", async (c) => {
       id,
       truncate(safeUrl, MAX_URL),
       platform,
-      truncate(platform === "other" ? sanitizeUrl(videoId)! : videoId, MAX_URL),
+      truncate((platform === "other" || platform === "soundcloud") ? (sanitizeUrl(videoId) ?? videoId) : videoId, MAX_URL),
       start,
       end,
       truncate(String(misheardText).trim(), MAX_TEXT),

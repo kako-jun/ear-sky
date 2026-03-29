@@ -8,7 +8,7 @@ export interface SubtitleCue {
 export interface Post {
   id: string;
   videoUrl: string;
-  platform: "youtube" | "niconico" | "other";
+  platform: "youtube" | "niconico" | "soundcloud" | "other";
   videoId: string;
   startSec: number;
   endSec: number;

@@ -1,16 +1,14 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { LANGUAGES, Post, SubtitleCue } from "@/types";
 import { parseVideoUrl, formatTime } from "@/lib/video";
 import { saveDraft, getAllDrafts, deleteDraft } from "@/lib/storage";
 import { fetchVideoTitle, splitArtistTitle } from "@/lib/oembed";
 import { useI18n } from "@/i18n";
-import YouTubePlayer, { YouTubePlayerHandle } from "./YouTubePlayer";
-import NiconicoPlayer from "./NiconicoPlayer";
-import Subtitle from "./Subtitle";
 import DualRangeSlider from "./DualRangeSlider";
+import PostCard from "./PostCard";
 import { Save, Send, X, Plus, ExternalLink } from "lucide-react";
 
-// Margins are applied inside YouTubePlayer/NiconicoPlayer, not here.
+// Preview uses PostCard directly — all player/subtitle rendering is delegated.
 
 type PostData = Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions"> & { deleteKey?: string };
 
@@ -41,7 +39,6 @@ function SectionHeader({ text }: { text: string }) {
 
 export default function PostEditor({ onPublished, initialDraftId }: Props) {
   const t = useI18n();
-  const ytRef = useRef<YouTubePlayerHandle>(null);
 
   // Song info
   const [url, setUrl] = useState("");
@@ -68,8 +65,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
   const [showDrafts, setShowDrafts] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [videoDuration, setVideoDuration] = useState(300);
+  const videoDuration = 300; // Default max for slider; actual duration isn't available until playback
 
   const parsed = useMemo(() => parseVideoUrl(url), [url]);
 
@@ -95,19 +91,6 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
       });
     }
     return () => { cancelled = true; };
-  }, [parsed]);
-
-  // Get video duration after player loads
-  useEffect(() => {
-    if (!parsed) return;
-    const timer = setInterval(() => {
-      const d = ytRef.current?.getDuration();
-      if (d && d > 0) {
-        setVideoDuration(Math.ceil(d));
-        clearInterval(timer);
-      }
-    }, 500);
-    return () => clearInterval(timer);
   }, [parsed]);
 
   // Load draft
@@ -163,6 +146,30 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     [cues]
   );
 
+  // Live preview Post object for PostCard
+  const previewPost: Post = useMemo(() => ({
+    id: "preview",
+    videoUrl: url,
+    platform: parsed?.platform || "other",
+    videoId: parsed?.videoId || "",
+    startSec: playStartSec,
+    endSec: playEndSec,
+    misheardText: cues.map((c) => c.text.trim()).join("") || "...",
+    originalText: cues.map((c) => c.originalText.trim()).filter(Boolean).join(" ") || undefined,
+    artistName: artistName.trim() || "—",
+    songTitle: songTitle.trim() || "—",
+    sourceLang,
+    targetLang,
+    nickname: nickname.trim() || "Anonymous",
+    likes: 0,
+    createdAt: new Date().toISOString(),
+    reactions: {},
+    totalReactions: 0,
+    era: era.trim() || undefined,
+    comment: comment.trim() || undefined,
+    cues: subtitleCues,
+  }), [url, parsed, playStartSec, playEndSec, cues, subtitleCues, artistName, songTitle, sourceLang, targetLang, nickname, era, comment]);
+
   const buildData = useCallback((): PostData | null => {
     if (!parsed) return null;
     const firstCue = cues[0];
@@ -209,13 +216,6 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     }
   }, [buildData, draftId, onPublished, nickname, submitting]);
 
-  const handleTimeUpdate = useCallback((t: number) => {
-    setCurrentTime(t);
-  }, []);
-
-  const handleStateChange = useCallback((_state: number) => {}, []);
-  const handleNicoStateChange = useCallback((_state: "playing" | "paused" | "ended") => {}, []);
-
   // Cue management
   const updateCue = useCallback((index: number, patch: Partial<CueInput>) => {
     setCues((prev) => {
@@ -259,10 +259,6 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
       }
       return next;
     });
-  }, []);
-
-  const handleSeek = useCallback((sec: number) => {
-    ytRef.current?.seekTo(sec);
   }, []);
 
   const handleLoadDraft = useCallback((draft: ReturnType<typeof getAllDrafts>[number]) => {
@@ -332,7 +328,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           <p className="text-xs text-red-400">{t.editor.urlInvalid}</p>
         )}
         {!parsed && (
-          <div className="flex items-center gap-3 text-[11px] text-white/25">
+          <div className="flex items-center gap-6 text-[11px] text-white/25">
             <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer"
                className="hover:text-white/50 transition-colors inline-flex items-center gap-0.5">
               YouTube <ExternalLink size={9} />
@@ -341,35 +337,17 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
                className="hover:text-white/50 transition-colors inline-flex items-center gap-0.5">
               niconico <ExternalLink size={9} />
             </a>
+            <a href="https://soundcloud.com" target="_blank" rel="noopener noreferrer"
+               className="hover:text-white/50 transition-colors inline-flex items-center gap-0.5">
+              SoundCloud <ExternalLink size={9} />
+            </a>
           </div>
         )}
       </div>
 
-      {/* === 2. Video Player (appears immediately after valid URL) === */}
-      {parsed && (parsed.platform === "youtube" || parsed.platform === "niconico") && (
-        <div className="rounded-xl overflow-hidden border border-white/10 bg-black/30">
-          {parsed.platform === "youtube" && (
-            <YouTubePlayer
-              ref={ytRef}
-              videoId={parsed.videoId}
-              startSec={playStartSec}
-              endSec={playEndSec}
-              onTimeUpdate={handleTimeUpdate}
-              onStateChange={handleStateChange}
-            />
-          )}
-          {parsed.platform === "niconico" && (
-            <NiconicoPlayer
-              videoId={parsed.videoId}
-              startSec={playStartSec}
-              endSec={playEndSec}
-              onTimeUpdate={handleTimeUpdate}
-              onStateChange={handleNicoStateChange}
-            />
-          )}
-          {/* Live subtitle preview */}
-          <Subtitle cues={subtitleCues.filter((c) => c.text.trim())} currentTime={currentTime} />
-        </div>
+      {/* === 2. Live PostCard preview (appears immediately after valid URL) === */}
+      {parsed && parsed.platform !== "other" && (
+        <PostCard post={previewPost} showPlayer preview />
       )}
 
       {/* === 3. Song info (auto-filled from oEmbed, user corrects if needed) === */}
@@ -483,7 +461,6 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
               endVal={cue.endSec}
               onStartChange={(v) => updateCue(i, { startSec: v })}
               onEndChange={(v) => updateCue(i, { endSec: v })}
-              onSeek={handleSeek}
             />
           ) : (
             // Subsequent cues: start is locked to previous end, only end slider
@@ -498,8 +475,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
                 endVal={cue.endSec}
                 onStartChange={() => {}} // locked
                 onEndChange={(v) => updateCue(i, { endSec: v })}
-                onSeek={handleSeek}
-              />
+                />
             </div>
           )}
 

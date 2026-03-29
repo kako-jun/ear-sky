@@ -1,16 +1,20 @@
 import { useState, useCallback } from "react";
 import { Post } from "@/types";
+import { parseVideoUrl } from "@/lib/video";
 import { useI18n } from "@/i18n";
 import VideoSegment from "./VideoSegment";
 import Reactions from "./Reactions";
-import { Eye, Copy, Check } from "lucide-react";
+import PlatformIcon from "./PlatformIcon";
+import { Eye, Copy, Check, ExternalLink } from "lucide-react";
 
 interface Props {
   post: Post;
   showPlayer?: boolean;
+  /** Preview mode: show skeleton for ID/date, hide reactions */
+  preview?: boolean;
 }
 
-export default function PostCard({ post, showPlayer = false }: Props) {
+export default function PostCard({ post, showPlayer = false, preview = false }: Props) {
   const t = useI18n();
   const [revealed, setRevealed] = useState(false);
   const [idCopied, setIdCopied] = useState(false);
@@ -26,7 +30,26 @@ export default function PostCard({ post, showPlayer = false }: Props) {
     <article className="space-y-3">
       {/* Song title / Artist / Era / Lang */}
       <div>
-        <p className="text-sm text-white/70 font-medium truncate">{post.songTitle}</p>
+        {(() => {
+          const parsed = parseVideoUrl(post.videoUrl);
+          const href = parsed?.platform === "youtube"
+            ? `https://www.youtube.com/watch?v=${parsed.videoId}`
+            : parsed?.platform === "niconico"
+            ? `https://www.nicovideo.jp/watch/${parsed.videoId}`
+            : parsed?.platform === "soundcloud"
+            ? parsed.videoId
+            : null;
+          return href ? (
+            <a href={href} target="_blank" rel="noopener noreferrer"
+               className="text-sm text-white/70 font-medium truncate hover:text-white/90 transition-colors flex items-center gap-1.5">
+              <PlatformIcon platform={parsed!.platform} size={14} className="shrink-0 text-white/40" />
+              {post.songTitle}
+              <ExternalLink size={11} className="shrink-0 text-white/25" />
+            </a>
+          ) : (
+            <p className="text-sm text-white/70 font-medium truncate">{post.songTitle}</p>
+          );
+        })()}
         <p className="text-xs text-white/40 truncate">
           {post.artistName}
           {post.era && (
@@ -79,21 +102,29 @@ export default function PostCard({ post, showPlayer = false }: Props) {
 
       {/* Meta line — all secondary info in one row */}
       <div className="flex items-center gap-2 text-[10px] text-white/20 font-mono">
-        <button
-          onClick={copyId}
-          className="flex items-center gap-0.5 hover:text-white/40 transition-colors"
-          title={post.id}
-        >
-          {idCopied ? <Check size={9} /> : <Copy size={9} />}
-          {post.id.slice(0, 8)}
-        </button>
+        {preview ? (
+          <span className="inline-block w-16 h-3 bg-white/10 rounded animate-pulse" />
+        ) : (
+          <button
+            onClick={copyId}
+            className="flex items-center gap-0.5 hover:text-white/40 transition-colors"
+            title={post.id}
+          >
+            {idCopied ? <Check size={9} /> : <Copy size={9} />}
+            {post.id.slice(0, 8)}
+          </button>
+        )}
         <span className="text-white/10">|</span>
-        <time dateTime={post.createdAt}>{post.createdAt.slice(0, 10)}</time>
+        {preview ? (
+          <span className="inline-block w-20 h-3 bg-white/10 rounded animate-pulse" />
+        ) : (
+          <time dateTime={post.createdAt}>{post.createdAt.slice(0, 10)}</time>
+        )}
         <span className="text-white/10">|</span>
         <span className="font-sans">{post.nickname || "Anonymous"}</span>
       </div>
 
-      <Reactions postId={post.id} initialReactions={post.reactions} />
+      {!preview && <Reactions postId={post.id} initialReactions={post.reactions} />}
     </article>
   );
 }

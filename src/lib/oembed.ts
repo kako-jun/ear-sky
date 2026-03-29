@@ -3,7 +3,7 @@
  * Returns the title string, or null on failure.
  */
 export async function fetchVideoTitle(
-  platform: "youtube" | "niconico" | "other",
+  platform: "youtube" | "niconico" | "soundcloud" | "other",
   videoId: string
 ): Promise<string | null> {
   try {
@@ -24,6 +24,15 @@ export async function fetchVideoTitle(
       const text = await res.text();
       const match = text.match(/<title>(.*?)<\/title>/);
       return match?.[1] || null;
+    }
+
+    if (platform === "soundcloud") {
+      const res = await fetch(
+        `https://noembed.com/embed?url=${encodeURIComponent(videoId)}`
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.title || null;
     }
   } catch {
     return null;
