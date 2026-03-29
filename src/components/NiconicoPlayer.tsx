@@ -16,7 +16,6 @@ interface Props {
   onTimeUpdate?: (currentTime: number) => void;
   onPlaying?: () => void;
   onSegmentEnd?: () => void;
-  onReady?: () => void;
 }
 
 /**

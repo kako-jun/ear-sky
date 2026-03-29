@@ -26,7 +26,7 @@ src/
 │   ├── Header.tsx       # Neon title + fixed header (useShrunk: 80px shrink / 40px expand)
 │   ├── VideoSegment.tsx # Shared video+subtitle (mount-on-click, see docs/architecture.md)
 │   ├── YouTubePlayer.tsx    # YouTube IFrame API (autoplay:1, segment playback)
-│   ├── NiconicoPlayer.tsx   # Niconico embed (postMessage control)
+│   ├── NiconicoPlayer.tsx   # Niconico embed (hole overlay + window.blur detection)
 │   ├── SoundCloudPlayer.tsx # SoundCloud Widget API
 │   ├── Subtitle.tsx     # Karaoke subtitle (useLayoutEffect for font sizing)
 │   ├── PostEditor.tsx   # Wizard form (URL→info→cues→about you), preview via PostCard

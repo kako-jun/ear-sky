@@ -20,7 +20,7 @@ The post form is a step-by-step wizard:
 ## Playing
 
 - Tap the **play button** on a post
-- YouTube, Niconico, and SoundCloud videos play inline (Niconico with comments OFF)
+- YouTube, Niconico, and SoundCloud videos play inline
 - Each subtitle cue appears as a **karaoke-style subtitle** (color sweeps left to right) when its time arrives
 - Posts with multiple cues show each subtitle in sequence during playback
 
