@@ -152,7 +152,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
 
   if (error) {
     return (
-      <div className="aspect-video w-full rounded-lg bg-black/30 flex items-center justify-center text-white/40 text-sm">
+      <div className="aspect-video w-full rounded-lg bg-black/30 flex items-center justify-center text-white/50 text-sm">
         {t.youtube.cannotPlay}
       </div>
     );

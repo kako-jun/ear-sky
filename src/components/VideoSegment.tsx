@@ -117,7 +117,7 @@ export default function VideoSegment({
               if (u.protocol === "https:" || u.protocol === "http:") safeHref = u.href;
             } catch { /* invalid */ }
             return (
-              <div className="py-6 bg-black/30 flex items-center justify-center text-white/40 text-sm">
+              <div className="py-6 bg-black/30 flex items-center justify-center text-white/50 text-sm">
                 {safeHref ? (
                   <a href={safeHref} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/60">
                     {formatTime(startSec)}〜{formatTime(endSec)} →

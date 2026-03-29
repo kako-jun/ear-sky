@@ -90,7 +90,7 @@ export default function NiconicoPlayer({
 
   if (error) {
     return (
-      <div className="aspect-video w-full rounded-lg bg-black/30 flex items-center justify-center text-white/40 text-sm">
+      <div className="aspect-video w-full rounded-lg bg-black/30 flex items-center justify-center text-white/50 text-sm">
         <a
           href={`https://www.nicovideo.jp/watch/${videoId}`}
           target="_blank"

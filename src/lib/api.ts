@@ -43,7 +43,7 @@ export async function fetchPosts(opts: {
   if (opts.limit != null) params.set("limit", String(opts.limit));
   if (opts.offset != null) params.set("offset", String(opts.offset));
   const res = await fetch(`${API_BASE}/posts?${params}`);
-  if (!res.ok) return { posts: [], total: 0 };
+  if (!res.ok) throw new ApiError("Failed to load posts", res.status);
   const data = await parseJsonSafe(res);
   return { posts: data.posts, total: data.total ?? data.posts.length };
 }

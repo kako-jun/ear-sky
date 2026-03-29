@@ -123,8 +123,8 @@ export default function Reactions({ postId, initialReactions }: Props) {
           aria-label={t.reactions.add}
           aria-expanded={pickerOpen}
           className={`flex items-center justify-center rounded-full
-                     border border-white/15 text-white/40
-                     hover:border-white/30 hover:text-white/60 hover:bg-white/5
+                     border border-white/20 text-white/50
+                     hover:border-white/30 hover:text-white/70 hover:bg-white/5
                      transition-all ${badges.length === 0 ? "gap-1 px-3 h-8" : "w-8 h-8"}`}
         >
           <Plus size={14} />

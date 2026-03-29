@@ -54,7 +54,7 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
                className="text-sm text-white/70 font-medium truncate hover:text-white/90 transition-colors flex items-center gap-1.5">
               <PlatformIcon platform={parsed!.platform} size={14} className="shrink-0 text-white/40" />
               {post.songTitle}
-              <ExternalLink size={11} className="shrink-0 text-white/25" />
+              <ExternalLink size={11} className="shrink-0 text-white/40" />
             </a>
           ) : (
             <p className="text-sm text-white/70 font-medium truncate">{post.songTitle}</p>
@@ -63,9 +63,9 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
         <p className="text-xs text-white/40 truncate">
           {post.artistName}
           {post.era && (
-            <span className="ml-1.5 text-white/25">({post.era})</span>
+            <span className="ml-1.5 text-white/40">({post.era})</span>
           )}
-          <span className="ml-1.5 text-white/20">{post.sourceLang.toUpperCase()}→{post.targetLang.toUpperCase()}</span>
+          <span className="ml-1.5 text-white/30">{post.sourceLang.toUpperCase()}→{post.targetLang.toUpperCase()}</span>
         </p>
       </div>
 
@@ -83,7 +83,7 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
 
       {/* Reveal — only after playback reaches cue region */}
       {!revealed ? (
-        <div className="w-full py-3 rounded-lg border border-white/10 text-white/25 text-sm
+        <div className="w-full py-3 rounded-lg border border-white/10 text-white/40 text-sm
                         flex items-center justify-center gap-2">
           <Eye size={16} />
           {t.postCard.revealHint}
@@ -115,7 +115,7 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
           </div>
 
           {post.comment && (
-            <p className="text-sm text-white/35 italic text-center">
+            <p className="text-sm text-white/45 italic text-center">
               &ldquo;{post.comment}&rdquo;
             </p>
           )}
@@ -129,7 +129,7 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
             const tag = VALID_TAGS.find((t) => t.id === tagId);
             if (!tag) return null;
             return (
-              <span key={tagId} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/5 text-white/35 border border-white/10">
+              <span key={tagId} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/5 text-white/45 border border-white/10">
                 {locale === "ja" ? tag.labelJa : tag.labelEn}
               </span>
             );
@@ -138,7 +138,7 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
       )}
 
       {/* Meta line — all secondary info in one row */}
-      <div className="flex items-center gap-2 text-[10px] text-white/20 font-mono">
+      <div className="flex items-center gap-2 text-[10px] text-white/30 font-mono">
         {preview ? (
           <span className="inline-block w-16 h-3 bg-white/10 rounded animate-pulse" />
         ) : (
@@ -199,8 +199,10 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
               onChange={(e) => { setDeleteKeyInput(e.target.value); setDeleteError(false); }}
               placeholder={t.postCard.deleteKeyPlaceholder}
               autoComplete="off"
+              disabled={deleting}
               className={`flex-1 bg-black/30 border rounded px-2 py-1 text-xs text-white
-                placeholder:text-white/20 focus:outline-none focus:border-neon-blue/50
+                placeholder:text-white/30 focus:outline-none focus:border-neon-blue/50
+                disabled:opacity-50
                 ${deleteError ? "border-red-400" : "border-white/20"}`}
               autoFocus
             />
@@ -218,7 +220,8 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
             <button
               type="button"
               onClick={() => { setShowDeleteInput(false); setDeleteError(false); }}
-              className="text-xs text-white/30 hover:text-white/50 min-h-[32px] px-1"
+              disabled={deleting}
+              className="text-xs text-white/30 hover:text-white/50 disabled:opacity-30 min-h-[32px] px-1"
             >
               ✕
             </button>
@@ -227,7 +230,7 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
           <div className="flex justify-end">
             <button
               onClick={() => setShowDeleteInput(true)}
-              className="text-white/15 hover:text-red-400/60 transition-colors p-1"
+              className="text-white/25 hover:text-red-400/60 transition-colors p-1"
               title={t.postCard.deleteTitle}
             >
               <Trash2 size={12} />

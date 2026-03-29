@@ -4,7 +4,7 @@ import { fetchPosts, fetchPost, createPost, ApiError } from "@/lib/api";
 import { useI18n, useI18nState, I18nContext, useI18nProvider } from "@/i18n";
 import PostEditor from "@/components/PostEditor";
 import PostCard from "@/components/PostCard";
-import Header from "@/components/Header";
+import Header, { useShrunk } from "@/components/Header";
 import Toast from "@/components/Toast";
 import PickupCorner from "@/components/PickupCorner";
 import NightBackground from "@/components/NightBackground";
@@ -29,6 +29,7 @@ const LANG_FILTER_KEY = "ear-sky-lang-filter";
 function AppInner() {
   const t = useI18n();
   const { locale } = useI18nState();
+  const shrunk = useShrunk();
   const [tab, setTab] = useState<Tab>("feed");
   const [feedPosts, setFeedPosts] = useState<Post[]>([]);
   const [feedTotal, setFeedTotal] = useState(0);
@@ -80,10 +81,11 @@ function AppInner() {
       setFeedPage(page);
     } catch {
       setFeedPosts([]); setFeedTotal(0);
+      showToast(t.toast.loadFailed, "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast, t]);
 
   const loadFame = useCallback(async (page = 0) => {
     setFameLoading(true);
@@ -94,10 +96,11 @@ function AppInner() {
       setFamePage(page);
     } catch {
       setFamePosts([]); setFameTotal(0);
+      showToast(t.toast.loadFailed, "error");
     } finally {
       setFameLoading(false);
     }
-  }, []);
+  }, [showToast, t]);
 
   const loadSearch = useCallback(async (query: string, filter: LangFilter, tags: string[], page = 0) => {
     setSearchLoading(true);
@@ -108,10 +111,11 @@ function AppInner() {
       setSearchPage(page);
     } catch {
       setSearchPosts([]); setSearchTotal(0);
+      showToast(t.toast.loadFailed, "error");
     } finally {
       setSearchLoading(false);
     }
-  }, [filterParams]);
+  }, [filterParams, showToast, t]);
 
   const handleSearch = useCallback((value: string) => {
     setSearchQuery(value);
@@ -207,13 +211,12 @@ function AppInner() {
   return (
     <div className="bar-bg min-h-dvh">
       <NightBackground />
-      <Header />
+      <div className={`sticky-header sticky top-0 z-40 transition-colors duration-300
+        ${shrunk ? "bg-night-deep/90 backdrop-blur-md shadow-lg shadow-black/30" : ""}`}
+      >
+        <Header shrunk={shrunk} />
 
-      {toast && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-      )}
-
-      <nav className="sticky top-0 z-30 bg-night-deep/80 backdrop-blur-md border-b border-white/10" aria-label="Main navigation">
+        <nav className="border-b border-white/10" aria-label="Main navigation">
         <div className="max-w-lg md:max-w-xl lg:max-w-2xl mx-auto flex" role="tablist">
           {(
             [
@@ -232,7 +235,7 @@ function AppInner() {
                 focus-visible:outline-2 focus-visible:outline-neon-blue focus-visible:outline-offset-[-2px]
                 ${tab === key
                   ? "text-neon-pink border-b-2 border-neon-pink"
-                  : "text-white/40 hover:text-white/60"
+                  : "text-white/50 hover:text-white/70"
                 }`}
             >
               <Icon size={14} />{label}
@@ -240,6 +243,11 @@ function AppInner() {
           ))}
         </div>
       </nav>
+      </div>
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
 
       <main className="max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4 py-6 space-y-4" role="tabpanel">
 
@@ -248,7 +256,7 @@ function AppInner() {
             <div className="flex justify-end">
               <button
                 onClick={scrollToNewPosts}
-                className="flex items-center gap-1 text-[11px] text-white/25
+                className="flex items-center gap-1 text-[11px] text-white/40
                            hover:text-white/45 transition-colors
                            focus-visible:outline-2 focus-visible:outline-neon-blue"
               >
@@ -269,7 +277,7 @@ function AppInner() {
                 {t.feed.newPosts}
               </h2>
               {feedTotal > 0 && (
-                <p className="text-xs text-white/25">
+                <p className="text-xs text-white/40">
                   {t.feed.showingOf.replace("{count}", String(feedPage * PAGE_SIZE + 1) + "-" + String(Math.min((feedPage + 1) * PAGE_SIZE, feedTotal))).replace("{total}", String(feedTotal))}
                 </p>
               )}
@@ -303,7 +311,7 @@ function AppInner() {
             <div className="text-center space-y-1">
               <h2 className="text-lg font-bold neon-text">{t.fame.title}</h2>
               {fameTotal > 0 && (
-                <p className="text-xs text-white/25">
+                <p className="text-xs text-white/40">
                   {t.feed.showingOf.replace("{count}", String(famePage * PAGE_SIZE + 1) + "-" + String(Math.min((famePage + 1) * PAGE_SIZE, fameTotal))).replace("{total}", String(fameTotal))}
                 </p>
               )}
@@ -335,7 +343,7 @@ function AppInner() {
                 placeholder={t.search.placeholder}
                 autoFocus
                 className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-white/5 border border-white/10
-                           text-sm text-white placeholder:text-white/25
+                           text-sm text-white placeholder:text-white/40
                            focus:outline-none focus:border-neon-blue/50 focus:bg-white/8
                            transition-colors"
               />
@@ -365,7 +373,7 @@ function AppInner() {
                     className={`px-3 py-1.5 text-xs font-medium transition-colors border-r border-white/10 last:border-r-0
                       ${langFilter === f
                         ? "bg-neon-blue/20 text-neon-blue"
-                        : "text-white/35 hover:text-white/55 hover:bg-white/5"
+                        : "text-white/45 hover:text-white/65 hover:bg-white/5"
                       }`}
                   >
                     {label}
@@ -387,7 +395,7 @@ function AppInner() {
                     className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors
                       ${selected
                         ? "bg-neon-pink/20 text-neon-pink border border-neon-pink/40"
-                        : "text-white/30 border border-white/10 hover:text-white/50 hover:border-white/20"
+                        : "text-white/40 border border-white/15 hover:text-white/60 hover:border-white/25"
                       }`}
                   >
                     {locale === "ja" ? tag.labelJa : tag.labelEn}
@@ -398,7 +406,7 @@ function AppInner() {
 
             {/* Search results */}
             {searchTotal > 0 && (
-              <p className="text-xs text-white/25 text-center">
+              <p className="text-xs text-white/40 text-center">
                 {t.feed.showingOf.replace("{count}", String(searchPage * PAGE_SIZE + 1) + "-" + String(Math.min((searchPage + 1) * PAGE_SIZE, searchTotal))).replace("{total}", String(searchTotal))}
               </p>
             )}
@@ -435,9 +443,12 @@ function AppInner() {
 function EmptyState({ onPost }: { onPost: () => void }) {
   const t = useI18n();
   return (
-    <div className="text-center py-16 space-y-4">
+    <div className="text-center py-16 space-y-5">
       <img src="/icon-192.png" alt="" width={64} height={64} className="mx-auto rounded-xl opacity-80" aria-hidden="true" />
-      <p className="text-white/50">{t.feed.empty}</p>
+      <p className="text-white/60 text-lg font-bold">{t.feed.empty}</p>
+      <p className="text-white/40 text-sm max-w-xs mx-auto leading-relaxed">
+        {t.feed.emptyHint}
+      </p>
       <button
         onClick={onPost}
         className="px-6 py-2 rounded-lg bg-neon-pink text-white font-bold
@@ -497,13 +508,13 @@ function Paginator({ page, total, onPage }: {
         const rangeStart = p * PAGE_SIZE + 1;
         return (
           <span key={p} className="contents">
-            {p - prev > 1 && <span className="text-white/20 text-xs px-1">…</span>}
+            {p - prev > 1 && <span className="text-white/30 text-xs px-1">…</span>}
             <button
               onClick={() => onPage(p)}
               className={`px-2 py-1 rounded text-xs font-medium transition-colors min-w-[36px]
                 ${page === p
                   ? "bg-neon-blue/20 text-neon-blue border border-neon-blue/40"
-                  : "text-white/40 hover:text-white/60 hover:bg-white/5"
+                  : "text-white/50 hover:text-white/70 hover:bg-white/5"
                 }`}
             >
               {rangeStart}-
@@ -584,11 +595,11 @@ function Footer() {
   const t = useI18n();
 
   return (
-    <footer className="text-center text-xs text-white/20 py-12 px-4 space-y-4">
+    <footer className="text-center text-xs text-white/30 py-12 px-4 space-y-4">
       {/* Neon pink divider */}
       <div className="mx-auto max-w-xs h-px bg-gradient-to-r from-transparent via-neon-pink/40 to-transparent mb-6" aria-hidden="true" />
 
-      <p className="text-white/25 font-bold tracking-wider">{t.footer.siteName}</p>
+      <p className="text-white/40 font-bold tracking-wider">{t.footer.siteName}</p>
       {t.footer.siteAlias && (
         <div className="flex items-center justify-center gap-3">
           <div className="w-10 h-px bg-gradient-to-l from-white/20 to-transparent" aria-hidden="true" />
@@ -597,7 +608,7 @@ function Footer() {
         </div>
       )}
 
-      <p className="leading-relaxed text-white/20">
+      <p className="leading-relaxed text-white/30">
         {t.footer.disclaimer}<br />
         {t.footer.noHosting}
       </p>
@@ -606,7 +617,7 @@ function Footer() {
       <div className="pt-2">
         <img
           src="/qr.webp"
-          alt="QR code"
+          alt="Scan to visit Ear in the Sky Diamond"
           width={96}
           height={96}
           className="mx-auto opacity-40 invert sepia saturate-[5] hue-rotate-[170deg]"
@@ -650,7 +661,7 @@ function Footer() {
         Sponsor
       </a>
 
-      <div className="flex items-center justify-center gap-4 text-white/15 pt-2">
+      <div className="flex items-center justify-center gap-4 text-white/25 pt-2">
         <span>
           {/* @ts-expect-error nostalgic-counter is a Web Component */}
           <nostalgic-counter id="ear-sky-eaae1797" type="total" format="text" />{" "}{t.footer.visits}

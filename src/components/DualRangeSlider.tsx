@@ -124,7 +124,7 @@ export default function DualRangeSlider({
           onRepeatStart={(d) => startRepeat("start", d)}
           onRepeatStop={stopRepeat}
         />
-        <span className="text-white/20 text-xs">
+        <span className="text-white/30 text-xs">
           {endVal - startVal}s
         </span>
         <TimeControl
@@ -169,7 +169,7 @@ export default function DualRangeSlider({
       </div>
 
       {/* Min / Max labels */}
-      <div className="flex justify-between text-[10px] text-white/20">
+      <div className="flex justify-between text-[10px] text-white/30">
         <span>{formatTime(min)}</span>
         <span>{formatTime(max)}</span>
       </div>
@@ -189,7 +189,7 @@ function TimeControl({
   return (
     <div className="flex items-center gap-1">
       <button
-        className="w-7 h-7 flex items-center justify-center rounded text-white/40 hover:text-white/80
+        className="w-7 h-7 flex items-center justify-center rounded text-white/50 hover:text-white/80
                    hover:bg-white/10 transition-colors"
         onPointerDown={() => onRepeatStart(-1)}
         onPointerUp={onRepeatStop}
@@ -202,7 +202,7 @@ function TimeControl({
         {formatTime(value)}
       </span>
       <button
-        className="w-7 h-7 flex items-center justify-center rounded text-white/40 hover:text-white/80
+        className="w-7 h-7 flex items-center justify-center rounded text-white/50 hover:text-white/80
                    hover:bg-white/10 transition-colors"
         onPointerDown={() => onRepeatStart(1)}
         onPointerUp={onRepeatStop}

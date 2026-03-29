@@ -42,7 +42,7 @@ function ClearableInput({ value, onChange, className, ...props }: React.InputHTM
         <button
           type="button"
           onClick={() => onChange({ target: { value: "" } } as React.ChangeEvent<HTMLInputElement>)}
-          className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/20 hover:text-white/50 transition-colors"
+          className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-white/30 hover:text-white/50 transition-colors"
           tabIndex={-1}
           aria-label="Clear"
         >
@@ -360,13 +360,13 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           onChange={(e) => setUrl(e.target.value)}
           placeholder={t.editor.urlPlaceholder}
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                     placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+                     placeholder:text-white/30 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
         {url && !parsed && (
           <p className="text-xs text-red-400">{t.editor.urlInvalid}</p>
         )}
         {!parsed && (
-          <div className="flex items-center gap-6 text-[11px] text-white/25">
+          <div className="flex items-center gap-6 text-[11px] text-white/40">
             <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer"
                className="hover:text-white/50 transition-colors inline-flex items-center gap-0.5">
               YouTube <ExternalLink size={9} />
@@ -402,7 +402,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
                 onChange={(e) => setArtistName(e.target.value)}
                 placeholder="Queen"
                 className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                           placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+                           placeholder:text-white/30 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
               />
             </div>
             <div className="space-y-1">
@@ -413,7 +413,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
                 onChange={(e) => setSongTitle(e.target.value)}
                 placeholder="Bohemian Rhapsody"
                 className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                           placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+                           placeholder:text-white/30 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
               />
             </div>
           </div>
@@ -459,7 +459,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
               placeholder={t.editor.eraPlaceholder}
               maxLength={20}
               className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                         placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+                         placeholder:text-white/30 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
             />
           </div>
 
@@ -489,7 +489,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
                       ${selected
                         ? "bg-neon-pink/20 text-neon-pink border border-neon-pink/40"
                         : tags.length >= MAX_TAGS
-                          ? "text-white/15 border border-white/5 cursor-default"
+                          ? "text-white/25 border border-white/8 cursor-default"
                           : "text-white/40 border border-white/15 hover:text-white/60 hover:border-white/25"
                       }`}
                   >
@@ -561,7 +561,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
               onChange={(e) => updateCue(i, { text: e.target.value })}
               placeholder={t.editor.misheardPlaceholder}
               className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white text-lg
-                         placeholder:text-white/20 focus:border-neon-pink/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+                         placeholder:text-white/30 focus:border-neon-pink/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
             />
           </div>
 
@@ -577,7 +577,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
               onChange={(e) => updateCue(i, { originalText: e.target.value })}
               placeholder=""
               className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                         placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+                         placeholder:text-white/30 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
             />
           </div>
         </div>
@@ -612,7 +612,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           placeholder={t.editor.commentPlaceholder}
           maxLength={200}
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                     placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+                     placeholder:text-white/30 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
       </div>
 
@@ -628,7 +628,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           onChange={(e) => setNickname(e.target.value)}
           placeholder={t.editor.nicknamePlaceholder}
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                     placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+                     placeholder:text-white/30 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
       </div>
 
@@ -645,7 +645,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
           placeholder=""
           autoComplete="off"
           className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white
-                     placeholder:text-white/20 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
+                     placeholder:text-white/30 focus:border-neon-blue/50 focus-visible:outline-2 focus-visible:outline-neon-blue"
         />
       </div>
 

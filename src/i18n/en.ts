@@ -9,6 +9,7 @@ const en = {
     loading: "Loading...",
     empty: "No posts yet",
     emptyAction: "Post the first mishearing",
+    emptyHint: "\"Soramimi\" — when foreign lyrics sound like words in another language. Share what you hear!",
     newPosts: "New Posts",
     jumpToNew: "Jump to new posts",
     loadMore: "Load more",
@@ -108,6 +109,7 @@ const en = {
     postFailed: "Failed to post",
     urlCopied: "URL copied",
     rateLimited: "Please wait 30 seconds between posts",
+    loadFailed: "Failed to load — please try again",
   },
   header: {
     subtitle: "Does that song sound different to you?",

@@ -11,6 +11,7 @@ const ja: Messages = {
     loading: "読み込み中...",
     empty: "まだ投稿がありません",
     emptyAction: "最初の空耳を投稿する",
+    emptyHint: "外国語の歌が日本語に聴こえる、あの現象。あなたが見つけた空耳を投稿してみてください！",
     newPosts: "新着投稿",
     jumpToNew: "新着投稿へジャンプ",
     loadMore: "もっと見る",
@@ -110,6 +111,7 @@ const ja: Messages = {
     postFailed: "投稿に失敗しました",
     urlCopied: "URLをコピーしました",
     rateLimited: "投稿は30秒に1回までです",
+    loadFailed: "読み込みに失敗しました — もう一度お試しください",
   },
   header: {
     subtitle: "あの歌、こう聴こえない？",

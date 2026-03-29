@@ -66,9 +66,9 @@ export default function PickupCorner() {
   if (!currentPickup || currentPickup.picks.length === 0) {
     return (
       <div className="text-center py-16 space-y-3">
-        <Mic size={48} className="mx-auto text-white/20" />
+        <Mic size={48} className="mx-auto text-white/30" />
         <p className="text-white/40">{t.pickup.empty}</p>
-        <p className="text-xs text-white/25">{t.pickup.emptyHint}</p>
+        <p className="text-xs text-white/40">{t.pickup.emptyHint}</p>
       </div>
     );
   }
@@ -94,7 +94,7 @@ export default function PickupCorner() {
             <div className="space-y-8">
               {pastIds.map((id) => {
                 const p = archivePickups.get(id);
-                if (!p) return <p key={id} className="text-center text-white/20 text-xs py-4">{t.pickup.loading}</p>;
+                if (!p) return <p key={id} className="text-center text-white/30 text-xs py-4">{t.pickup.loading}</p>;
                 return <PickupContent key={id} pickup={p} />;
               })}
             </div>
@@ -124,7 +124,7 @@ function PickupContent({ pickup }: { pickup: Pickup }) {
 
       <div className="flex items-center justify-center gap-3 pt-2 pb-1">
         <div className="w-10 h-px bg-gradient-to-l from-white/20 to-transparent" aria-hidden="true" />
-        <p className="text-xs text-white/25">{t.pickup.closing}</p>
+        <p className="text-xs text-white/40">{t.pickup.closing}</p>
         <div className="w-10 h-px bg-gradient-to-r from-white/20 to-transparent" aria-hidden="true" />
       </div>
     </div>
@@ -181,7 +181,7 @@ function PickupItem({ pick, index }: { pick: PickupEntry; index: number }) {
       {index > 0 && (
         <div className="flex items-center gap-3 py-2">
           <div className="flex-1 border-t border-white/10" />
-          <span className="text-white/15 text-xs">&#9834;</span>
+          <span className="text-white/25 text-xs">&#9834;</span>
           <div className="flex-1 border-t border-white/10" />
         </div>
       )}

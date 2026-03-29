@@ -77,9 +77,14 @@ body {
       rgba(37,30,46,0.45) 100%);
 }
 
-.bar-bg > *:not(.bar-bg-image) {
+.bar-bg > *:not(.bar-bg-image):not(.sticky-header) {
   position: relative;
   z-index: 1;
+}
+
+.bar-bg > .sticky-header {
+  position: sticky !important;
+  z-index: 40;
 }
 
 /* セレクトボックスのoption背景（ダーク） */

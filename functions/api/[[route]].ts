@@ -170,7 +170,7 @@ app.get("/posts", async (c) => {
 
   // Tag filter: comma-separated, e.g. "anime,game"
   if (tagsParam) {
-    const filterTags = tagsParam.split(",").filter((t) => VALID_TAGS.has(t));
+    const filterTags = tagsParam.split(",").filter((t) => VALID_TAGS.has(t)).slice(0, MAX_TAGS);
     if (filterTags.length > 0) {
       const placeholders = filterTags.map(() => "?").join(",");
       conditions.push(`p.id IN (SELECT post_id FROM post_tags WHERE tag IN (${placeholders}))`);
@@ -180,7 +180,7 @@ app.get("/posts", async (c) => {
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
   const orderBy = sort === "likes"
-    ? "ORDER BY (SELECT COUNT(*) FROM reactions WHERE post_id = p.id) DESC, p.created_at DESC"
+    ? "ORDER BY COALESCE((SELECT COUNT(*) FROM reactions WHERE post_id = p.id), 0) DESC, p.created_at DESC"
     : "ORDER BY p.created_at DESC";
 
   // Count total

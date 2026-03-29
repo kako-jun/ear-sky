@@ -131,7 +131,7 @@ export default function SoundCloudPlayer({
 
   if (error) {
     return (
-      <div className="w-full h-[166px] rounded-lg bg-black/30 flex items-center justify-center text-white/40 text-sm">
+      <div className="w-full h-[166px] rounded-lg bg-black/30 flex items-center justify-center text-white/50 text-sm">
         {t.soundcloud.cannotPlay}
       </div>
     );
