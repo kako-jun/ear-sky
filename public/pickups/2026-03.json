@@ -4,6 +4,7 @@
   "publishedAt": "2026-03-29",
   "picks": [
     {
+      "postId": "post-0001-beatles-lucy",
       "artistName": "The Beatles",
       "songTitle": "Lucy in the Sky with Diamonds",
       "year": 1967,
@@ -11,38 +12,40 @@
       "startSec": 55,
       "endSec": 62,
       "misheardText": "お刺身食べたい",
-      "originalText": "Oh, she may be waiting",
+      "originalText": "Oh she may be waiting",
       "banter": [
         { "speaker": "regular", "text": "ルーシーの曲なのにお刺身!?" },
         { "speaker": "master", "text": "空耳に悪意はないんですよ。本能ですから。" }
       ]
     },
     {
-      "artistName": "Radiohead",
-      "songTitle": "Just",
-      "year": 1995,
-      "videoUrl": "https://www.youtube.com/watch?v=oIFLtNYI3Ls",
-      "startSec": 30,
-      "endSec": 35,
-      "misheardText": "だんごっ鼻",
-      "originalText": "Don't go there",
+      "postId": "post-0003-queen-bohemian",
+      "artistName": "Queen",
+      "songTitle": "Bohemian Rhapsody",
+      "year": 1975,
+      "videoUrl": "https://www.youtube.com/watch?v=fJ9rUzIMcZQ",
+      "startSec": 131,
+      "endSec": 138,
+      "misheardText": "タモリ",
+      "originalText": "Thunderbolts and lightning",
       "banter": [
-        { "speaker": "regular", "text": "映像と合ってるのがまた罪深い。" },
-        { "speaker": "master", "text": "もう元に戻れませんね。" }
+        { "speaker": "regular", "text": "もうサンダーボルトに聴こえない。" },
+        { "speaker": "master", "text": "フレディも笑ってるでしょうね。" }
       ]
     },
     {
-      "artistName": "Eagles",
-      "songTitle": "Take It Easy",
-      "year": 1972,
-      "videoUrl": "https://www.youtube.com/watch?v=4v8KEIQOaEY",
-      "startSec": 12,
-      "endSec": 18,
-      "misheardText": "コマネチ",
-      "originalText": "Come on and take it",
+      "postId": "post-0005-michael-jackson-smooth",
+      "artistName": "Michael Jackson",
+      "songTitle": "Smooth Criminal",
+      "year": 1988,
+      "videoUrl": "https://www.youtube.com/watch?v=h_D3VFfhvs4",
+      "startSec": 16,
+      "endSec": 22,
+      "misheardText": "パン 茶 宿直",
+      "originalText": "Annie, are you OK?",
       "banter": [
-        { "speaker": "regular", "text": "聴くたびにポーズ取っちゃうよ。" },
-        { "speaker": "master", "text": "Take it easyに聴こえなくなったら、立派な空耳リスナーです。" }
+        { "speaker": "regular", "text": "アニーはOKかもしれないけど、宿直は嫌だ。" },
+        { "speaker": "master", "text": "日本人の耳にはそう聴こえる名曲です。" }
       ]
     }
   ]
