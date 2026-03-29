@@ -72,6 +72,7 @@ const ja: Messages = {
     closing: "また来月、カウンターで",
     reveal: "空耳を見る",
     copied: "リンクをコピーしました！",
+    introFirst: "まずは{artistName}、{year}年の「{songTitle}」です。",
     intro: "続いては{artistName}、{year}年の「{songTitle}」です。",
     watchVideo: "動画を見る",
   },

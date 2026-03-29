@@ -154,7 +154,7 @@ function PickupItem({ pick, index, pickupId }: { pick: PickupEntry; index: numbe
     }
   };
 
-  const introText = interpolate(t.pickup.intro, {
+  const introText = interpolate(index === 0 ? t.pickup.introFirst : t.pickup.intro, {
     artistName: pick.artistName,
     songTitle: pick.songTitle,
     year: pick.year,

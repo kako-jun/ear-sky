@@ -70,6 +70,7 @@ const en = {
     closing: "See you next month at the counter",
     reveal: "Show the mishearing",
     copied: "Link copied!",
+    introFirst: 'First up: "{songTitle}" by {artistName}, {year}.',
     intro: 'Next up: "{songTitle}" by {artistName}, {year}.',
     watchVideo: "Watch the video",
   },
