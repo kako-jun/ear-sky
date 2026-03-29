@@ -104,6 +104,25 @@ export default function VideoSegment({
             );
           })()}
           <Subtitle cues={activeCues} currentTime={currentTime} />
+          {/* DEBUG: remove before release */}
+          {isPlaying && (
+            <div className="px-2 py-1 text-[10px] font-mono text-white/30 bg-black/60 rounded-b space-y-0.5">
+              <div>t={currentTime.toFixed(1)}s</div>
+              {cues.map((cue, i) => {
+                const elapsed = currentTime - cue.showAt;
+                const progress = cue.duration > 0 ? Math.min(1, Math.max(0, elapsed / cue.duration)) : 0;
+                const active = elapsed >= 0 && elapsed < cue.duration;
+                return (
+                  <div key={i} className={active ? "text-neon-yellow" : ""}>
+                    cue{i}: {cue.showAt.toFixed(1)}–{(cue.showAt + cue.duration).toFixed(1)}s
+                    {" "}p={progress.toFixed(2)}
+                    {active ? " ▶" : elapsed >= cue.duration ? " ✓" : " ·"}
+                    {" "}&quot;{cue.text}&quot;
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       ) : (
         <button
