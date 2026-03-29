@@ -149,7 +149,7 @@ export default function VideoSegment({
     <div ref={rootRef}>
       {/* Player: mounted when visible (IntersectionObserver), hidden when collapsed */}
       {hasPlayer && visible && (
-        <div className={`relative ${expanded ? "" : "invisible h-0 overflow-hidden"}`}>
+        <div className={`relative ${expanded ? "" : "hidden"}`}>
           {parsed.platform === "youtube" && (
             <YouTubePlayer ref={ytRef} videoId={parsed.videoId} {...playerProps} />
           )}
