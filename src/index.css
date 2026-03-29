@@ -77,13 +77,13 @@ body {
       rgba(37,30,46,0.45) 100%);
 }
 
-.bar-bg > *:not(.bar-bg-image):not(.sticky-header) {
+.bar-bg > *:not(.bar-bg-image):not(.fixed-header) {
   position: relative;
   z-index: 1;
 }
 
-.bar-bg > .sticky-header {
-  position: sticky !important;
+.bar-bg > .fixed-header {
+  position: fixed;
   z-index: 40;
 }
 

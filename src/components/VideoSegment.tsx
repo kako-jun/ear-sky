@@ -151,7 +151,7 @@ export default function VideoSegment({
          Using absolute+clip-path instead of display:none so iframes keep their dimensions
          and stay initialized (YouTube API requires non-zero container). */}
       {hasPlayer && visible && (
-        <div className={`relative ${expanded ? "" : "absolute w-full pointer-events-none"}`}
+        <div className={expanded ? "relative" : "absolute w-full pointer-events-none"}
           style={expanded ? undefined : { clipPath: "inset(100%)" }}
         >
           {parsed.platform === "youtube" && (

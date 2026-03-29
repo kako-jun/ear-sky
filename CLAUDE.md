@@ -14,7 +14,7 @@
 src/
 ├── App.tsx              # Main SPA (tabs: New/Hall of Fame/Search/Post). 447 lines after refactoring
 ├── main.tsx             # Entry point + SW registration + localStorage migration
-├── index.css            # Tailwind + neon theme + sticky-header override
+├── index.css            # Tailwind + neon theme + fixed-header positioning
 ├── types/
 │   ├── index.ts         # Post, SubtitleCue, Draft, Pickup, LANGUAGES, CURATED_EMOJI, PAGE_SIZE
 │   └── youtube.d.ts     # YouTube IFrame API type definitions
@@ -28,7 +28,7 @@ src/
 │   ├── video.ts         # URL parsing (YouTube /live/, ?list=&v=, ?t=, ?start=; Niconico nicovideo.jp + nico.ms short URL, ?from=; SoundCloud), time formatting
 │   └── oembed.ts        # Video title auto-fetch (oEmbed/noembed)
 ├── components/
-│   ├── Header.tsx       # Neon title + sticky shrink (useShrunk hook: scrollY>80px → compact mode, 200ms lock to prevent oscillation)
+│   ├── Header.tsx       # Neon title + fixed header shrink (useShrunk hook: scrollY>80px → compact mode, hysteresis expand<40px)
 │   ├── PostEditor.tsx   # Post form (wizard: URL→preview→info→cues→about you). Preview uses PostCard(preview=true)
 │   ├── PostCard.tsx     # Flat post layout (song→artist(era) lang→video→reveal→ID|date|poster). PlatformIcon + external link
 │   ├── EmptyState.tsx   # No-posts state with soramimi explanation and CTA

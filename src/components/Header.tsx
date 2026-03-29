@@ -1,23 +1,17 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useI18n, useI18nState } from "@/i18n";
 import { Globe } from "lucide-react";
 
 const SHRINK_AT = 80;
 const EXPAND_AT = 40;
-const LOCK_MS = 200;
 
 export function useShrunk() {
   const [shrunk, setShrunk] = useState(false);
-  const lockedUntil = useRef(0);
   useEffect(() => {
-    const onScroll = () => {
-      if (Date.now() < lockedUntil.current) return;
-      setShrunk((prev) => {
-        const next = prev ? window.scrollY > EXPAND_AT : window.scrollY > SHRINK_AT;
-        if (next !== prev) lockedUntil.current = Date.now() + LOCK_MS;
-        return next;
-      });
-    };
+    const onScroll = () =>
+      setShrunk((prev) =>
+        prev ? window.scrollY > EXPAND_AT : window.scrollY > SHRINK_AT,
+      );
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);

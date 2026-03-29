@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { Post, VALID_TAGS, PAGE_SIZE } from "@/types";
 import { fetchPosts, fetchPost, createPost, ApiError } from "@/lib/api";
 import { useI18n, useI18nState, I18nContext, useI18nProvider } from "@/i18n";
@@ -40,6 +40,15 @@ function AppInner() {
   const t = useI18n();
   const { locale } = useI18nState();
   const shrunk = useShrunk();
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [spacerHeight, setSpacerHeight] = useState(0);
+
+  // Measure expanded header height once on mount for the spacer
+  useLayoutEffect(() => {
+    if (headerRef.current && spacerHeight === 0) {
+      setSpacerHeight(headerRef.current.offsetHeight);
+    }
+  }, [spacerHeight]);
   const [tab, setTab] = useState<Tab>("feed");
   const [feedPosts, setFeedPosts] = useState<Post[]>([]);
   const [feedTotal, setFeedTotal] = useState(0);
@@ -223,7 +232,7 @@ function AppInner() {
   return (
     <div className="bar-bg min-h-dvh">
       <NightBackground />
-      <div className={`sticky-header top-0 z-40 transition-colors duration-300
+      <div ref={headerRef} className={`fixed-header top-0 left-0 right-0 z-40 transition-colors duration-300
         ${shrunk ? "bg-night-deep/90 backdrop-blur-md shadow-lg shadow-black/30" : ""}`}
       >
         <Header shrunk={shrunk} />
@@ -256,6 +265,9 @@ function AppInner() {
         </div>
       </nav>
       </div>
+
+      {/* Spacer: reserves space for the fixed header (measured once at expanded height) */}
+      {spacerHeight > 0 && <div style={{ height: spacerHeight }} />}
 
       {toast && (
         <Toast message={toast.message} type={toast.type} onClose={dismissToast} />
