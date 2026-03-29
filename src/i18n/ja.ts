@@ -86,7 +86,7 @@ const ja: Messages = {
   },
   share: "シェア",
   toast: {
-    posted: "投稿しました",
+    posted: "投稿ありがとうございます！ また空耳を見つけたら教えてください",
     postFailed: "投稿に失敗しました",
     urlCopied: "URLをコピーしました",
     rateLimited: "投稿は30秒に1回までです",

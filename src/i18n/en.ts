@@ -84,7 +84,7 @@ const en = {
   },
   share: "Share",
   toast: {
-    posted: "Posted!",
+    posted: "Thanks for posting! Let us know when you hear another one",
     postFailed: "Failed to post",
     urlCopied: "URL copied",
     rateLimited: "Please wait 30 seconds between posts",
