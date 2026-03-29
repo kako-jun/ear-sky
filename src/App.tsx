@@ -485,7 +485,7 @@ function Paginator({ page, total, onPage }: {
   // Show current page ± 2, plus first and last
   const pages: number[] = [];
   for (let i = 0; i < totalPages; i++) {
-    if (i === 0 || i === totalPages - 1 || (i >= page - 2 && i <= page + 2)) {
+    if (i === 0 || i === totalPages - 1 || (i >= page - 1 && i <= page + 1)) {
       pages.push(i);
     }
   }
@@ -504,19 +504,18 @@ function Paginator({ page, total, onPage }: {
         // Insert ellipsis if gap
         const prev = i > 0 ? pages[i - 1] : p;
         const rangeStart = p * PAGE_SIZE + 1;
-        const rangeEnd = Math.min((p + 1) * PAGE_SIZE, total);
         return (
           <span key={p} className="contents">
             {p - prev > 1 && <span className="text-white/20 text-xs px-1">…</span>}
             <button
               onClick={() => onPage(p)}
-              className={`px-2 py-1 rounded text-xs font-medium transition-colors min-w-[44px]
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors min-w-[36px]
                 ${page === p
                   ? "bg-neon-blue/20 text-neon-blue border border-neon-blue/40"
                   : "text-white/40 hover:text-white/60 hover:bg-white/5"
                 }`}
             >
-              {rangeStart}-{rangeEnd}
+              {rangeStart}-
             </button>
           </span>
         );
