@@ -113,7 +113,7 @@ function PickupContent({ pickup }: { pickup: Pickup }) {
           <Mic size={18} aria-hidden="true" />
           {pickup.title}
         </h2>
-        <p className="text-xs text-white/30">{t.pickup.updated} {pickup.publishedAt}</p>
+        <p className="text-xs text-white/30">{pickup.publishedAt} {t.pickup.updated}</p>
       </div>
 
       {pickup.picks.map((pick, i) => (
