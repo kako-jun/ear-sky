@@ -38,7 +38,7 @@ export default function Subtitle({ cues, currentTime }: Props) {
         className="text-3xl md:text-4xl font-black tracking-wider absolute inset-0 flex items-center justify-center px-4"
         style={{
           color: "transparent",
-          WebkitTextStroke: "4px #000",
+          WebkitTextStroke: "2px #000",
         }}
         aria-hidden="true"
       >
