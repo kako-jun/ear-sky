@@ -22,13 +22,14 @@ interface Props {
 /**
  * Shared video player + karaoke subtitle component.
  *
- * All platforms use mount-on-click + autoplay:
- * - YouTube: autoplay:1 in playerVars, API script pre-loaded
- * - Niconico: autoplay=1 + from={sec} in URL, timer on iframe load
- * - SoundCloud: auto_play=true + seekTo on READY
+ * Platform-specific strategies:
  *
- * Interaction overlay appears only after hasPlayed, so if autoplay
- * is blocked the user can click the platform's native play button.
+ * - YouTube: mount-on-click + autoplay:1. API script pre-loaded.
+ * - SoundCloud: mount-on-click + auto_play=true.
+ * - Niconico: pre-mount (IntersectionObserver) + hole overlay.
+ *   postMessage/autoplay don't work. User clicks Niconico's native play
+ *   button through a transparent hole in the overlay. window.blur detects
+ *   the click and starts the subtitle timer. One click to play.
  */
 export default function VideoSegment({
   videoUrl,
@@ -44,6 +45,7 @@ export default function VideoSegment({
   const [currentTime, setCurrentTime] = useState(0);
   const [expanded, setExpanded] = useState(autoExpand);
   const [hasPlayed, setHasPlayed] = useState(false);
+  const [nicoVisible, setNicoVisible] = useState(autoExpand);
   const cueReachedRef = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -52,18 +54,28 @@ export default function VideoSegment({
   const scRef = useRef<SoundCloudPlayerHandle>(null);
 
   const parsed = parseVideoUrl(videoUrl);
+  const isNiconico = parsed?.platform === "niconico";
 
-  // Pre-load YouTube API script (no iframe)
+  // YouTube: pre-load API script. Niconico: pre-mount iframe.
   useEffect(() => {
-    if (parsed?.platform !== "youtube") return;
     const el = rootRef.current;
     if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { preloadYTApi(); io.disconnect(); } },
-      { rootMargin: "400px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
+    if (parsed?.platform === "youtube") {
+      const io = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) { preloadYTApi(); io.disconnect(); } },
+        { rootMargin: "400px" },
+      );
+      io.observe(el);
+      return () => io.disconnect();
+    }
+    if (parsed?.platform === "niconico") {
+      const io = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) { setNicoVisible(true); io.disconnect(); } },
+        { rootMargin: "200px" },
+      );
+      io.observe(el);
+      return () => io.disconnect();
+    }
   }, [parsed?.platform]);
 
   const handleTimeUpdate = useCallback((t: number) => {
@@ -91,17 +103,16 @@ export default function VideoSegment({
     setExpanded(true);
   }, []);
 
-  // Niconico: detect iframe click via window.blur (cross-origin click detection)
-  const isNiconico = parsed?.platform === "niconico";
+  // Niconico: detect iframe click via window.blur
   useEffect(() => {
-    if (!isNiconico || !expanded || hasPlayed) return;
+    if (!isNiconico || !nicoVisible || hasPlayed) return;
     const onBlur = () => {
-      // Window lost focus → user clicked inside the Niconico iframe → start timer
       nicoRef.current?.play();
+      setExpanded(true);
     };
     window.addEventListener("blur", onBlur);
     return () => window.removeEventListener("blur", onBlur);
-  }, [isNiconico, expanded, hasPlayed]);
+  }, [isNiconico, nicoVisible, hasPlayed]);
 
   const activeCues = hasPlayed ? cues : [];
 
@@ -119,28 +130,31 @@ export default function VideoSegment({
 
   return (
     <div ref={rootRef}>
-      {hasPlayer && expanded && (
+      {/* Niconico: pre-mounted, always in DOM when visible. Hole overlay on top. */}
+      {isNiconico && nicoVisible && (
+        <div className="relative">
+          <NiconicoPlayer ref={nicoRef} videoId={parsed.videoId} {...playerProps} />
+          {expanded && <Subtitle cues={activeCues} currentTime={currentTime} />}
+        </div>
+      )}
+
+      {/* YouTube / SoundCloud: mount on click */}
+      {!isNiconico && hasPlayer && expanded && (
         <div className="relative">
           {parsed.platform === "youtube" && (
             <YouTubePlayer ref={ytRef} videoId={parsed.videoId} {...playerProps} />
-          )}
-          {parsed.platform === "niconico" && (
-            <NiconicoPlayer ref={nicoRef} videoId={parsed.videoId} {...playerProps} />
           )}
           {parsed.platform === "soundcloud" && (
             <SoundCloudPlayer ref={scRef} trackUrl={parsed.videoId} {...playerProps} />
           )}
 
-          {/* Spinner + interaction overlay: skip for Niconico.
-             Niconico's autoplay is unreliable and postMessage control doesn't work,
-             so the user may need to click Niconico's native play button. */}
-          {!hasPlayed && parsed.platform !== "niconico" && (
+          {!hasPlayed && (
             <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 rounded-lg pointer-events-none">
               <Loader2 size={36} className="animate-spin text-white/70" />
             </div>
           )}
 
-          {hasPlayed && parsed.platform !== "niconico" && (
+          {hasPlayed && (
             <div
               onClick={stoppable ? () => setExpanded(false) : undefined}
               className={`absolute inset-0 z-10 rounded-lg ${stoppable ? "cursor-pointer" : ""}`}
@@ -152,6 +166,7 @@ export default function VideoSegment({
         </div>
       )}
 
+      {/* "other" platform */}
       {parsed.platform === "other" && expanded && (
         <div className="relative">
           {(() => {
@@ -176,7 +191,8 @@ export default function VideoSegment({
         </div>
       )}
 
-      {!expanded && (
+      {/* Play button: YouTube/SoundCloud only (Niconico uses hole overlay) */}
+      {!isNiconico && !expanded && (
         <button
           onClick={handlePlayClick}
           aria-label={t.postCard.play}
