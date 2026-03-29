@@ -122,12 +122,15 @@ export default function Reactions({ postId, initialReactions }: Props) {
           onClick={() => setPickerOpen(!pickerOpen)}
           aria-label={t.reactions.add}
           aria-expanded={pickerOpen}
-          className="flex items-center justify-center w-8 h-8 rounded-full
+          className={`flex items-center justify-center rounded-full
                      border border-white/15 text-white/40
                      hover:border-white/30 hover:text-white/60 hover:bg-white/5
-                     transition-all"
+                     transition-all ${badges.length === 0 ? "gap-1 px-3 h-8" : "w-8 h-8"}`}
         >
           <Plus size={14} />
+          {badges.length === 0 && (
+            <span className="text-xs">{t.reactions.add}</span>
+          )}
         </button>
       </div>
 
