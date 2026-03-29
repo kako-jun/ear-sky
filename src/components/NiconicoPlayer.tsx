@@ -18,6 +18,17 @@ interface Props {
   onReady?: () => void;
 }
 
+/**
+ * Niconico embed player — mount-on-click + autoplay=1.
+ *
+ * postMessage control (seek/play/pause) does not reliably work with
+ * Niconico's current embed player. Instead, we rely on URL parameters:
+ * - `from={sec}` for seeking to the segment start
+ * - `autoplay=1` for automatic playback
+ *
+ * The subtitle timer starts on iframe load. Segment end is enforced
+ * by navigating away (collapsing the player / unmounting the iframe).
+ */
 const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function NiconicoPlayer({
   videoId,
   startSec,
@@ -45,50 +56,34 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
   const playStart = Math.max(0, startSec - PRE_MARGIN);
   const playEnd = endSec + POST_MARGIN;
 
-  const doPlay = useCallback(() => {
-    if (iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ eventName: "seek", data: { time: playStart } }),
-        "https://embed.nicovideo.jp"
-      );
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ eventName: "play" }),
-        "https://embed.nicovideo.jp"
-      );
-      onPlayingRef.current?.();
+  const startTimer = useCallback(() => {
+    onPlayingRef.current?.();
 
-      playStartTimeRef.current = Date.now();
+    playStartTimeRef.current = Date.now();
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      const elapsed = (Date.now() - playStartTimeRef.current) / 1000;
+      const currentTime = playStart + elapsed;
+      onTimeUpdateRef.current?.(currentTime);
+    }, 100);
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const duration = (playEnd - playStart) * 1000;
+    timerRef.current = setTimeout(() => {
       if (intervalRef.current) clearInterval(intervalRef.current);
-      intervalRef.current = setInterval(() => {
-        const elapsed = (Date.now() - playStartTimeRef.current) / 1000;
-        const currentTime = playStart + elapsed;
-        onTimeUpdateRef.current?.(currentTime);
-      }, 100);
-
-      if (timerRef.current) clearTimeout(timerRef.current);
-      const duration = (playEnd - playStart) * 1000;
-      timerRef.current = setTimeout(() => {
-        if (iframeRef.current?.contentWindow) {
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ eventName: "pause" }),
-            "https://embed.nicovideo.jp"
-          );
-        }
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        onSegmentEndRef.current?.();
-      }, duration);
-    }
+      onSegmentEndRef.current?.();
+    }, duration);
   }, [playStart, playEnd]);
 
   useImperativeHandle(ref, () => ({
-    play: doPlay,
-  }), [doPlay]);
+    play: startTimer,
+  }), [startTimer]);
 
   const handleIframeLoad = useCallback(() => {
     onReadyRef.current?.();
-    // Don't auto-play here. VideoSegment calls play() synchronously
-    // in the click handler so the user gesture propagates via postMessage.
-  }, []);
+    // Start timer on iframe load — autoplay=1 in URL handles playback
+    startTimer();
+  }, [startTimer]);
 
   useEffect(() => {
     return () => {
