@@ -85,6 +85,7 @@ export default function SoundCloudPlayer({
   onSegmentEndRef.current = onSegmentEnd;
   const endSecRef = useRef(endSec);
   endSecRef.current = endSec;
+  const segmentEndedRef = useRef(false);
 
   const playStart = Math.max(0, startSec - PRE_MARGIN);
 
@@ -111,7 +112,8 @@ export default function SoundCloudPlayer({
         if (!data) return;
         const currentSec = data.currentPosition / 1000;
         onTimeUpdateRef.current?.(currentSec);
-        if (currentSec >= endSecRef.current + POST_MARGIN) {
+        if (currentSec >= endSecRef.current + POST_MARGIN && !segmentEndedRef.current) {
+          segmentEndedRef.current = true;
           widget.pause();
           onSegmentEndRef.current?.();
         }

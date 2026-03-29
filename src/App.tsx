@@ -287,10 +287,7 @@ function AppInner() {
                     <PostCard
                       post={post}
                       showPlayer={highlightId === post.id}
-                      onDeleted={(id) => {
-                        setFeedPosts((prev) => prev.filter((p) => p.id !== id));
-                        setFeedTotal((prev) => prev - 1);
-                      }}
+                      onDeleted={() => loadFeed(feedPage)}
                     />
                     <ShareButton onShare={() => handleShare(post.id)} />
                   </div>
@@ -318,10 +315,7 @@ function AppInner() {
             ) : (
               <>
                 <Paginator page={famePage} total={fameTotal} onPage={(p) => { loadFame(p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
-                <RankingList posts={famePosts} handleShare={handleShare} highlightId={highlightId} startRank={famePage * PAGE_SIZE} onDeleted={(id) => {
-                  setFamePosts((prev) => prev.filter((p) => p.id !== id));
-                  setFameTotal((prev) => prev - 1);
-                }} />
+                <RankingList posts={famePosts} handleShare={handleShare} highlightId={highlightId} startRank={famePage * PAGE_SIZE} onDeleted={() => loadFame(famePage)} />
                 <Paginator page={famePage} total={fameTotal} onPage={(p) => { loadFame(p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
               </>
             )}
@@ -420,10 +414,7 @@ function AppInner() {
                 <Paginator page={searchPage} total={searchTotal} onPage={(p) => { loadSearch(activeQuery, langFilter, filterTags, p); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
                 {searchPosts.map((post) => (
                   <div key={post.id}>
-                    <PostCard post={post} onDeleted={(id) => {
-                      setSearchPosts((prev) => prev.filter((p) => p.id !== id));
-                      setSearchTotal((prev) => prev - 1);
-                    }} />
+                    <PostCard post={post} onDeleted={() => loadSearch(activeQuery, langFilter, filterTags, searchPage)} />
                     <ShareButton onShare={() => handleShare(post.id)} />
                   </div>
                 ))}
@@ -482,7 +473,7 @@ function Paginator({ page, total, onPage }: {
   const totalPages = Math.ceil(total / PAGE_SIZE);
   if (totalPages <= 1) return null;
 
-  // Show current page ± 2, plus first and last
+  // Show current page ± 1, plus first and last
   const pages: number[] = [];
   for (let i = 0; i < totalPages; i++) {
     if (i === 0 || i === totalPages - 1 || (i >= page - 1 && i <= page + 1)) {
