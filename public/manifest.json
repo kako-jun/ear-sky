@@ -1,7 +1,8 @@
 {
   "name": "Ear in the Sky Diamond",
-  "short_name": "イヤスカ",
-  "description": "あの歌、こう聞こえない？ 世界中の空耳を投稿・再生・共有するサイト",
+  "short_name": "Ear Sky",
+  "description": "Share and play misheard lyrics from around the world — 世界中の空耳を投稿・再生・共有",
+  "lang": "en",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a1a",

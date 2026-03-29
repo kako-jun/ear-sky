@@ -20,6 +20,12 @@ type ToastState = { message: string; type: "success" | "error" } | null;
 
 export default function App() {
   const i18n = useI18nProvider();
+
+  // Sync <html lang> with locale changes
+  useEffect(() => {
+    document.documentElement.lang = i18n.locale;
+  }, [i18n.locale]);
+
   return (
     <I18nContext.Provider value={i18n}>
       <AppInner />

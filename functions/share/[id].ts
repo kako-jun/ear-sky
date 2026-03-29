@@ -13,6 +13,29 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const SITE_URL = "https://ear-sky.llll-ll.com";
 const SITE_NAME = "Ear in the Sky Diamond — イヤスカ";
 
+const I18N = {
+  ja: {
+    title: (artist: string, song: string) => `${artist}「${song}」の空耳`,
+    description: "この部分、こう聴こえない？ 再生して確かめよう",
+    redirect: "リダイレクト中...",
+    linkText: "こちら",
+    locale: "ja_JP",
+  },
+  en: {
+    title: (artist: string, song: string) => `Misheard lyrics: ${artist} — "${song}"`,
+    description: "Does this part sound different to you? Play and find out!",
+    redirect: "Redirecting...",
+    linkText: "Click here",
+    locale: "en_US",
+  },
+} as const;
+
+function detectLang(acceptLang: string | null): "ja" | "en" {
+  if (!acceptLang) return "en";
+  const first = acceptLang.split(",")[0].trim().split(";")[0].toLowerCase();
+  return first.startsWith("ja") ? "ja" : "en";
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -60,11 +83,17 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     twitterCard = "summary_large_image";
   }
 
-  const title = `${artist}「${song}」の空耳`;
-  const description = "この部分、こう聴こえない？ 再生して確かめよう";
+  const acceptLang = context.request.headers.get("accept-language");
+  const lang = detectLang(acceptLang);
+  const l = I18N[lang];
+  const altLang = lang === "ja" ? "en" : "ja";
+  const altLocale = I18N[altLang].locale;
+
+  const title = l.title(artist, song);
+  const description = l.description;
 
   const html = `<!DOCTYPE html>
-<html lang="ja">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8" />
   <title>${title}</title>
@@ -75,7 +104,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   <meta property="og:url" content="${SITE_URL}/share/${escapeHtml(id)}" />
   <meta property="og:image" content="${ogImage}" />
   <meta property="og:site_name" content="${SITE_NAME}" />
-  <meta property="og:locale" content="ja_JP" />
+  <meta property="og:locale" content="${l.locale}" />
+  <meta property="og:locale:alternate" content="${altLocale}" />
   <meta name="twitter:card" content="${twitterCard}" />
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
@@ -83,7 +113,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   <meta http-equiv="refresh" content="0;url=${SITE_URL}/#post-${escapeHtml(id)}" />
 </head>
 <body>
-  <p>リダイレクト中... <a href="${SITE_URL}/#post-${escapeHtml(id)}">こちら</a></p>
+  <p>${l.redirect} <a href="${SITE_URL}/#post-${escapeHtml(id)}">${l.linkText}</a></p>
 </body>
 </html>`;
 
