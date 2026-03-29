@@ -6,7 +6,7 @@ import { useI18n } from "@/i18n";
 import VideoSegment from "./VideoSegment";
 import Reactions from "./Reactions";
 import PlatformIcon from "./PlatformIcon";
-import { Eye, Copy, Check, ExternalLink } from "lucide-react";
+import { Eye, Copy, Check, ExternalLink, Headphones } from "lucide-react";
 
 interface Props {
   post: Post;
@@ -80,12 +80,27 @@ export default function PostCard({ post, showPlayer = false, preview = false }: 
         </div>
       ) : (
         <div className={`space-y-3${preview ? "" : " animate-fade-in"}`}>
-          <div className="neon-border rounded-lg p-3 space-y-1 text-center">
-            <p className="text-lg font-bold text-white/90">
-              &ldquo;{post.misheardText}&rdquo;
-            </p>
-            {post.originalText && (
-              <p className="text-xs text-white/40">{post.originalText}</p>
+          <div className="neon-border rounded-lg p-3 space-y-2 text-center">
+            {post.cues.length > 1 ? (
+              post.cues.map((cue, i) => (
+                <div key={i} className="space-y-0.5">
+                  <p className="text-lg font-bold text-white/90">
+                    &ldquo;{cue.text}&rdquo;
+                  </p>
+                  {cue.originalText && (
+                    <p className="text-xs text-white/40">{cue.originalText}</p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <>
+                <p className="text-lg font-bold text-white/90">
+                  &ldquo;{post.misheardText}&rdquo;
+                </p>
+                {post.originalText && (
+                  <p className="text-xs text-white/40">{post.originalText}</p>
+                )}
+              </>
             )}
           </div>
 
@@ -120,7 +135,10 @@ export default function PostCard({ post, showPlayer = false, preview = false }: 
         <span className="text-white/10">|</span>
         <span className="font-sans">{post.nickname || "Anonymous"}</span>
         {!preview && post.playCount > 0 && (
-          <span className="ml-auto">{post.playCount} plays</span>
+          <span className="ml-auto flex items-center gap-0.5">
+            <Headphones size={10} />
+            {post.playCount}
+          </span>
         )}
       </div>
 

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { LANGUAGES, Post, SubtitleCue } from "@/types";
-import { parseVideoUrl, formatTime } from "@/lib/video";
+import { parseVideoUrl } from "@/lib/video";
 import { saveDraft, getAllDrafts, deleteDraft } from "@/lib/storage";
 import { fetchVideoTitle, splitArtistTitle } from "@/lib/oembed";
 import { useI18n } from "@/i18n";
@@ -251,7 +251,11 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     setCues((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], ...patch };
-      // Chain: update subsequent cue starts
+      // Chain: when a cue's start changes, update the previous cue's end to match
+      if (patch.startSec != null && index > 0) {
+        next[index - 1] = { ...next[index - 1], endSec: patch.startSec };
+      }
+      // Chain forward: update subsequent cue starts from this cue's end
       for (let i = index + 1; i < next.length; i++) {
         next[i] = { ...next[i], startSec: next[i - 1].endSec };
         if (next[i].endSec <= next[i].startSec) {
@@ -496,20 +500,15 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
               onEndChange={(v) => updateCue(i, { endSec: v })}
             />
           ) : (
-            // Subsequent cues: start is locked to previous end, only end slider
-            <div className="space-y-1">
-              <p className="text-xs text-white/30">
-                {formatTime(cue.startSec)} 〜
-              </p>
-              <DualRangeSlider
-                min={cue.startSec}
-                max={videoDuration}
-                startVal={cue.startSec}
-                endVal={cue.endSec}
-                onStartChange={() => {}} // locked
-                onEndChange={(v) => updateCue(i, { endSec: v })}
-                />
-            </div>
+            // Subsequent cues: start is editable (auto-updates previous cue's end)
+            <DualRangeSlider
+              min={cues[0].startSec}
+              max={videoDuration}
+              startVal={cue.startSec}
+              endVal={cue.endSec}
+              onStartChange={(v) => updateCue(i, { startSec: v })}
+              onEndChange={(v) => updateCue(i, { endSec: v })}
+            />
           )}
 
           {/* Misheard text */}
@@ -674,9 +673,12 @@ function DraftsList({
         >
           <button
             onClick={() => onLoad(draft)}
-            className="text-white/60 hover:text-white truncate text-left flex-1"
+            className="text-white/60 hover:text-white hover:bg-white/5 truncate text-left flex-1
+                       rounded px-2 py-1.5 cursor-pointer transition-colors"
           >
-            {draft.data.misheardText || draft.data.videoUrl || "(untitled)"}
+            <span className="underline underline-offset-2 decoration-white/20">
+              {draft.data.misheardText || draft.data.videoUrl || "(untitled)"}
+            </span>
             <span className="text-white/30 text-xs ml-2">
               {draft.updatedAt.slice(0, 10)}
             </span>

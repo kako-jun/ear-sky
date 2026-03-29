@@ -49,10 +49,15 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const platform = row.platform as string;
   const videoId = row.video_id as string;
 
-  // Use video thumbnail when available, fall back to site OGP
-  let ogImage = `${SITE_URL}/ogp.png?v=2`;
+  // Platform-specific thumbnail; fall back to icon
+  let ogImage = `${SITE_URL}/icon-512.png`;
+  let twitterCard = "summary";
   if (platform === "youtube") {
     ogImage = `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg`;
+    twitterCard = "summary_large_image";
+  } else if (platform === "niconico") {
+    ogImage = `https://nicovideo.cdn.nimg.jp/thumbnails/${encodeURIComponent(videoId)}/${encodeURIComponent(videoId)}.original/L`;
+    twitterCard = "summary_large_image";
   }
 
   const title = `${artist}「${song}」の空耳`;
@@ -62,7 +67,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>${title} | ${SITE_NAME}</title>
+  <title>${title}</title>
   <meta name="description" content="${description}" />
   <meta property="og:title" content="${title}" />
   <meta property="og:description" content="${description}" />
@@ -71,7 +76,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   <meta property="og:image" content="${ogImage}" />
   <meta property="og:site_name" content="${SITE_NAME}" />
   <meta property="og:locale" content="ja_JP" />
-  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:card" content="${twitterCard}" />
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
   <meta name="twitter:image" content="${ogImage}" />

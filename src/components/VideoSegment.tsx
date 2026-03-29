@@ -44,13 +44,13 @@ export default function VideoSegment({
 
   const handleTimeUpdate = useCallback((t: number) => {
     setCurrentTime(t);
-    if (onCueReached && !cueReachedRef.current) {
-      for (const cue of cues) {
-        if (t >= cue.showAt && t < cue.showAt + cue.duration) {
-          cueReachedRef.current = true;
-          onCueReached();
-          break;
-        }
+    if (onCueReached && !cueReachedRef.current && cues.length > 0) {
+      // Reveal after the last cue finishes playing
+      const lastCue = cues[cues.length - 1];
+      const lastCueEnd = lastCue.showAt + lastCue.duration;
+      if (t >= lastCueEnd) {
+        cueReachedRef.current = true;
+        onCueReached();
       }
     }
   }, [cues, onCueReached]);
