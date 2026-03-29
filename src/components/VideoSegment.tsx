@@ -109,15 +109,20 @@ export default function VideoSegment({
     }
   }, [isNiconico]);
 
-  // Niconico: detect iframe click via window.blur
+  // Niconico: detect iframe click via window.blur.
+  // Delay timer start by ~2s to account for Niconico's buffering time.
   useEffect(() => {
     if (!isNiconico || !nicoVisible || hasPlayed) return;
+    let timerId: ReturnType<typeof setTimeout>;
     const onBlur = () => {
-      nicoRef.current?.play();
       setExpanded(true);
+      timerId = setTimeout(() => nicoRef.current?.play(), 2000);
     };
     window.addEventListener("blur", onBlur);
-    return () => window.removeEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("blur", onBlur);
+      clearTimeout(timerId);
+    };
   }, [isNiconico, nicoVisible, hasPlayed]);
 
   const activeCues = hasPlayed ? cues : [];
