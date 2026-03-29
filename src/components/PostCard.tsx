@@ -76,6 +76,7 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
         endSec={post.endSec}
         cues={post.cues}
         autoExpand={showPlayer}
+        stoppable={preview}
         onCueReached={() => setRevealed(true)}
         onPlay={() => { if (!preview) recordPlay(post.id); }}
       />

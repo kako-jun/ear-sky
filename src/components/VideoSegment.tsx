@@ -15,6 +15,8 @@ interface Props {
   cues: SubtitleCue[];
   /** Start with player expanded */
   autoExpand?: boolean;
+  /** Allow tap-to-stop during playback (editor preview only) */
+  stoppable?: boolean;
   /** Called when playback enters a cue region */
   onCueReached?: () => void;
   /** Called every time playback starts */
@@ -23,7 +25,12 @@ interface Props {
 
 /**
  * Shared video player + karaoke subtitle component.
- * Used by PostCard, PickupCorner, and anywhere a video segment is displayed.
+ *
+ * When stoppable=true (editor preview): tap during playback collapses back to
+ * Play overlay. Next play always uses the latest props (slider/subtitle edits).
+ *
+ * When stoppable=false (default, posted cards): playback runs to segment end,
+ * then auto-collapses. No interruption.
  */
 export default function VideoSegment({
   videoUrl,
@@ -31,6 +38,7 @@ export default function VideoSegment({
   endSec,
   cues,
   autoExpand = false,
+  stoppable = false,
   onCueReached,
   onPlay,
 }: Props) {
@@ -45,7 +53,6 @@ export default function VideoSegment({
   const handleTimeUpdate = useCallback((t: number) => {
     setCurrentTime(t);
     if (onCueReached && !cueReachedRef.current && cues.length > 0) {
-      // Reveal after the last cue finishes playing
       const lastCue = cues[cues.length - 1];
       const lastCueEnd = lastCue.showAt + lastCue.duration;
       if (t >= lastCueEnd) {
@@ -55,17 +62,14 @@ export default function VideoSegment({
     }
   }, [cues, onCueReached]);
 
-  const handleYTStateChange = useCallback((state: number) => {
-    if (state === 1) { setHasPlayed(true); onPlay?.(); }
+  const handlePlaying = useCallback(() => {
+    setHasPlayed(true);
+    onPlay?.();
   }, [onPlay]);
 
-  const handleNicoStateChange = useCallback((state: "playing" | "paused" | "ended") => {
-    if (state === "playing") { setHasPlayed(true); onPlay?.(); }
-  }, [onPlay]);
-
-  const handleSCStateChange = useCallback((state: "playing" | "paused" | "ended") => {
-    if (state === "playing") { setHasPlayed(true); onPlay?.(); }
-  }, [onPlay]);
+  const handleSegmentEnd = useCallback(() => {
+    setExpanded(false);
+  }, []);
 
   // Keep subtitles visible after segment ends (last cue stays on screen)
   const activeCues = hasPlayed ? cues : [];
@@ -75,14 +79,15 @@ export default function VideoSegment({
   return (
     <div>
       {expanded ? (
-        <div>
+        <div className="relative">
           {parsed.platform === "youtube" && (
             <YouTubePlayer
               videoId={parsed.videoId}
               startSec={startSec}
               endSec={endSec}
               onTimeUpdate={handleTimeUpdate}
-              onStateChange={handleYTStateChange}
+              onPlaying={handlePlaying}
+              onSegmentEnd={handleSegmentEnd}
             />
           )}
           {parsed.platform === "niconico" && (
@@ -91,7 +96,8 @@ export default function VideoSegment({
               startSec={startSec}
               endSec={endSec}
               onTimeUpdate={handleTimeUpdate}
-              onStateChange={handleNicoStateChange}
+              onPlaying={handlePlaying}
+              onSegmentEnd={handleSegmentEnd}
             />
           )}
           {parsed.platform === "soundcloud" && (
@@ -100,7 +106,8 @@ export default function VideoSegment({
               startSec={startSec}
               endSec={endSec}
               onTimeUpdate={handleTimeUpdate}
-              onStateChange={handleSCStateChange}
+              onPlaying={handlePlaying}
+              onSegmentEnd={handleSegmentEnd}
             />
           )}
           {parsed.platform === "other" && (() => {
@@ -121,6 +128,17 @@ export default function VideoSegment({
               </div>
             );
           })()}
+
+          {/* Overlay: blocks iframe interaction */}
+          {parsed.platform !== "other" && (
+            <div
+              onClick={stoppable ? () => setExpanded(false) : undefined}
+              className={`absolute inset-0 z-10 rounded-lg ${stoppable ? "cursor-pointer" : ""}`}
+              role={stoppable ? "button" : undefined}
+              aria-label={stoppable ? "Stop" : undefined}
+            />
+          )}
+
           <Subtitle cues={activeCues} currentTime={currentTime} />
         </div>
       ) : (

@@ -1,6 +1,5 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useI18n } from "@/i18n";
-import { RotateCcw } from "lucide-react";
 
 const PRE_MARGIN = 5;
 const POST_MARGIN = 0.3;
@@ -10,7 +9,8 @@ interface Props {
   startSec: number;
   endSec: number;
   onTimeUpdate?: (currentTime: number) => void;
-  onStateChange?: (state: "playing" | "paused" | "ended") => void;
+  onPlaying?: () => void;
+  onSegmentEnd?: () => void;
 }
 
 declare global {
@@ -69,19 +69,20 @@ export default function SoundCloudPlayer({
   startSec,
   endSec,
   onTimeUpdate,
-  onStateChange,
+  onPlaying,
+  onSegmentEnd,
 }: Props) {
   const t = useI18n();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const widgetRef = useRef<SCWidget | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [segmentEnded, setSegmentEnded] = useState(false);
   const [error, setError] = useState(false);
 
   const onTimeUpdateRef = useRef(onTimeUpdate);
   onTimeUpdateRef.current = onTimeUpdate;
-  const onStateChangeRef = useRef(onStateChange);
-  onStateChangeRef.current = onStateChange;
+  const onPlayingRef = useRef(onPlaying);
+  onPlayingRef.current = onPlaying;
+  const onSegmentEndRef = useRef(onSegmentEnd);
+  onSegmentEndRef.current = onSegmentEnd;
   const endSecRef = useRef(endSec);
   endSecRef.current = endSec;
 
@@ -103,14 +104,7 @@ export default function SoundCloudPlayer({
       });
 
       widget.bind(window.SC.Widget.Events.PLAY, () => {
-        onStateChangeRef.current?.("playing");
-        setPlaying(true);
-        setSegmentEnded(false);
-      });
-
-      widget.bind(window.SC.Widget.Events.PAUSE, () => {
-        setPlaying(false);
-        onStateChangeRef.current?.("paused");
+        onPlayingRef.current?.();
       });
 
       widget.bind(window.SC.Widget.Events.PLAY_PROGRESS, (data) => {
@@ -119,9 +113,7 @@ export default function SoundCloudPlayer({
         onTimeUpdateRef.current?.(currentSec);
         if (currentSec >= endSecRef.current + POST_MARGIN) {
           widget.pause();
-          setPlaying(false);
-          setSegmentEnded(true);
-          onStateChangeRef.current?.("ended");
+          onSegmentEndRef.current?.();
         }
       });
 
@@ -135,14 +127,6 @@ export default function SoundCloudPlayer({
     };
   }, [trackUrl, playStart]);
 
-  const handleReplay = useCallback(() => {
-    const w = widgetRef.current;
-    if (!w) return;
-    w.seekTo(playStart * 1000);
-    w.play();
-    setSegmentEnded(false);
-  }, [playStart]);
-
   if (error) {
     return (
       <div className="w-full h-[166px] rounded-lg bg-black/30 flex items-center justify-center text-white/40 text-sm">
@@ -152,30 +136,14 @@ export default function SoundCloudPlayer({
   }
 
   return (
-    <div className="w-full">
-      <div className="relative">
-        <div className="w-full rounded-lg overflow-hidden bg-black/50">
-          <iframe
-            ref={iframeRef}
-            src={embedUrl}
-            className="w-full h-[166px]"
-            allow="autoplay"
-            title="SoundCloud"
-          />
-        </div>
-        {/* Overlay: blocks iframe interaction; shows replay icon only after segment ends */}
-        {(playing || segmentEnded) && (
-          <div
-            onClick={segmentEnded ? handleReplay : undefined}
-            className={`absolute inset-0 z-10 rounded-lg flex items-center justify-center
-              ${segmentEnded ? "bg-black/30 cursor-pointer hover:bg-black/20 transition-colors" : ""}`}
-            role={segmentEnded ? "button" : undefined}
-            aria-label={segmentEnded ? t.soundcloud.replay : undefined}
-          >
-            {segmentEnded && <RotateCcw size={40} className="text-white/70" />}
-          </div>
-        )}
-      </div>
+    <div className="w-full rounded-lg overflow-hidden bg-black/50">
+      <iframe
+        ref={iframeRef}
+        src={embedUrl}
+        className="w-full h-[166px]"
+        allow="autoplay"
+        title="SoundCloud"
+      />
     </div>
   );
 }

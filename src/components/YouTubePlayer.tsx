@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback, useState, useImperativeHandle, forwardRef } from "react";
 import { useI18n } from "@/i18n";
-import { RotateCcw } from "lucide-react";
 
 declare global {
   interface Window {
@@ -9,8 +8,8 @@ declare global {
   }
 }
 
-const PRE_MARGIN = 5; // seconds before the misheard segment
-const POST_MARGIN = 0.3; // seconds after the misheard segment
+const PRE_MARGIN = 5;
+const POST_MARGIN = 0.3;
 
 export interface YouTubePlayerHandle {
   seekTo: (sec: number) => void;
@@ -22,7 +21,8 @@ interface Props {
   startSec: number;
   endSec: number;
   onTimeUpdate?: (currentTime: number) => void;
-  onStateChange?: (state: number) => void;
+  onPlaying?: () => void;
+  onSegmentEnd?: () => void;
 }
 
 let apiLoaded = false;
@@ -56,20 +56,21 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
   startSec,
   endSec,
   onTimeUpdate,
-  onStateChange,
+  onPlaying,
+  onSegmentEnd,
 }, ref) {
   const t = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YT.Player | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [segmentEnded, setSegmentEnded] = useState(false);
   const [error, setError] = useState(false);
 
   const onTimeUpdateRef = useRef(onTimeUpdate);
   onTimeUpdateRef.current = onTimeUpdate;
-  const onStateChangeRef = useRef(onStateChange);
-  onStateChangeRef.current = onStateChange;
+  const onPlayingRef = useRef(onPlaying);
+  onPlayingRef.current = onPlaying;
+  const onSegmentEndRef = useRef(onSegmentEnd);
+  onSegmentEndRef.current = onSegmentEnd;
   const endSecRef = useRef(endSec);
   endSecRef.current = endSec;
 
@@ -92,8 +93,8 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
       onTimeUpdateRef.current?.(t);
       if (t >= endSecRef.current + POST_MARGIN) {
         playerRef.current.pauseVideo();
-        setSegmentEnded(true);
         if (timerRef.current) clearInterval(timerRef.current);
+        onSegmentEndRef.current?.();
       }
     }, 100);
   }, []);
@@ -129,13 +130,10 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
         events: {
           onReady: () => {},
           onStateChange: (e: YT.OnStateChangeEvent) => {
-            onStateChangeRef.current?.(e.data);
             if (e.data === window.YT.PlayerState.PLAYING) {
-              setPlaying(true);
-              setSegmentEnded(false);
+              onPlayingRef.current?.();
               startTimer();
             } else {
-              setPlaying(false);
               if (timerRef.current) clearInterval(timerRef.current);
             }
           },
@@ -147,20 +145,10 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (playerRef.current) {
-        try {
-          playerRef.current.destroy();
-        } catch {
-          /* ignore */
-        }
+        try { playerRef.current.destroy(); } catch { /* ignore */ }
       }
     };
-  }, [videoId, startTimer]); // Only recreate on videoId change; startSec/endSec use seekTo via ref
-
-  const handlePlay = useCallback(() => {
-    if (!playerRef.current) return;
-    playerRef.current.seekTo(playStart, true);
-    playerRef.current.playVideo();
-  }, [playStart]);
+  }, [videoId, startTimer]);
 
   if (error) {
     return (
@@ -171,26 +159,10 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
   }
 
   return (
-    <div className="w-full">
-      <div className="relative">
-        <div
-          ref={containerRef}
-          className="aspect-video w-full rounded-lg overflow-hidden bg-black/50"
-        />
-        {/* Overlay: always blocks iframe interaction; shows replay icon only after segment ends */}
-        {(playing || segmentEnded) && (
-          <div
-            onClick={segmentEnded ? handlePlay : undefined}
-            className={`absolute inset-0 z-10 rounded-lg flex items-center justify-center
-              ${segmentEnded ? "bg-black/30 cursor-pointer hover:bg-black/20 transition-colors" : ""}`}
-            role={segmentEnded ? "button" : undefined}
-            aria-label={segmentEnded ? t.youtube.replay : undefined}
-          >
-            {segmentEnded && <RotateCcw size={40} className="text-white/70" />}
-          </div>
-        )}
-      </div>
-    </div>
+    <div
+      ref={containerRef}
+      className="aspect-video w-full rounded-lg overflow-hidden bg-black/50"
+    />
   );
 });
 
