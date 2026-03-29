@@ -86,7 +86,9 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
 
   const handleIframeLoad = useCallback(() => {
     onReadyRef.current?.();
-  }, []);
+    // Auto-play on mount (mount-on-click: iframe only exists after user click)
+    doPlay();
+  }, [doPlay]);
 
   useEffect(() => {
     return () => {
@@ -95,7 +97,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
     };
   }, []);
 
-  const embedUrl = `https://embed.nicovideo.jp/watch/${videoId}?from=${Math.floor(playStart)}&autoplay=0&mute=0&commentLayerMode=0`;
+  const embedUrl = `https://embed.nicovideo.jp/watch/${videoId}?from=${Math.floor(playStart)}&autoplay=1&mute=0&commentLayerMode=0`;
 
   if (error) {
     return (

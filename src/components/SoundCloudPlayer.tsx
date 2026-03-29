@@ -107,7 +107,7 @@ const SoundCloudPlayer = forwardRef<SoundCloudPlayerHandle, Props>(function Soun
     },
   }), [playStart]);
 
-  const embedUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(trackUrl)}&auto_play=false&color=%23ff4d8d&show_artwork=true&show_user=false&show_playcount=false&buying=false&sharing=false&download=false`;
+  const embedUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(trackUrl)}&auto_play=true&color=%23ff4d8d&show_artwork=true&show_user=false&show_playcount=false&buying=false&sharing=false&download=false`;
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -118,6 +118,8 @@ const SoundCloudPlayer = forwardRef<SoundCloudPlayerHandle, Props>(function Soun
       widgetRef.current = widget;
 
       widget.bind(window.SC.Widget.Events.READY, () => {
+        // Seek to segment start (auto_play=true starts from beginning)
+        widget.seekTo(playStart * 1000);
         onReadyRef.current?.();
       });
 
