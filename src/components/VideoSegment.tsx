@@ -97,11 +97,17 @@ export default function VideoSegment({
 
   const handleSegmentEnd = useCallback(() => {
     setExpanded(false);
-  }, []);
+    // Niconico: unmount iframe to stop playback (postMessage pause doesn't work)
+    if (isNiconico) setNicoVisible(false);
+  }, [isNiconico]);
 
   const handlePlayClick = useCallback(() => {
     setExpanded(true);
-  }, []);
+    if (isNiconico) {
+      setNicoVisible(true);
+      setHasPlayed(false);
+    }
+  }, [isNiconico]);
 
   // Niconico: detect iframe click via window.blur
   useEffect(() => {
@@ -191,8 +197,8 @@ export default function VideoSegment({
         </div>
       )}
 
-      {/* Play button: YouTube/SoundCloud only (Niconico uses hole overlay) */}
-      {!isNiconico && !expanded && (
+      {/* Play button: YouTube/SoundCloud always, Niconico after segment end */}
+      {((!isNiconico && !expanded) || (isNiconico && !nicoVisible)) && (
         <button
           onClick={handlePlayClick}
           aria-label={t.postCard.play}
