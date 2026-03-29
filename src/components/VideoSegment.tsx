@@ -109,32 +109,30 @@ export default function VideoSegment({
     setExpanded(true);
   }, []);
 
-  // Niconico: detect iframe click via window.blur.
-  // Only react when cursor/touch is over the player (not app switch).
-  const nicoHovering = useRef(false);
+  // Niconico: detect iframe click via window.blur + activeElement check.
+  // After blur, verify that our Niconico iframe actually received focus.
   useEffect(() => {
     if (!isNiconico || !nicoVisible || hasPlayed) return;
     const container = rootRef.current;
     if (!container) return;
-    const onEnter = () => { nicoHovering.current = true; };
-    const onLeave = () => { nicoHovering.current = false; };
     let timerId: ReturnType<typeof setTimeout>;
+    let checkId: ReturnType<typeof setTimeout>;
     const onBlur = () => {
-      if (!nicoHovering.current) return;
-      setExpanded(true);
-      nicoRef.current?.hideOverlay();
-      timerId = setTimeout(() => nicoRef.current?.play(), 1200);
+      // After blur, check if an iframe inside our container got focus
+      checkId = setTimeout(() => {
+        const active = document.activeElement;
+        if (active?.tagName === "IFRAME" && container.contains(active)) {
+          setExpanded(true);
+          nicoRef.current?.hideOverlay();
+          timerId = setTimeout(() => nicoRef.current?.play(), 1200);
+        }
+      }, 0);
     };
-    container.addEventListener("mouseenter", onEnter);
-    container.addEventListener("mouseleave", onLeave);
-    container.addEventListener("touchstart", onEnter, { passive: true });
     window.addEventListener("blur", onBlur);
     return () => {
-      container.removeEventListener("mouseenter", onEnter);
-      container.removeEventListener("mouseleave", onLeave);
-      container.removeEventListener("touchstart", onEnter);
       window.removeEventListener("blur", onBlur);
       clearTimeout(timerId);
+      clearTimeout(checkId);
     };
   }, [isNiconico, nicoVisible, hasPlayed]);
 
