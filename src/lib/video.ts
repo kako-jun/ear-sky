@@ -47,12 +47,24 @@ export function parseVideoUrl(url: string): {
     }
   }
 
-  // SoundCloud — https://soundcloud.com/artist/track (exclude system paths)
+  // SoundCloud — soundcloud.com/artist/track
+  // Strip query/hash before matching to avoid ?si= etc. leaking into the path
+  const scClean = url.split(/[?#]/)[0];
   const scPattern = /soundcloud\.com\/([a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+)/;
   const scExclude = /soundcloud\.com\/(discover|you|stream|search|upload|pages|settings|charts)\//;
-  const scm = url.match(scPattern);
+  const scm = scClean.match(scPattern);
   if (scm && !scExclude.test(url)) {
-    return { platform: "soundcloud", videoId: url };
+    // Extract start time from #t=1:30 or #t=90
+    let startSec: number | undefined;
+    const hashT = url.match(/#t=(\d+):(\d+)/);
+    if (hashT) {
+      startSec = parseInt(hashT[1]) * 60 + parseInt(hashT[2]);
+    } else {
+      const hashSec = url.match(/#t=(\d+)/);
+      if (hashSec) startSec = parseInt(hashSec[1]);
+    }
+    if (startSec === 0) startSec = undefined;
+    return { platform: "soundcloud", videoId: `https://soundcloud.com/${scm[1]}`, startSec };
   }
 
   // Any other valid URL — store full URL as videoId

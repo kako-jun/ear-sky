@@ -1,8 +1,12 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { useI18n } from "@/i18n";
 
 const PRE_MARGIN = 5;
 const POST_MARGIN = 0.3;
+
+export interface SoundCloudPlayerHandle {
+  play: () => void;
+}
 
 interface Props {
   trackUrl: string;
@@ -11,6 +15,7 @@ interface Props {
   onTimeUpdate?: (currentTime: number) => void;
   onPlaying?: () => void;
   onSegmentEnd?: () => void;
+  onReady?: () => void;
 }
 
 declare global {
@@ -64,14 +69,15 @@ function loadSCApi(): Promise<void> {
   return apiPromise;
 }
 
-export default function SoundCloudPlayer({
+const SoundCloudPlayer = forwardRef<SoundCloudPlayerHandle, Props>(function SoundCloudPlayer({
   trackUrl,
   startSec,
   endSec,
   onTimeUpdate,
   onPlaying,
   onSegmentEnd,
-}: Props) {
+  onReady,
+}, ref) {
   const t = useI18n();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const widgetRef = useRef<SCWidget | null>(null);
@@ -83,13 +89,25 @@ export default function SoundCloudPlayer({
   onPlayingRef.current = onPlaying;
   const onSegmentEndRef = useRef(onSegmentEnd);
   onSegmentEndRef.current = onSegmentEnd;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
   const endSecRef = useRef(endSec);
   endSecRef.current = endSec;
   const segmentEndedRef = useRef(false);
 
   const playStart = Math.max(0, startSec - PRE_MARGIN);
 
-  const embedUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(trackUrl)}&auto_play=true&color=%23ff4d8d&show_artwork=true&show_user=false&show_playcount=false&buying=false&sharing=false&download=false`;
+  useImperativeHandle(ref, () => ({
+    play: () => {
+      const w = widgetRef.current;
+      if (!w) return;
+      segmentEndedRef.current = false;
+      w.seekTo(playStart * 1000);
+      w.play();
+    },
+  }), [playStart]);
+
+  const embedUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(trackUrl)}&auto_play=false&color=%23ff4d8d&show_artwork=true&show_user=false&show_playcount=false&buying=false&sharing=false&download=false`;
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -100,8 +118,7 @@ export default function SoundCloudPlayer({
       widgetRef.current = widget;
 
       widget.bind(window.SC.Widget.Events.READY, () => {
-        widget.seekTo(playStart * 1000);
-        widget.play();
+        onReadyRef.current?.();
       });
 
       widget.bind(window.SC.Widget.Events.PLAY, () => {
@@ -127,7 +144,7 @@ export default function SoundCloudPlayer({
     return () => {
       widgetRef.current = null;
     };
-  }, [trackUrl, playStart]);
+  }, [trackUrl]);
 
   if (error) {
     return (
@@ -148,4 +165,6 @@ export default function SoundCloudPlayer({
       />
     </div>
   );
-}
+});
+
+export default SoundCloudPlayer;

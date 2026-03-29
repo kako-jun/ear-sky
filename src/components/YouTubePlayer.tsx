@@ -14,6 +14,7 @@ const POST_MARGIN = 0.3;
 export interface YouTubePlayerHandle {
   seekTo: (sec: number) => void;
   getDuration: () => number;
+  play: () => void;
 }
 
 interface Props {
@@ -23,6 +24,7 @@ interface Props {
   onTimeUpdate?: (currentTime: number) => void;
   onPlaying?: () => void;
   onSegmentEnd?: () => void;
+  onReady?: () => void;
 }
 
 let apiLoaded = false;
@@ -58,6 +60,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
   onTimeUpdate,
   onPlaying,
   onSegmentEnd,
+  onReady,
 }, ref) {
   const t = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,8 +74,12 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
   onPlayingRef.current = onPlaying;
   const onSegmentEndRef = useRef(onSegmentEnd);
   onSegmentEndRef.current = onSegmentEnd;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
   const endSecRef = useRef(endSec);
   endSecRef.current = endSec;
+
+  const playStart = Math.max(0, startSec - PRE_MARGIN);
 
   useImperativeHandle(ref, () => ({
     seekTo: (sec: number) => {
@@ -81,9 +88,13 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
     getDuration: () => {
       return playerRef.current?.getDuration() || 0;
     },
+    play: () => {
+      const p = playerRef.current;
+      if (!p) return;
+      p.seekTo(playStart, true);
+      p.playVideo();
+    },
   }));
-
-  const playStart = Math.max(0, startSec - PRE_MARGIN);
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -119,7 +130,8 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
         videoId,
         playerVars: {
           start: Math.floor(playStart),
-          autoplay: 1,
+          autoplay: 0,
+          playsinline: 1,
           controls: 1,
           disablekb: 1,
           modestbranding: 1,
@@ -128,7 +140,9 @@ const YouTubePlayer = forwardRef<YouTubePlayerHandle, Props>(function YouTubePla
           iv_load_policy: 3,
         },
         events: {
-          onReady: () => {},
+          onReady: () => {
+            onReadyRef.current?.();
+          },
           onStateChange: (e: YT.OnStateChangeEvent) => {
             if (e.data === window.YT.PlayerState.PLAYING) {
               onPlayingRef.current?.();

@@ -559,6 +559,7 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
               type="text"
               value={cue.text}
               onChange={(e) => updateCue(i, { text: e.target.value })}
+              maxLength={30}
               placeholder={t.editor.misheardPlaceholder}
               className="w-full bg-black/30 border border-white/20 rounded-lg px-3 py-2.5 text-white text-lg
                          placeholder:text-white/30 focus:border-neon-pink/50 focus-visible:outline-2 focus-visible:outline-neon-blue"

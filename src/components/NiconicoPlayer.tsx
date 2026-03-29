@@ -1,8 +1,12 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useI18n } from "@/i18n";
 
 const PRE_MARGIN = 5;
 const POST_MARGIN = 0.3;
+
+export interface NiconicoPlayerHandle {
+  play: () => void;
+}
 
 interface Props {
   videoId: string;
@@ -11,16 +15,18 @@ interface Props {
   onTimeUpdate?: (currentTime: number) => void;
   onPlaying?: () => void;
   onSegmentEnd?: () => void;
+  onReady?: () => void;
 }
 
-export default function NiconicoPlayer({
+const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function NiconicoPlayer({
   videoId,
   startSec,
   endSec,
   onTimeUpdate,
   onPlaying,
   onSegmentEnd,
-}: Props) {
+  onReady,
+}, ref) {
   const t = useI18n();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -32,12 +38,14 @@ export default function NiconicoPlayer({
   onSegmentEndRef.current = onSegmentEnd;
   const onTimeUpdateRef = useRef(onTimeUpdate);
   onTimeUpdateRef.current = onTimeUpdate;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
   const [error, setError] = useState(false);
 
   const playStart = Math.max(0, startSec - PRE_MARGIN);
   const playEnd = endSec + POST_MARGIN;
 
-  const handlePlay = useCallback(() => {
+  const doPlay = useCallback(() => {
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
         JSON.stringify({ eventName: "seek", data: { time: playStart } }),
@@ -72,11 +80,12 @@ export default function NiconicoPlayer({
     }
   }, [playStart, playEnd]);
 
-  const handlePlayRef = useRef<() => void>(() => {});
-  handlePlayRef.current = handlePlay;
+  useImperativeHandle(ref, () => ({
+    play: doPlay,
+  }), [doPlay]);
 
   const handleIframeLoad = useCallback(() => {
-    setTimeout(() => handlePlayRef.current(), 300);
+    onReadyRef.current?.();
   }, []);
 
   useEffect(() => {
@@ -117,4 +126,6 @@ export default function NiconicoPlayer({
       />
     </div>
   );
-}
+});
+
+export default NiconicoPlayer;

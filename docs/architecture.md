@@ -16,7 +16,7 @@
 
 ### Posting (Wizard Flow)
 1. User pastes a video URL → instant preview loads (URL未入力時はYouTube/niconico/SoundCloudへのExternalLink付きリンクを表示)
-2. URL parsed to extract platform/videoId/startSec (`video.ts` — YouTube `/watch?v=`, `/shorts/`, `/live/`, `/embed/`, `youtu.be/`, `?list=...&v=...` 対応; `?t=`/`&t=`/`?start=` で開始時刻取得; niconico `?from=` も同様; SoundCloud URLs via `soundcloud.com/:artist/:track`)
+2. URL parsed to extract platform/videoId/startSec (`video.ts` — YouTube `/watch?v=`, `/shorts/`, `/live/`, `/embed/`, `youtu.be/`, `?list=...&v=...` 対応; `?t=`/`&t=`/`?start=` で開始時刻取得; niconico `?from=` も同様; SoundCloud `soundcloud.com/:artist/:track` + query/hash除去 + `#t=M:SS`/`#t=sec` で開始時刻取得。`on.soundcloud.com` 短縮URLは非対応—クライアント側でリダイレクト解決できないため)
 3. **Song info step**: Video title auto-fetched via oEmbed → artist/song auto-filled (user can correct)
 4. **Cues step**: User defines 1–3 subtitle cues via DualRangeSlider (dual-thumb, ◀▶ 1s adjust, drag→seekTo)
    - If URL has `?t=`/`?start=`/`?from=`, first cue's start/end are auto-initialized from that time
@@ -26,26 +26,35 @@
 6. POST /api/posts → saved to D1 (post row + cues rows, with IP hash)
 7. Immediately appears in feed
 
-### Playback (YouTube) — via VideoSegment
-1. VideoSegment (shared component) renders thumbnail before expansion
-2. Tap thumbnail → iframe loads; first play via iframe's built-in controls (autoplay policy)
-3. YouTube IFrame API with margins (start - 5s, end + 1s), disablekb:1
-4. onTimeUpdate passes currentTime to Subtitle; active cue determined by `currentTime >= cue.showAt`
-5. Karaoke sweep progress = `(currentTime - showAt) / duration`, applied as inline `background-position`
-6. Auto-stops 1 second after segment end
-7. After first play: overlay with replay icon blocks iframe, forces replay via API
+### Playback — via VideoSegment (pre-mount architecture)
 
-### Playback (Niconico)
+All platform iframes are **pre-mounted and hidden** when collapsed. On user tap,
+`play()` is called synchronously inside the click handler so that the user gesture
+propagates to the cross-origin iframe. This avoids autoplay being blocked by
+in-app browsers (e.g. LINE) where the async gap between tap → React mount → iframe
+init → playVideo() causes the gesture to expire.
+
+Each player component exposes an imperative `play()` handle via `forwardRef` +
+`useImperativeHandle`. VideoSegment holds refs to all three and calls the
+appropriate one on click.
+
+**YouTube**
+1. YouTube IFrame API with `autoplay:0`, `playsinline:1`
+2. `onReady` signals iframe is ready; `play()` calls `seekTo(startSec - 5s)` + `playVideo()`
+3. onTimeUpdate → Subtitle sync; karaoke sweep via `background-position`
+4. Subtitle font auto-scales: base 1.875rem, shrinks to fit 1 line (floor 1.25rem), wraps beyond. Max 30 chars per cue (input maxLength). Up to ~3 lines on mobile
+5. Auto-stops at `endSec + 0.3s`; overlay blocks direct iframe interaction
+
+**Niconico**
 1. embed.nicovideo.jp iframe (commentLayerMode=0, comments OFF)
-2. postMessage API for seek+play control, same pre/post margins as YouTube
+2. `play()` sends postMessage seek + play commands
 3. Simulated time updates (Date.now-based) for subtitle sync
 4. Timer-based segment end detection
 
-### Playback (SoundCloud)
-1. SoundCloud Widget API (`w.soundcloud.com/player`) embedded via iframe
-2. `seekTo` for segment start, `PLAY_PROGRESS` event for time tracking and subtitle sync
-3. Same pre/post margins as YouTube/Niconico for segment playback
-4. `segmentEndedRef` prevents multi-fire of segment end detection
+**SoundCloud**
+1. SoundCloud Widget API (`w.soundcloud.com/player`) with `auto_play=false`
+2. `play()` calls `seekTo` + `widget.play()`; `PLAY_PROGRESS` for time tracking
+3. `segmentEndedRef` prevents multi-fire of segment end detection
 
 ### Spoiler/Reveal
 1. PostCard initially hides cue texts
@@ -160,7 +169,7 @@
 
 ## Sticky Header
 
-- Header shrinks on scroll (threshold >80px): icon 48→24px, title 2xl→sm, alias/subtitle hidden
+- Header shrinks on scroll with hysteresis (shrink at 80px, expand at 40px). All transitions are **instant** (no CSS transition) to prevent scroll-position feedback loops that cause jitter. Alias/subtitle are conditionally rendered (not animated) so height changes happen in a single layout pass
 - Header + nav wrapped in sticky container (`z-40`)
 - Click title to scroll to top
 
