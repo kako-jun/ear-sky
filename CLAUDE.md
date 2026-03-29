@@ -12,36 +12,41 @@
 
 ```
 src/
-├── App.tsx              # Main SPA (tabs: New/Hall of Fame/Post)
+├── App.tsx              # Main SPA (tabs: New/Hall of Fame/Search/Post). 447 lines after refactoring
 ├── main.tsx             # Entry point + SW registration + localStorage migration
-├── index.css            # Tailwind + neon theme
+├── index.css            # Tailwind + neon theme + sticky-header override
 ├── types/
-│   ├── index.ts         # Post, SubtitleCue, Draft, Pickup, LANGUAGES, CURATED_EMOJI
+│   ├── index.ts         # Post, SubtitleCue, Draft, Pickup, LANGUAGES, CURATED_EMOJI, PAGE_SIZE
 │   └── youtube.d.ts     # YouTube IFrame API type definitions
 ├── i18n/
 │   ├── en.ts            # English strings (default)
 │   ├── ja.ts            # Japanese strings
-│   └── index.ts         # useI18n() hook, locale detection
+│   └── index.ts         # useI18n() hook, locale detection, dynamic toggle
 ├── lib/
-│   ├── api.ts           # D1 API client (fetch wrapper)
+│   ├── api.ts           # D1 API client (fetch wrapper, throws ApiError on failure)
 │   ├── storage.ts       # localStorage (drafts + reaction tracking)
 │   ├── video.ts         # URL parsing (YouTube /live/, ?list=&v=, ?t=, ?start=; Niconico nicovideo.jp + nico.ms short URL, ?from=; SoundCloud), time formatting
 │   └── oembed.ts        # Video title auto-fetch (oEmbed/noembed)
 ├── components/
-│   ├── Header.tsx       # Neon title
-│   ├── PostEditor.tsx   # Post form (wizard: URL→preview→info→cues→about you). Preview uses PostCard(preview=true), not direct player components
-│   ├── PostCard.tsx     # Flat post layout (song→artist(era) lang→video→reveal→ID|date|poster). Song title is external link to source platform with PlatformIcon. preview prop: preview=true shows skeleton ID/date (animate-pulse) and hides reactions
+│   ├── Header.tsx       # Neon title + sticky shrink (useShrunk hook: scrollY>80px → compact mode)
+│   ├── PostEditor.tsx   # Post form (wizard: URL→preview→info→cues→about you). Preview uses PostCard(preview=true)
+│   ├── PostCard.tsx     # Flat post layout (song→artist(era) lang→video→reveal→ID|date|poster). PlatformIcon + external link
+│   ├── EmptyState.tsx   # No-posts state with soramimi explanation and CTA
+│   ├── ShareButton.tsx  # Share button (Web Share / clipboard)
+│   ├── Paginator.tsx    # Range-button pagination (±1 + first/last, PAGE_SIZE=10)
+│   ├── RankingList.tsx  # Hall of Fame ranked post list with top emoji
+│   ├── Footer.tsx       # Site info, QR code, author links, sponsor, nostalgic-counter
 │   ├── PickupCorner.tsx # Pickup corner (master & regular banter)
 │   ├── VideoSegment.tsx # Shared video+subtitle component (PostCard/PickupCorner共通)
-│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback (controls:1, width/height 100%, no `end` playerVar). 統合オーバーレイ: playing||segmentEndedで表示、再生中は透明でiframe操作遮断、segmentEnded時はbg-black/30+RotateCcw+handlePlay
-│   ├── NiconicoPlayer.tsx # Niconico embed segment playback. 統合オーバーレイ: YouTubeと同パターン（handlePlay）
-│   ├── SoundCloudPlayer.tsx # SoundCloud Widget API segment playback. 統合オーバーレイ: YouTubeと同パターン（handleReplay）
+│   ├── YouTubePlayer.tsx # YouTube IFrame API segment playback. 統合オーバーレイ
+│   ├── NiconicoPlayer.tsx # Niconico embed segment playback. 統合オーバーレイ
+│   ├── SoundCloudPlayer.tsx # SoundCloud Widget API segment playback. 統合オーバーレイ
 │   ├── PlatformIcon.tsx # Platform SVG icons (YouTube/Niconico/SoundCloud)
 │   ├── Subtitle.tsx     # Karaoke subtitle (currentTime→progress直接計算, 複数cue対応)
 │   ├── DualRangeSlider.tsx # Dual-thumb range slider (◀▶ 1s adjust, drag→seekTo連動)
 │   ├── NightBackground.tsx # Day-rotating night scene background
-│   ├── Reactions.tsx    # Emoji picker + reaction badges (Slack-style, 1 per user)
-│   └── Toast.tsx        # Notification toast
+│   ├── Reactions.tsx    # Emoji picker + reaction badges (Slack-style, 12 emoji, 1 per user)
+│   └── Toast.tsx        # Notification toast (auto-dismiss 3s, stable onClose ref)
 functions/
 ├── api/
 │   └── [[route]].ts     # Hono API routes (Pages Functions)
@@ -57,14 +62,16 @@ migrations/
 ├── 0002_security.sql    # ip_hash, delete_key columns
 ├── 0003_emoji_reactions.sql  # emoji reactions + era/comment columns
 ├── 0004_cues.sql        # cues table (multiple subtitle cues per post)
-└── 0005_play_count.sql  # play_count column on posts
+├── 0005_play_count.sql  # play_count column on posts
+├── 0006_tags.sql        # post_tags table (genre/source tags, max 3 per post)
+└── 0007_cascade_delete.sql  # ON DELETE CASCADE for reactions + post_tags
 ```
 
 ## API Endpoints
 
 | Method | Path | Description |
 |---|---|---|
-| GET | /api/posts | List posts (?sort=new\|likes&month=YYYY-MM&limit&offset) |
+| GET | /api/posts | List posts (?sort=new\|likes&month=YYYY-MM&q=&sourceLang=&targetLang=&tags=anime,game&limit&offset) |
 | GET | /api/posts/:id | Get single post |
 | POST | /api/posts | Create post (rate limit: 30s/1 per IP) |
 | DELETE | /api/posts/:id | Delete post (deleteKey required) |
@@ -75,7 +82,7 @@ migrations/
 
 ## Reaction System
 
-- **Emoji picker**: 16 curated emoji, user picks ONE per post
+- **Emoji picker**: 12 curated emoji, user picks ONE per post
 - **Default reaction**: 投稿作成時にAPIがバッチ内で🎵を自動シード（投稿者のipHash）。Reddit式の初期スコア
 - **Server**: `UNIQUE(post_id, ip_hash)` constraint — one reaction per user per post
 - **Switching**: PUT with new emoji replaces the old one
@@ -152,13 +159,13 @@ migrations/
 - `useI18n()` hook returns messages based on `navigator.language`
 - alias/closingからダッシュ文字(—)を除去済み。footer.siteAlias追加
 - **ダッシュ装飾**: テキストの「—」→CSSグラデーション線（from-white/30 to-transparent, w-10〜w-12）。Header alias, PickupCorner closing, Footer siteAlias の3箇所
-- Language toggle UI planned for future
+- **Language toggle**: Header right, Globe icon, EN↔JA cycle, localStorage persisted
 
 ## Post Deletion (Frontend)
 
-- **UI flow**: PostCard has a small Trash2 icon (white/15, bottom-right). Click → delete key input field appears (type=password) → submit → `deletePost(id, key)` API call → on success, `onDeleted?.(id)` callback removes card from feed
+- **UI flow**: PostCard has a small Trash2 icon (white/35, bottom-right). Click → delete key input field appears (type=password) → submit → `deletePost(id, key)` API call → on success, `onDeleted?.(id)` callback removes card from feed
 - **localStorage pre-fill**: Delete key input initializes from `localStorage.getItem("ear-sky-delete-key")` (saved by PostEditor on successful post). Shared across all PostCards. Wrong key for another user's post is rejected server-side (ApiError)
-- **Error state**: `deleteError` turns input border red. No text message shown. User can retry or close (✕ button)
+- **Error state**: `deleteError` turns input border red + "Wrong key" text shown. Input and cancel disabled during deletion. User can retry or close (✕ button)
 - **preview=false only**: Entire delete UI is gated by `!preview`
 - **Feed tab**: `onDeleted` callback filters the post out of `feedPosts` state immediately
 - **Hall of Fame tab**: `onDeleted` is not passed. Deletion succeeds on API but card remains in UI until reload. `deleting` state stays true (button shows "...") — user can close the form via ✕
@@ -178,7 +185,7 @@ migrations/
 - Background: Night bar street gradient (night-deep → bar-wall → bar-counter)
 - Day-rotating background images (7 Gemini-generated night scenes, webp)
 - Accents: Neon Pink (#ff2d78), Neon Blue (#00d4ff), Neon Yellow (#ffe156)
-- Text: white/60+ (AA contrast)
+- Text: white/30+ (decorative) to white/50+ (interactive/readable), WCAG AA improved
 - Subtitle: Karaoke left→right sweep (transparent→white), progress driven by currentTime (no CSS animation)
 - Icon: Copilot-generated cloud-cat-ear mascot (public/icon-*.png), used in Header and EmptyState. Top-level OGP uses icon-512.png with twitter:card=summary. Per-post OGP uses platform thumbnails where available
 - prefers-reduced-motion supported

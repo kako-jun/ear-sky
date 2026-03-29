@@ -5,7 +5,7 @@
 ```
 [Browser] → [CF Pages (static SPA)] → [Pages Functions (Hono API)] → [D1 (SQLite)]
                                    ↕
-                          [YouTube/Niconico embedded players]
+                          [YouTube/Niconico/SoundCloud embedded players]
                           [Nostalgic Counter API]
                           [noembed.com (oEmbed proxy)]
                           [/share/:id → Dynamic OGP (bot meta tags)]
@@ -15,8 +15,8 @@
 ## Data Flow
 
 ### Posting (Wizard Flow)
-1. User pastes a video URL → instant preview loads (URL未入力時はYouTube/niconicoへのExternalLink付きリンクを表示)
-2. URL parsed to extract platform/videoId/startSec (`video.ts` — YouTube `/watch?v=`, `/shorts/`, `/live/`, `/embed/`, `youtu.be/`, `?list=...&v=...` 対応; `?t=`/`&t=`/`?start=` で開始時刻取得; niconico `?from=` も同様)
+1. User pastes a video URL → instant preview loads (URL未入力時はYouTube/niconico/SoundCloudへのExternalLink付きリンクを表示)
+2. URL parsed to extract platform/videoId/startSec (`video.ts` — YouTube `/watch?v=`, `/shorts/`, `/live/`, `/embed/`, `youtu.be/`, `?list=...&v=...` 対応; `?t=`/`&t=`/`?start=` で開始時刻取得; niconico `?from=` も同様; SoundCloud URLs via `soundcloud.com/:artist/:track`)
 3. **Song info step**: Video title auto-fetched via oEmbed → artist/song auto-filled (user can correct)
 4. **Cues step**: User defines 1–3 subtitle cues via DualRangeSlider (dual-thumb, ◀▶ 1s adjust, drag→seekTo)
    - If URL has `?t=`/`?start=`/`?from=`, first cue's start/end are auto-initialized from that time
@@ -41,14 +41,20 @@
 3. Simulated time updates (Date.now-based) for subtitle sync
 4. Timer-based segment end detection
 
+### Playback (SoundCloud)
+1. SoundCloud Widget API (`w.soundcloud.com/player`) embedded via iframe
+2. `seekTo` for segment start, `PLAY_PROGRESS` event for time tracking and subtitle sync
+3. Same pre/post margins as YouTube/Niconico for segment playback
+4. `segmentEndedRef` prevents multi-fire of segment end detection
+
 ### Spoiler/Reveal
-1. PostCard initially hides cue texts (shows "???" with inline reveal button)
-2. Reveal triggers: playback reaches first cue's showAt (via VideoSegment onCueReached) OR "Show mishearing" button
+1. PostCard initially hides cue texts
+2. Reveal triggers: playback reaches end of LAST cue (via VideoSegment onCueReached) — no manual reveal button, playback only
 3. Text appears with fade-in animation
 4. Karaoke subtitle plays during each cue with time-synced sweep (progress-based), stays visible after sweep
 
 ### Reactions (Emoji Picker)
-1. User taps "+reaction" label (shown when 0 reactions) or "+" button → emoji picker popover with 16 curated emoji
+1. User taps "+reaction" label (shown when 0 reactions) or "+" button → emoji picker popover with 12 curated emoji
 2. Each user (IP) can pick exactly ONE emoji per post
 3. Clicking a different emoji switches the reaction
 4. Clicking the current emoji removes it (toggle off)
@@ -78,7 +84,7 @@
 - Japanese detected via `navigator.language`
 - All UI strings externalized in `src/i18n/en.ts` and `src/i18n/ja.ts`
 - `useI18n()` hook provides messages to components
-- Language toggle UI planned for future
+- Language toggle implemented in header right (globe icon, EN↔JA cycle, saved to localStorage)
 
 ## Table Schema
 
@@ -87,7 +93,7 @@
 |---|---|---|
 | id | TEXT PK | UUID |
 | video_url | TEXT | Original video URL |
-| platform | TEXT | youtube / niconico / other |
+| platform | TEXT | youtube / niconico / soundcloud / other |
 | video_id | TEXT | Platform-specific ID |
 | start_sec | REAL | Start second |
 | end_sec | REAL | End second |
@@ -103,6 +109,7 @@
 | delete_key | TEXT? | Deletion key |
 | era | TEXT? | Era/year (e.g. "1985", "90s") |
 | comment | TEXT? | One-liner comment |
+| play_count | INTEGER | Play count (DEFAULT 0) |
 | created_at | TEXT | Created timestamp |
 
 ### reactions
@@ -114,7 +121,7 @@
 | ip_hash | TEXT | Reactor IP hash |
 | created_at | TEXT | Timestamp |
 
-**Constraints:** UNIQUE(post_id, ip_hash) — one reaction per user per post.
+**Constraints:** UNIQUE(post_id, ip_hash) — one reaction per user per post. `post_id` FK has ON DELETE CASCADE (migration 0007).
 
 ### cues
 | Column | Type | Description |
@@ -130,3 +137,45 @@
 
 **Index:** `idx_cues_post_id` on `post_id`.
 **Migration (0004):** Existing posts' `misheard_text + start_sec + end_sec` auto-migrated to one cue each.
+
+### post_tags
+| Column | Type | Description |
+|---|---|---|
+| id | INTEGER PK | Auto-increment |
+| post_id | TEXT FK | Post ID (ON DELETE CASCADE) |
+| tag | TEXT | Tag string |
+| created_at | TEXT | Timestamp |
+
+**Constraints:** UNIQUE(post_id, tag) — one tag per post per value. `post_id` FK has ON DELETE CASCADE (migration 0007).
+
+## Search & Pagination
+
+- `GET /api/posts` supports query parameters:
+  - `q` — text search (LIKE with proper escape of `%`, `_`, `\`)
+  - `sourceLang` — filter by source language
+  - `targetLang` — filter by target language
+  - `tags` — comma-separated tags (validated against VALID_TAGS whitelist, max 3)
+- Pagination via `limit`/`offset`, `PAGE_SIZE=10`
+- 4 tabs in the UI: feed / fame / search / post
+
+## Sticky Header
+
+- Header shrinks on scroll (threshold >80px): icon 48→24px, title 2xl→sm, alias/subtitle hidden
+- Header + nav wrapped in sticky container (`z-40`)
+- Click title to scroll to top
+
+## Extracted Components
+
+- `EmptyState.tsx` — empty state display
+- `ShareButton.tsx` — share/link copy button
+- `Paginator.tsx` — pagination controls
+- `RankingList.tsx` — fame/ranking tab list
+- `Footer.tsx` — site footer
+
+## Migrations
+
+| Migration | Description |
+|---|---|
+| 0004 | Cues table + auto-migration from legacy fields |
+| 0006_tags.sql | `post_tags` table (id, post_id FK CASCADE, tag, UNIQUE(post_id, tag)) |
+| 0007_cascade_delete.sql | Rebuild reactions/post_tags FKs with ON DELETE CASCADE |
