@@ -320,6 +320,18 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
         {url && !parsed && (
           <p className="text-xs text-red-400">{t.editor.urlInvalid}</p>
         )}
+        {!parsed && (
+          <div className="flex items-center gap-3 text-[11px] text-white/25">
+            <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer"
+               className="hover:text-white/50 transition-colors">
+              YouTube →
+            </a>
+            <a href="https://www.nicovideo.jp" target="_blank" rel="noopener noreferrer"
+               className="hover:text-white/50 transition-colors">
+              niconico →
+            </a>
+          </div>
+        )}
       </div>
 
       {/* === 2. Video Player (appears immediately after valid URL) === */}
