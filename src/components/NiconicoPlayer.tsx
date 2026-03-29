@@ -32,6 +32,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const playStartTimeRef = useRef<number>(0);
+  const startedRef = useRef(false);
   const onPlayingRef = useRef(onPlaying);
   onPlayingRef.current = onPlaying;
   const onSegmentEndRef = useRef(onSegmentEnd);
@@ -44,53 +45,83 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
 
   const playStart = Math.max(0, startSec - PRE_MARGIN);
   const playEnd = endSec + POST_MARGIN;
+  const playStartRef = useRef(playStart);
+  playStartRef.current = playStart;
+  const playEndRef = useRef(playEnd);
+  playEndRef.current = playEnd;
 
-  const doPlay = useCallback(() => {
+  // Start subtitle timer + segment end detection (called when playback actually begins)
+  const startTimer = useCallback(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    onPlayingRef.current?.();
+
+    playStartTimeRef.current = Date.now();
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      const elapsed = (Date.now() - playStartTimeRef.current) / 1000;
+      const currentTime = playStartRef.current + elapsed;
+      onTimeUpdateRef.current?.(currentTime);
+    }, 100);
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const duration = (playEndRef.current - playStartRef.current) * 1000;
+    timerRef.current = setTimeout(() => {
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ eventName: "pause" }),
+          "https://embed.nicovideo.jp"
+        );
+      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      onSegmentEndRef.current?.();
+    }, duration);
+  }, []);
+
+  // Send play command via postMessage
+  const sendPlay = useCallback(() => {
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ eventName: "seek", data: { time: playStart } }),
+        JSON.stringify({ eventName: "seek", data: { time: playStartRef.current } }),
         "https://embed.nicovideo.jp"
       );
       iframeRef.current.contentWindow.postMessage(
         JSON.stringify({ eventName: "play" }),
         "https://embed.nicovideo.jp"
       );
-      onPlayingRef.current?.();
-
-      playStartTimeRef.current = Date.now();
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      intervalRef.current = setInterval(() => {
-        const elapsed = (Date.now() - playStartTimeRef.current) / 1000;
-        const currentTime = playStart + elapsed;
-        onTimeUpdateRef.current?.(currentTime);
-      }, 100);
-
-      if (timerRef.current) clearTimeout(timerRef.current);
-      const duration = (playEnd - playStart) * 1000;
-      timerRef.current = setTimeout(() => {
-        if (iframeRef.current?.contentWindow) {
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ eventName: "pause" }),
-            "https://embed.nicovideo.jp"
-          );
-        }
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        onSegmentEndRef.current?.();
-      }, duration);
     }
-  }, [playStart, playEnd]);
+  }, []);
 
   useImperativeHandle(ref, () => ({
-    play: doPlay,
-  }), [doPlay]);
+    play: () => {
+      sendPlay();
+      startTimer();
+    },
+  }), [sendPlay, startTimer]);
+
+  // Listen for Niconico's playerStatusChange event to detect actual playback start
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.origin !== "https://embed.nicovideo.jp") return;
+      try {
+        const data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+        if (data.eventName === "playerStatusChange" && data.data?.playerStatus === 2) {
+          // playerStatus 2 = playing
+          startTimer();
+        }
+      } catch { /* ignore non-JSON messages */ }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [startTimer]);
 
   const handleIframeLoad = useCallback(() => {
     onReadyRef.current?.();
-    // Auto-play on mount (mount-on-click: iframe only exists after user click).
-    // Delay needed: iframe onLoad fires when the HTML loads, but Niconico's
-    // internal player JS needs time to initialize before accepting postMessage.
-    setTimeout(() => doPlay(), 1500);
-  }, [doPlay]);
+    // Try to auto-play via postMessage after a short delay.
+    // If it fails (gesture expired), user clicks Niconico's native button,
+    // and we detect playback via playerStatusChange event above.
+    setTimeout(() => sendPlay(), 500);
+  }, [sendPlay]);
 
   useEffect(() => {
     return () => {
