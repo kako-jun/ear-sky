@@ -71,7 +71,7 @@ migrations/
 | PUT | /api/posts/:id/reaction | Set/switch emoji reaction (1 per user per post) |
 | DELETE | /api/posts/:id/reaction | Remove your reaction |
 | POST | /api/posts/:id/play | Increment play count (fire-and-forget, no dedup) |
-| GET | /share/:id | Dynamic OGP (meta tags for bots, redirect for browsers). Title: `{artist}「{song}」の空耳`（ネタバレ防止: 曲名のみ）. Description: 固定テンプレ「この部分、こう聴こえない？ 再生して確かめよう」. Image: YouTube投稿はhqdefaultサムネイル+キャッシュバスティング(?v=2)、その他はサイトOGPにフォールバック. twitter:card: summary_large_image |
+| GET | /share/:id | Dynamic OGP (meta tags for bots, redirect for browsers). Title: `{artist}「{song}」の空耳`（ネタバレ防止: 曲名のみ）. Description: 固定テンプレ「この部分、こう聴こえない？ 再生して確かめよう」. Image: YouTube→hqdefaultサムネイル、ニコニコ→cdn.nimg.jpサムネイル、SoundCloud→icon-512.pngフォールバック. twitter:card: YouTube/ニコニコはsummary_large_image、SoundCloudはsummary |
 
 ## Reaction System
 
@@ -89,7 +89,7 @@ migrations/
 - **API**: `POST /api/posts/:id/play` increments play_count by 1. No authentication, no dedup — 1 user can count multiple times
 - **Frontend**: VideoSegment's `onFirstPlay` callback fires once per component mount (guarded by `firstPlayFired` ref). PostCard calls `recordPlay(post.id)` via fire-and-forget fetch (`.catch(() => {})`)
 - **Preview mode**: `preview=true` skips the recordPlay call
-- **Display**: PostCard meta row, right-aligned with `ml-auto`. Hidden when playCount is 0
+- **Display**: PostCard meta row, right-aligned with `ml-auto`, Headphones icon (lucide-react) + count. Hidden when playCount is 0
 - **Omit type**: `playCount` is omitted from PostData, Draft, createPost, saveDraft (server-managed field)
 
 ## Subtitle System (cues)
@@ -98,13 +98,15 @@ migrations/
 - **Type**: `SubtitleCue { text, originalText?, showAt, duration }` — `Post.cues: SubtitleCue[]`
 - **No CSS animation**: Progress computed directly from `currentTime - cue.showAt` / `cue.duration`; `background-position` set via inline style
 - **Subtitle.tsx**: Receives `cues[]` + `currentTime`, finds active cue, calculates progress 0→1, renders karaoke sweep (transparent→white, fill layer uses background-clip:text, no textShadow). スイープ境界は2%幅グラデーション帯（49%-51%, rgba(255,255,255,0.5)）でハードカットではなく滑らかに遷移。After sweep completes, text remains visible (bar-style residual). Subtitle persists after playback ends
-- **VideoSegment.tsx**: Shared component wrapping video player + Subtitle, used by both PostCard and PickupCorner
+- **VideoSegment.tsx**: Shared component wrapping video player + Subtitle, used by both PostCard and PickupCorner. `onCueReached` fires after the last cue finishes (not after the first)
+- **Multiple cue reveal display**: PostCard shows each cue's text as a separate block when `cues.length > 1` (individual `<div>` per cue with text + originalText). Single cue uses the legacy `misheardText` field
+- **Cue editing chaining**: Editing a subsequent cue's startSec auto-updates the previous cue's endSec. Forward chaining ensures subsequent cue starts match the prior cue's end, with minimum 3s duration enforcement
 - **Frontend cue limit**: Max 3 cues per post (PostEditor enforces)
 
 ## Spoiler/Reveal Mechanism
 
 - PostCard hides cue texts initially (shows hint text via `revealHint` i18n key)
-- Reveal trigger: Playback reaches a cue region (onCueReached). No manual reveal button — reveal is playback-only
+- Reveal trigger: Playback reaches the end of the **last** cue (onCueReached fires when `currentTime >= lastCue.showAt + lastCue.duration`). No manual reveal button — reveal is playback-only
 - In preview mode (`preview=true`), revealed is initially true (no spoiler gate)
 - Karaoke-style subtitle appears when playback reaches each cue's showAt (time-synced via currentTime), stays visible after sweep (番組風)
 - Playback has pre-margin (5s) and post-margin (0.3s) around the segment (POST_MARGIN=0.3s, all players)
@@ -134,6 +136,8 @@ migrations/
 - **Section naming**: 「あなたについて/About you」→「投稿者名・削除キー/Nickname & delete key」
 - **deleteKey**: localStorageから復元（初期値）、投稿成功時に保存。type=password, autoComplete=off
 - **Cue hint**: A single note is displayed once below the subtitle section header (not per cue), explaining that the time range is for the misheard part and playback starts 5 sec before automatically
+- **Cue editing**: First cue uses DualRangeSlider for start+end. Subsequent cues (2nd, 3rd) also have editable start via DualRangeSlider; changing start auto-updates the previous cue's end to match
+- **Draft list UX**: Hover effect (`hover:text-white hover:bg-white/5`) + underline (`underline underline-offset-2 decoration-white/20`) on draft items for clickable affordance
 
 ## i18n
 
@@ -161,7 +165,7 @@ migrations/
 - Accents: Neon Pink (#ff2d78), Neon Blue (#00d4ff), Neon Yellow (#ffe156)
 - Text: white/60+ (AA contrast)
 - Subtitle: Karaoke left→right sweep (transparent→white), progress driven by currentTime (no CSS animation)
-- Icon: Copilot-generated cloud-cat-ear mascot (public/icon-*.png), used in Header and EmptyState. OGP image includes icon
+- Icon: Copilot-generated cloud-cat-ear mascot (public/icon-*.png), used in Header and EmptyState. Top-level OGP uses icon-512.png with twitter:card=summary. Per-post OGP uses platform thumbnails where available
 - prefers-reduced-motion supported
 - Mobile background: `100lvh` to prevent jitter from address bar toggle
 

@@ -10,7 +10,7 @@ https://ear-sky.llll-ll.com
 
 A foreign song sounds like words in your language — share that discovery here.
 
-Paste a YouTube or Niconico URL with a time range, and your misheard text appears as a karaoke-style subtitle over the video. Just like that TV show.
+Paste a YouTube, Niconico, or SoundCloud URL with a time range, and your misheard text appears as a karaoke-style subtitle over the video. Just like that TV show.
 
 ## How to use
 
@@ -32,7 +32,7 @@ Not just English→Japanese.
 
 ## Spoiler experience
 
-Misheard text is hidden by default. Play the video or tap "Show mishearing" to reveal — listen first, then see if you hear it too!
+Misheard text is hidden by default. Play the video and the text reveals automatically after the subtitle finishes — listen first, then see if you hear it too! Posts with multiple cues show each one separately.
 
 ## Reactions
 
@@ -46,7 +46,7 @@ Posts ranked by total reactions. See the all-time best mishearings.
 
 - No registration required
 - No personal information stored
-- Videos play via YouTube/Niconico embeds only — this site hosts no content
+- Videos play via YouTube/Niconico/SoundCloud embeds only — this site hosts no content
 
 ## Made by
 
