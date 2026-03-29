@@ -47,6 +47,7 @@ const en = {
     sectionSong: "Song",
     sectionSubtitle: "Subtitles",
     sectionAboutYou: "About you",
+    cueHint: "Set the range of the misheard part. Playback starts 5 sec before automatically.",
     cueLabel: "Subtitle",
     addCue: "Add subtitle",
     removeCue: "Remove",

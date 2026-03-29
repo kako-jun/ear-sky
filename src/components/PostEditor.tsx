@@ -453,6 +453,9 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
 
       {/* === 4. Subtitles (slider + text per cue) === */}
       {parsed && <SectionHeader text={t.editor.sectionSubtitle} />}
+      {parsed && (
+        <p className="text-xs text-white/30 -mt-2 mb-3">{t.editor.cueHint}</p>
+      )}
 
       {cues.map((cue, i) => (
         <div key={cue.id} className="space-y-3 p-3 rounded-lg border border-white/10 bg-white/[0.02]">

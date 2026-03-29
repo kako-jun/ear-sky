@@ -49,6 +49,7 @@ const ja: Messages = {
     sectionSong: "曲情報",
     sectionSubtitle: "字幕",
     sectionAboutYou: "あなたについて",
+    cueHint: "空耳に聴こえる部分の範囲を指定してください。再生は自動で5秒前から始まります。",
     cueLabel: "字幕",
     addCue: "字幕を追加",
     removeCue: "削除",
