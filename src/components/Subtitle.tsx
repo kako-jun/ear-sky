@@ -37,7 +37,7 @@ export default function Subtitle({ cues, currentTime }: Props) {
       <p
         className="text-3xl md:text-4xl font-black tracking-wider relative"
         style={{
-          background: "linear-gradient(90deg, #fff 0%, #fff 50%, transparent 50%, transparent 100%)",
+          background: "linear-gradient(90deg, #fff 0%, #fff 46%, rgba(255,255,255,0.3) 50%, transparent 54%, transparent 100%)",
           backgroundSize: "200% 100%",
           backgroundPosition: bgPos,
           WebkitBackgroundClip: "text",
