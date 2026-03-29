@@ -115,20 +115,18 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
         onError={() => setError(true)}
       />
 
-      {/* Hole overlay: blocks clicks everywhere except the center play button area.
-         The center ~30% area is empty (no element), so clicks pass through to Niconico.
+      {/* Hole overlay: circular hole in the center lets clicks through to Niconico's
+         native play button. radial-gradient mask cuts a transparent circle.
          VideoSegment detects the iframe click via window.blur and starts the timer. */}
       {showOverlay && (
         <>
-          {/* Top block */}
-          <div className="absolute top-0 left-0 right-0 h-[35%] bg-black/50 z-10" />
-          {/* Bottom block */}
-          <div className="absolute bottom-0 left-0 right-0 h-[35%] bg-black/50 z-10" />
-          {/* Left block */}
-          <div className="absolute top-[35%] left-0 w-[40%] h-[30%] bg-black/50 z-10" />
-          {/* Right block */}
-          <div className="absolute top-[35%] right-0 w-[40%] h-[30%] bg-black/50 z-10" />
-          {/* Visual play icon (pointer-events-none, doesn't block) */}
+          <div
+            className="absolute inset-0 z-10 bg-black/50"
+            style={{
+              WebkitMaskImage: "radial-gradient(circle 36px at center, transparent 100%, black calc(100% + 1px))",
+              maskImage: "radial-gradient(circle 36px at center, transparent 100%, black calc(100% + 1px))",
+            }}
+          />
           <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none text-white/80">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
               <polygon points="5,3 19,12 5,21" />
