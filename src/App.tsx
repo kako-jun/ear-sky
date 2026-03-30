@@ -13,6 +13,7 @@ import Header, { useShrunk } from "@/components/Header";
 import Toast from "@/components/Toast";
 import PickupCorner from "@/components/PickupCorner";
 import NightBackground from "@/components/NightBackground";
+import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import { Sparkles, Award, PenLine, ChevronDown, Search, X } from "lucide-react";
 
 type Tab = "feed" | "fame" | "search" | "post";
@@ -460,6 +461,7 @@ function AppInner() {
       </main>
 
       <Footer />
+      <PwaInstallPrompt />
     </div>
   );
 }

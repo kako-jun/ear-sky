@@ -130,6 +130,11 @@ const ja: Messages = {
     replay: "もう一度再生",
     cannotPlay: "このトラックは再生できません",
   },
+  pwa: {
+    installPrompt: "ホーム画面に追加する？",
+    installBtn: "インストール",
+    installDismiss: "あとで",
+  },
   platform: {
     youtube: "YouTube",
     niconico: "ニコニコ動画",

@@ -1,5 +1,5 @@
 const CACHE_NAME = "ear-sky-__BUILD_DATE__";
-const STATIC_ASSETS = ["/", "/favicon.svg", "/icon-192.png"];
+const STATIC_ASSETS = ["/", "/icon-192.png", "/favicon-32.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

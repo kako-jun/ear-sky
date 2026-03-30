@@ -128,6 +128,11 @@ const en = {
     replay: "Play again",
     cannotPlay: "This track cannot be played",
   },
+  pwa: {
+    installPrompt: "Add to home screen?",
+    installBtn: "Install",
+    installDismiss: "Later",
+  },
   platform: {
     youtube: "YouTube",
     niconico: "Niconico",
