@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { Post, VALID_TAGS } from "@/types";
 import { parseVideoUrl } from "@/lib/video";
 import { recordPlay, deletePost } from "@/lib/api";
+import { getStorageValue } from "@/lib/storage";
 import { useI18n, useI18nState } from "@/i18n";
 import VideoSegment from "./VideoSegment";
 import Reactions from "./Reactions";
@@ -22,9 +23,7 @@ export default function PostCard({ post, showPlayer = false, preview = false, on
   const [revealed, setRevealed] = useState(preview);
   const [idCopied, setIdCopied] = useState(false);
   const [showDeleteInput, setShowDeleteInput] = useState(false);
-  const [deleteKeyInput, setDeleteKeyInput] = useState(() => {
-    try { return localStorage.getItem("ear-sky-delete-key") || ""; } catch { return ""; }
-  });
+  const [deleteKeyInput, setDeleteKeyInput] = useState(() => getStorageValue("deleteKey") || "");
   const [deleteError, setDeleteError] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);

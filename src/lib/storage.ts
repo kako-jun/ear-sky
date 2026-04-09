@@ -1,34 +1,65 @@
 import { Post, Draft } from "@/types";
 
-function safeSetItem(key: string, value: string): void {
+// --- Single root key for all localStorage data ---
+
+const ROOT_KEY = "ear-sky";
+
+interface StorageData {
+  nickname?: string;
+  deleteKey?: string;
+  drafts?: Draft[];
+  reactions?: Record<string, string>;
+  locale?: string;
+  langFilter?: string;
+}
+
+function readRoot(): StorageData {
+  if (typeof window === "undefined") return {};
   try {
-    localStorage.setItem(key, value);
+    const raw = localStorage.getItem(ROOT_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as StorageData;
+  } catch {
+    return {};
+  }
+}
+
+function writeRoot(data: StorageData): void {
+  try {
+    localStorage.setItem(ROOT_KEY, JSON.stringify(data));
   } catch {
     /* quota exceeded or private browsing */
   }
 }
 
-const DRAFTS_KEY = "ear-sky-drafts";
-const REACTIONS_KEY = "ear-sky-reactions";
+function updateRoot(updater: (data: StorageData) => void): void {
+  const data = readRoot();
+  updater(data);
+  writeRoot(data);
+}
+
+// --- Generic getters/setters ---
+
+export function getStorageValue<K extends keyof StorageData>(key: K): StorageData[K] {
+  return readRoot()[key];
+}
+
+export function setStorageValue<K extends keyof StorageData>(key: K, value: StorageData[K]): void {
+  updateRoot((data) => { data[key] = value; });
+}
 
 // --- Drafts (local only) ---
 
 export function getAllDrafts(): Draft[] {
-  if (typeof window === "undefined") return [];
-  const raw = localStorage.getItem(DRAFTS_KEY);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw) as Draft[];
-  } catch {
-    return [];
-  }
+  return readRoot().drafts ?? [];
 }
 
 export function saveDraft(
   data: Omit<Post, "id" | "likes" | "createdAt" | "reactions" | "totalReactions" | "playCount">,
   existingId?: string
 ): Draft {
-  const drafts = getAllDrafts();
+  const root = readRoot();
+  const drafts = root.drafts ?? [];
   if (existingId) {
     const idx = drafts.findIndex((d) => d.id === existingId);
     if (idx >= 0) {
@@ -37,7 +68,8 @@ export function saveDraft(
         data,
         updatedAt: new Date().toISOString(),
       };
-      safeSetItem(DRAFTS_KEY, JSON.stringify(drafts));
+      root.drafts = drafts;
+      writeRoot(root);
       return drafts[idx];
     }
   }
@@ -47,42 +79,36 @@ export function saveDraft(
     updatedAt: new Date().toISOString(),
   };
   drafts.unshift(draft);
-  safeSetItem(DRAFTS_KEY, JSON.stringify(drafts));
+  root.drafts = drafts;
+  writeRoot(root);
   return draft;
 }
 
 export function deleteDraft(id: string): void {
-  const drafts = getAllDrafts().filter((d) => d.id !== id);
-  safeSetItem(DRAFTS_KEY, JSON.stringify(drafts));
+  updateRoot((data) => {
+    data.drafts = (data.drafts ?? []).filter((d) => d.id !== id);
+  });
 }
 
 // --- Reaction tracking (1 emoji per post per browser) ---
 
-function getReactionsMap(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  const raw = localStorage.getItem(REACTIONS_KEY);
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw) as Record<string, string>;
-  } catch {
-    return {};
-  }
-}
-
 export function getMyReaction(postId: string): string | null {
-  const map = getReactionsMap();
-  return map[postId] || null;
+  const reactions = readRoot().reactions ?? {};
+  return reactions[postId] || null;
 }
 
 export function setMyReaction(postId: string, emoji: string): void {
-  const map = getReactionsMap();
-  map[postId] = emoji;
-  safeSetItem(REACTIONS_KEY, JSON.stringify(map));
+  updateRoot((data) => {
+    const reactions = data.reactions ?? {};
+    reactions[postId] = emoji;
+    data.reactions = reactions;
+  });
 }
 
 export function clearMyReaction(postId: string): void {
-  const map = getReactionsMap();
-  delete map[postId];
-  safeSetItem(REACTIONS_KEY, JSON.stringify(map));
+  updateRoot((data) => {
+    const reactions = data.reactions ?? {};
+    delete reactions[postId];
+    data.reactions = reactions;
+  });
 }
-

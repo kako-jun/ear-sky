@@ -19,7 +19,7 @@ src/
 ├── i18n/                # en.ts (default), ja.ts, useI18n() hook
 ├── lib/
 │   ├── api.ts           # D1 API client (fetch wrapper, ApiError)
-│   ├── storage.ts       # localStorage (drafts + reaction tracking)
+│   ├── storage.ts       # localStorage (single "ear-sky" root key: drafts, reactions, nickname, deleteKey, locale, langFilter)
 │   ├── video.ts         # URL parsing (YouTube/Niconico/SoundCloud), time formatting
 │   └── oembed.ts        # Video title auto-fetch
 ├── components/

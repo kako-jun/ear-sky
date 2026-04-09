@@ -1,16 +1,13 @@
 import { createContext, useContext, useState, useCallback, useMemo } from "react";
 import en, { type Messages } from "./en";
 import ja from "./ja";
+import { getStorageValue, setStorageValue } from "@/lib/storage";
 
 const locales: Record<string, Messages> = { en, ja };
-const STORAGE_KEY = "ear-sky-locale";
 
 function detectLocale(): string {
-  // Check localStorage first
-  if (typeof localStorage !== "undefined") {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && saved in locales) return saved;
-  }
+  const saved = getStorageValue("locale");
+  if (saved && saved in locales) return saved;
   if (typeof navigator === "undefined") return "en";
   const lang = navigator.language.split("-")[0];
   return lang in locales ? lang : "en";
@@ -51,7 +48,7 @@ export function useI18nProvider(): I18nState {
   const setLocale = useCallback((code: string) => {
     if (code in locales) {
       setLocaleState(code);
-      localStorage.setItem(STORAGE_KEY, code);
+      setStorageValue("locale", code);
     }
   }, []);
 

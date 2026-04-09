@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { Post, VALID_TAGS, PAGE_SIZE } from "@/types";
 import { fetchPosts, fetchPost, createPost, ApiError } from "@/lib/api";
+import { getStorageValue, setStorageValue } from "@/lib/storage";
 import { useI18n, useI18nState, I18nContext, useI18nProvider } from "@/i18n";
 import PostEditor from "@/components/PostEditor";
 import PostCard from "@/components/PostCard";
@@ -35,7 +36,6 @@ export default function App() {
 }
 
 type LangFilter = "to" | "from" | "all";
-const LANG_FILTER_KEY = "ear-sky-lang-filter";
 
 function AppInner() {
   const t = useI18n();
@@ -69,7 +69,7 @@ function AppInner() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [filterTags, setFilterTags] = useState<string[]>([]);
   const [langFilter, setLangFilterState] = useState<LangFilter>(() => {
-    const saved = localStorage.getItem(LANG_FILTER_KEY);
+    const saved = getStorageValue("langFilter");
     return (saved === "to" || saved === "from" || saved === "all") ? saved : "all";
   });
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -77,7 +77,7 @@ function AppInner() {
 
   const setLangFilter = useCallback((f: LangFilter) => {
     setLangFilterState(f);
-    localStorage.setItem(LANG_FILTER_KEY, f);
+    setStorageValue("langFilter", f);
   }, []);
 
   const showToast = useCallback((message: string, type: "success" | "error" = "success") => {

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { LANGUAGES, Post, SubtitleCue, VALID_TAGS, MAX_TAGS } from "@/types";
 import { parseVideoUrl } from "@/lib/video";
-import { saveDraft, getAllDrafts, deleteDraft } from "@/lib/storage";
+import { saveDraft, getAllDrafts, deleteDraft, getStorageValue, setStorageValue } from "@/lib/storage";
 import { fetchVideoTitle, splitArtistTitle } from "@/lib/oembed";
 import { useI18n, useI18nState } from "@/i18n";
 import DualRangeSlider from "./DualRangeSlider";
@@ -79,12 +79,8 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
   ]);
 
   // About you
-  const [nickname, setNickname] = useState(() => {
-    try { return localStorage.getItem("ear-sky-nickname") || ""; } catch { return ""; }
-  });
-  const [deleteKey, setDeleteKey] = useState(() => {
-    try { return localStorage.getItem("ear-sky-delete-key") || ""; } catch { return ""; }
-  });
+  const [nickname, setNickname] = useState(() => getStorageValue("nickname") || "");
+  const [deleteKey, setDeleteKey] = useState(() => getStorageValue("deleteKey") || "");
   const [comment, setComment] = useState("");
   const [tags, setTags] = useState<string[]>([]);
 
@@ -239,10 +235,8 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     if (!data || submitting) return;
     setSubmitting(true);
     if (draftId) deleteDraft(draftId);
-    try {
-      localStorage.setItem("ear-sky-nickname", nickname.trim());
-      if (deleteKey.trim()) localStorage.setItem("ear-sky-delete-key", deleteKey.trim());
-    } catch { /* ignore */ }
+    setStorageValue("nickname", nickname.trim());
+    if (deleteKey.trim()) setStorageValue("deleteKey", deleteKey.trim());
     try {
       await onPublished(data);
     } finally {

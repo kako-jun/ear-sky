@@ -136,7 +136,7 @@ The header uses `position: fixed` (not sticky) with a spacer div measured once o
 - 12 curated emoji, user picks ONE per post
 - Default: 🎵 auto-seeded on post creation (Reddit-style initial score)
 - Server: `UNIQUE(post_id, ip_hash)` — PUT switches, DELETE removes
-- Client: localStorage tracks `{ postId: emoji }` map
+- Client: single `"ear-sky"` localStorage key stores `{ reactions: { postId: emoji } }` map
 
 ## Pickup Corner
 
@@ -149,13 +149,13 @@ The header uses `position: fixed` (not sticky) with a spacer div measured once o
 
 - Wizard flow: URL → song info (oEmbed auto-fill) → cues (DualRangeSlider) → about you
 - Preview via `PostCard(preview=true)` — no direct player usage
-- Delete key: localStorage pre-fill, type=password
+- Delete key: pre-filled from unified storage, type=password
 - Cue editing: changing cue N's start auto-updates cue N-1's end
 
 ## i18n
 
 - English default, Japanese translation
-- `useI18n()` hook, locale toggle in header (Globe icon, EN↔JA, localStorage)
+- `useI18n()` hook, locale toggle in header (Globe icon, EN↔JA, persisted via unified storage)
 - Decorative dashes replaced with CSS gradient lines (Header alias, PickupCorner closing, Footer)
 
 ## Service Worker
@@ -171,7 +171,7 @@ The header uses `position: fixed` (not sticky) with a spacer div measured once o
 - Rate limiting: IP hash-based, 30s cooldown
 - XSS prevention: OGP HTML escaping, URL protocol check
 - CORS: production domains only
-- Reaction dedup: server UNIQUE constraint + client localStorage
+- Reaction dedup: server UNIQUE constraint + client unified storage (`"ear-sky"` key)
 
 ## Database Schema
 
