@@ -85,3 +85,8 @@ These are hard-won lessons. Violating them WILL break the app:
 - Nostalgic counter ID: ear-sky-eaae1797
 - Custom domain: ear-sky.llll-ll.com
 - GitHub integration: auto-deploy on push
+
+
+## デザインシステム
+
+UIの生成・修正時は `DESIGN.md` に定義されたデザインシステムに従うこと。定義外の色・フォント・スペーシングを勝手に使わない。
