@@ -103,8 +103,8 @@ const ja: Messages = {
     disclaimer: "動画・音声は各プラットフォームの埋め込みを利用しています。",
     noHosting: "当サイトはコンテンツを一切ホスティングしていません。",
     madeBy: "Made by",
-    visitsPrefix: "閲覧数: ",
-    visitsSuffix: "",
+    visitsPrefix: "",
+    visitsSuffix: " views",
   },
   share: "シェア",
   toast: {
