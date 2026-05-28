@@ -73,8 +73,10 @@ export default function Footer() {
 
       <div className="flex items-center justify-center gap-4 text-white/25 pt-2">
         <span>
+          {t.footer.visitsPrefix}
           {/* @ts-expect-error nostalgic-counter is a Web Component */}
-          <nostalgic-counter id="ear-sky-eaae1797" type="total" format="text" />{" "}{t.footer.visits}
+          <nostalgic-counter id="ear-sky-eaae1797" type="total" format="text" style={{ fontFamily: "inherit" }} />
+          {t.footer.visitsSuffix}
         </span>
         <span>v{__BUILD_DATE__}</span>
       </div>

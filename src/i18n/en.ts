@@ -101,7 +101,8 @@ const en = {
     disclaimer: "Videos and audio use embedded players from their respective platforms.",
     noHosting: "This site does not host any content.",
     madeBy: "Made by",
-    visits: "visits",
+    visitsPrefix: "",
+    visitsSuffix: " views",
   },
   share: "Share",
   toast: {
