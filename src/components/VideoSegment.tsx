@@ -141,7 +141,11 @@ export default function VideoSegment({
             {...playerProps}
           />
           {expanded && <Subtitle cues={activeCues} currentTime={currentTime} />}
-          {!expanded && (
+          {/* Show the unified Play button whenever playback has not started yet.
+              This is decoupled from `expanded`: a deep-linked (autoExpand) Niconico
+              card is expanded from the start but still needs the button so the
+              user gesture can send seek+play (autoplay is blocked without it). */}
+          {!hasPlayed && (
             <button
               onClick={handleNicoPlayClick}
               aria-label={t.postCard.play}

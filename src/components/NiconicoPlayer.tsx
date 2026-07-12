@@ -5,6 +5,7 @@ const PRE_MARGIN = 5;
 const POST_MARGIN = 0.3;
 const NICO_ORIGIN = "https://embed.nicovideo.jp";
 const AUTOPLAY_FALLBACK_MS = 3000;
+const HINT_AUTO_HIDE_MS = 6000;
 
 export interface NiconicoPlayerHandle {
   /** Send seek + play to the embed (must be called inside a user-activation handler). */
@@ -69,6 +70,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
   const endedRef = useRef(false);
   const thumbSentRef = useRef(false);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hintHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onPlayingRef = useRef(onPlaying);
   onPlayingRef.current = onPlaying;
@@ -108,7 +110,12 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
       sendToNico("seek", { time: Math.floor(playStart * 1000) });
       sendToNico("play");
       if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = setTimeout(() => setShowHint(true), AUTOPLAY_FALLBACK_MS);
+      if (hintHideTimerRef.current) clearTimeout(hintHideTimerRef.current);
+      fallbackTimerRef.current = setTimeout(() => {
+        setShowHint(true);
+        // Auto-fade the hint so it doesn't linger indefinitely.
+        hintHideTimerRef.current = setTimeout(() => setShowHint(false), HINT_AUTO_HIDE_MS);
+      }, AUTOPLAY_FALLBACK_MS);
     },
   }), [playStart]);
 
@@ -131,6 +138,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
           const s = (d.data as PlayerStatusChangeData)?.playerStatus;
           if (s === 2) {
             if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+            if (hintHideTimerRef.current) clearTimeout(hintHideTimerRef.current);
             setShowHint(false);
             if (!startedRef.current) {
               startedRef.current = true;
@@ -142,9 +150,12 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
         case "playerMetadataChange": {
           const ct = (d.data as PlayerMetadataChangeData)?.currentTime;
           if (typeof ct !== "number") break;
+          // Ignore metadata that arrives after the segment already ended (a
+          // pause was sent but a late playerMetadataChange can still land).
+          if (endedRef.current) break;
           const sec = ct / 1000;
           onTimeUpdateRef.current?.(sec);
-          if (!endedRef.current && sec >= playEnd) {
+          if (sec >= playEnd) {
             endedRef.current = true;
             sendToNico("pause");
             onSegmentEndRef.current?.();
@@ -164,6 +175,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
   useEffect(() => {
     return () => {
       if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+      if (hintHideTimerRef.current) clearTimeout(hintHideTimerRef.current);
     };
   }, []);
 
