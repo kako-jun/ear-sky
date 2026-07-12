@@ -26,7 +26,7 @@ src/
 │   ├── Header.tsx       # Neon title + fixed header (useShrunk: 80px shrink / 40px expand)
 │   ├── VideoSegment.tsx # Shared video+subtitle (mount-on-click, see docs/architecture.md)
 │   ├── YouTubePlayer.tsx    # YouTube IFrame API (autoplay:1, segment playback)
-│   ├── NiconicoPlayer.tsx   # Niconico embed (hole overlay + window.blur detection)
+│   ├── NiconicoPlayer.tsx   # Niconico embed (jsapi postMessage handshake)
 │   ├── SoundCloudPlayer.tsx # SoundCloud Widget API
 │   ├── Subtitle.tsx     # Karaoke subtitle (useLayoutEffect for font sizing)
 │   ├── PostEditor.tsx   # Wizard form (URL→info→cues→about you), preview via PostCard
@@ -50,8 +50,8 @@ These are hard-won lessons. Violating them WILL break the app:
 
 1. **Player iframes: platform-specific mount strategy** — 隠す方法は全て壊れる
    (display:none/clip-path/visibility→JSコールバック死)。常時描画もYouTube同時制限で壊れる。
-   YouTube/SoundCloud: mount-on-click+autoplay。Niconico: pre-mount+穴あきオーバーレイ
-   +window.blur+activeElement検出。
+   YouTube/SoundCloud: mount-on-click+autoplay。Niconico: pre-mount+jsapi postMessage
+   （`jsapi=1&playerId` + `sourceConnectorType:1` のハンドシェイク必須。欠くと黙って無視される）。
    See `docs/architecture.md § Playback` for full investigation results.
 
 2. **Subtitle hooks: no early return before useLayoutEffect** — `Subtitle.tsx`

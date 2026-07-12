@@ -121,6 +121,7 @@ const ja: Messages = {
   niconico: {
     fallbackLink: "ニコニコ動画で再生",
     playSegment: "この部分を再生",
+    autoplayHint: "再生ボタンを押してください",
   },
   youtube: {
     playSegment: "この部分を再生",

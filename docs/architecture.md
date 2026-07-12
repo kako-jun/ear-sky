@@ -30,7 +30,8 @@
 ### 概要
 
 3プラットフォームそれぞれ異なる制約があり、共通のアプローチが存在しない。
-以下にセッション94で判明した全調査結果を記録する。
+以下にセッション94で判明した調査結果を記録する（ニコニコの postMessage は
+2026-07 に jsapi ハンドシェイクで動作すると判明。当時の「効かない」結論は誤りだった）。
 
 ### 試行した全アプローチと結果
 
@@ -43,31 +44,32 @@
 | `visibility: hidden` | JSコールバック死亡（セッション93で確認） | 未検証 | 未検証 |
 | `opacity: 0` | 未検証 | 未検証 | 未検証 |
 
-**結論**: iframe を隠すとYouTubeのJSコールバックが壊れる。ニコニコもdisplay:noneでpostMessageに応答しない。
+**結論**: iframe を隠すとYouTubeのJSコールバックが壊れる。ニコニコは `display:none` だとプレイヤーJS未初期化で postMessage が届かないため、pre-mount して可視のまま扱う。
 
 #### 常時描画方式（pre-mount + 隠さない）
 
 - 不透明サムネイルオーバーレイでプレイヤーを覆い、クリックでオーバーレイ除去+play()同期呼び出し
 - **YouTube**: 同時プレイヤー制限で3個目以降が壊れる（postMessage origin不一致エラー多発）
-- **Niconico**: iframeは見えているがpostMessage playに応答しない
+- **Niconico**: pre-mount + 可視のまま、jsapi ハンドシェイク付き postMessage で `play` を送れば動作する（採用）
 
-**結論**: 複数YouTubeプレイヤーの同時初期化は不可。ニコニコはpostMessage制御自体が現行embedプレイヤーで動作しない。
+**結論**: 複数YouTubeプレイヤーの同時初期化は不可。ニコニコは jsapi ハンドシェイク（`jsapi=1&playerId` + `sourceConnectorType:1`）を付ければ postMessage 制御が動作する。
 
 #### mount-on-click方式（クリック時にiframe生成）
 
 - クリック→iframe生成→`autoplay`パラメータで再生
 - **YouTube**: `autoplay:1`でブラウザのユーザーアクティベーション(5秒)内に再生開始。**動作する**
 - **SoundCloud**: `auto_play=true` + Widget API `seekTo(ms)` on READY。**動作する**
-- **Niconico**: `autoplay=1&from={sec}`をURL指定。autoplayが効かない。ユーザーがニコニコの純正再生ボタンを押す必要がある。**再生は可能だが自動再生は不可**
+- **Niconico**: pre-mount + jsapi postMessage(`play`)をクリックハンドラ内で送信。**動作する**（下記）
 
 ### ニコニコ固有の制約
 
-- **postMessage制御が動作しない**: `{ eventName: "play" }` / `{ eventName: "seek" }` をtarget origin `https://embed.nicovideo.jp` に送信しても、現行のニコニコembedプレイヤーが応答しない。エラーも出ない。セッション93時点では動作していたと思われるが、セッション94で全パターンをテストしたところ再現できなかった
-- **`autoplay=1` URLパラメータが効かない**: embed URLに指定しても自動再生されない
-- **`playerStatusChange` イベントが来ない**: ニコニコembedからの再生状態通知を`window.addEventListener("message")`で受信しようとしたが、イベントが発火しない
-- **`from={sec}` パラメータは動作する**: シーク位置の指定は効く
-- **ユーザーのネイティブ再生ボタン押下は動作する**: overlayやspinnerで隠さなければ、ユーザーが直接ニコニコの再生ボタンを押して再生できる
-- **弾幕(コメント)の非表示パラメータが効かない**: `commentLayerMode=0`、`defaultNoComment=1`いずれも無効。プレイヤーUI内の手動切替でのみ消せる
+- **jsapiハンドシェイクが必須**: embed URLに `jsapi=1&playerId=<id>` を付け、送信する全メッセージに `sourceConnectorType: 1` と同じ `playerId` を含めること。これを欠くと embed は postMessage を**黙って無視**する（エラーも出ない）。この2点を満たせば play / pause / seek と `loadComplete` / `playerStatusChange` / `playerMetadataChange` / `error` イベント受信すべて動作する（2026-07 実ブラウザで検証済み）
+- **`playerStatusChange` は来る**: `playerStatus === 2` で再生中。字幕タイマーはここで起動する
+- **`playerMetadataChange` で実 currentTime が取れる**: 約100〜270ms間隔でミリ秒精度の currentTime を受信。Date.now() 推定は不要
+- **単位の罠**: URL `from` は秒(floor)、`seek` の `data.time` はミリ秒、受信 `currentTime` もミリ秒。アプリ内部は秒で統一し境界で変換する
+- **autoplay policy**: `play` 送信は必ずユーザークリックのハンドラ内で行う。送信後3秒以内に `playerStatus=2` が来なければ「再生ボタンを押してください」の小トーストを出す（muted 開始はしない）
+- **API は非公式**: 公式ドキュメントなし。将来壊れうるので `playerStatusChange` フォールバックは必須
+- **弾幕(コメント)の非表示**: `commentVisibilityChange` イベント送信で制御できる可能性あり（本実装のスコープ外）
 
 ### 現在の実装
 
@@ -75,36 +77,26 @@
 |---|---|---|---|
 | マウント方式 | mount-on-click | **pre-mount** (IntersectionObserver) | mount-on-click |
 | API先読み | IFrame APIスクリプト(IO 400px) | iframe自体(IO 200px) | なし |
-| 再生トリガー | `autoplay:1` (playerVars) | ユーザーがネイティブ再生ボタンをクリック | `auto_play=true` (URL) |
-| シーク | `start` playerVar | `from` URLパラメータ | `seekTo(ms)` on READY |
-| 時間取得 | `getCurrentTime()` poll (100ms) | `Date.now()` elapsed推定 | `PLAY_PROGRESS` イベント |
-| 区間終了 | `pauseVideo()` | タイマー→iframe再マウント(key変更) | `widget.pause()` |
-| スピナー | `!hasPlayed`の間表示 | **非表示** | `!hasPlayed`の間表示 |
-| interaction overlay | `hasPlayed`後に表示 | **非表示** | `hasPlayed`後に表示 |
-| 字幕タイマー開始 | `onStateChange(PLAYING)` | `window.blur` + `activeElement`検出 | `PLAY` イベント |
-| 字幕同期精度 | 高（実再生検出） | 中（バッファリング遅延1.2s補正） | 高（実再生検出） |
+| 再生トリガー | `autoplay:1` (playerVars) | postMessage `play`（クリックハンドラ内） | `auto_play=true` (URL) |
+| シーク | `start` playerVar | `from`(初回)+`seek`(ms) | `seekTo(ms)` on READY |
+| 時間取得 | `getCurrentTime()` poll (100ms) | `playerMetadataChange`(実ms) | `PLAY_PROGRESS` イベント |
+| 区間終了 | `pauseVideo()` | postMessage `pause`（iframe再マウントなし） | `widget.pause()` |
+| スピナー | `!hasPlayed`の間表示 | 統一（Playボタンオーバーレイ） | `!hasPlayed`の間表示 |
+| interaction overlay | `hasPlayed`後に表示 | ネイティブコントロール使用 | `hasPlayed`後に表示 |
+| 字幕タイマー開始 | `onStateChange(PLAYING)` | `playerStatusChange(2)` | `PLAY` イベント |
+| 字幕同期精度 | 高（実再生検出） | 高（実 currentTime 受信） | 高（実再生検出） |
 
-### ニコニコの穴あきオーバーレイ方式
+### ニコニコの jsapi ハンドシェイク方式
 
-postMessage・autoplayが一切効かないため、ユーザーにニコニコの純正再生ボタンを
-直接クリックしてもらう。その検出と字幕同期を以下の仕組みで実現:
+1. **pre-mount**: IntersectionObserverでiframeを先にマウントし、`loadComplete` を先に受ける
+2. **URL**: `https://embed.nicovideo.jp/watch/{videoId}?jsapi=1&playerId={id}&from={playStart秒}`。`playerId` はコンポーネントごとに一意（受信メッセージのフィルタに使う）。`allow="autoplay; fullscreen"`
+3. **Playボタン**: 全プラットフォーム統一。pre-mount した iframe の上に Play ボタンをオーバーレイし、クリックハンドラ内で `seek`+`play` を送信
+4. **再生検出**: `playerStatusChange(playerStatus===2)` 初検出で `onPlaying()`（字幕開始）
+5. **時間同期**: `playerMetadataChange.currentTime/1000` を `onTimeUpdate` に渡す
+6. **区間終了**: `currentTime/1000 >= endSec+POST_MARGIN` で `pause` 送信→`onSegmentEnd()`。iframe は再マウントしない
+7. **error**: `error` イベント受信で `setError(true)`→フォールバックリンク表示
 
-1. **pre-mount**: IntersectionObserverでiframeを先にマウント。ニコニコはJSコールバックを
-   持たないため、pre-mountしても壊れるものがない
-2. **穴あきオーバーレイ**: 4つのdivブロック（上下左右）がiframeを覆い、中央に矩形の穴を残す。
-   穴の部分はDOM要素が存在しないため、クリックがiframeに透過する。
-   CSS mask-image/SVG maskは見た目だけ透過しpointer-eventsは通さないため使用不可
-3. **自前Playアイコン**: 穴の中央にpointer-events:noneのPlayアイコンを重ねて表示。
-   見た目は自前ボタンだが、クリックはiframeに到達する
-4. **再生検出**: `window.blur`イベント + `document.activeElement`確認。
-   iframe内クリック→親windowがblur→`activeElement`がiframe要素→確定。
-   アプリ切替・マスク部分クリック→離脱では`activeElement`がiframeにならず誤発火しない
-5. **オーバーレイ即消去**: blur検出時に`hideOverlay()`を即呼出。タイマー遅延(1.2s)に
-   引きずられない
-6. **バッファリング補正**: blur検出→1.2秒遅延→タイマー開始。ニコニコのバッファリング時間を
-   補正する固定値（環境依存でズレる可能性あり）
-7. **区間終了**: タイマー満了→`nicoKey++`でNiconicoPlayerを再マウント（iframe再生成で停止）。
-   穴あきオーバーレイが復活し、1クリックで再再生可能
+> 旧方式（〜session94）は「穴あきオーバーレイ + window.blur + activeElement 検出 + 1.2s補正 + nicoKey 再マウント」で、postMessage が効かないとの誤結論に基づいていた。真因は URL の jsapi ハンドシェイク欠落。詳細は git 履歴を参照。
 
 ## Header (position: fixed)
 
