@@ -26,10 +26,11 @@ interface Props {
  *
  * - YouTube: mount-on-click + autoplay:1. API script pre-loaded.
  * - SoundCloud: mount-on-click + auto_play=true.
- * - Niconico: pre-mount (IntersectionObserver) + hole overlay.
- *   postMessage/autoplay don't work. User clicks Niconico's native play
- *   button through a transparent hole in the overlay. window.blur detects
- *   the click and starts the subtitle timer. One click to play.
+ * - Niconico: pre-mount (IntersectionObserver) + jsapi postMessage.
+ *   The iframe is pre-mounted so loadComplete arrives before the user clicks.
+ *   The unified Play button overlays the pre-mounted iframe; clicking it sends
+ *   `play` (inside the user-activation handler) via the jsapi handshake, and
+ *   playerStatusChange(2) / playerMetadataChange drive the subtitle timeline.
  */
 export default function VideoSegment({
   videoUrl,
@@ -46,7 +47,7 @@ export default function VideoSegment({
   const [expanded, setExpanded] = useState(autoExpand);
   const [hasPlayed, setHasPlayed] = useState(false);
   const [nicoVisible, setNicoVisible] = useState(autoExpand);
-  const [nicoKey, setNicoKey] = useState(0);
+  const [nicoThumbnail, setNicoThumbnail] = useState<string | null>(null);
   const cueReachedRef = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -101,42 +102,18 @@ export default function VideoSegment({
     setCurrentTime(0);
     setHasPlayed(false);
     cueReachedRef.current = false;
-    // Niconico: remount iframe (new key) to stop playback. Hole overlay resets.
-    if (isNiconico) {
-      setNicoKey(k => k + 1);
-    }
-  }, [isNiconico]);
+    // Niconico: the iframe stays mounted; pause is sent by the player itself.
+  }, []);
 
   const handlePlayClick = useCallback(() => {
     setExpanded(true);
   }, []);
 
-  // Niconico: detect iframe click via window.blur + activeElement check.
-  // After blur, verify that our Niconico iframe actually received focus.
-  useEffect(() => {
-    if (!isNiconico || !nicoVisible || hasPlayed) return;
-    const container = rootRef.current;
-    if (!container) return;
-    let timerId: ReturnType<typeof setTimeout>;
-    let checkId: ReturnType<typeof setTimeout>;
-    const onBlur = () => {
-      // After blur, check if an iframe inside our container got focus
-      checkId = setTimeout(() => {
-        const active = document.activeElement;
-        if (active?.tagName === "IFRAME" && container.contains(active)) {
-          setExpanded(true);
-          nicoRef.current?.hideOverlay();
-          timerId = setTimeout(() => nicoRef.current?.play(), 1200);
-        }
-      }, 0);
-    };
-    window.addEventListener("blur", onBlur);
-    return () => {
-      window.removeEventListener("blur", onBlur);
-      clearTimeout(timerId);
-      clearTimeout(checkId);
-    };
-  }, [isNiconico, nicoVisible, hasPlayed]);
+  // Niconico: play is sent inside this user-activation handler.
+  const handleNicoPlayClick = useCallback(() => {
+    setExpanded(true);
+    nicoRef.current?.play();
+  }, []);
 
   const activeCues = hasPlayed ? cues : [];
 
@@ -154,11 +131,45 @@ export default function VideoSegment({
 
   return (
     <div ref={rootRef}>
-      {/* Niconico: pre-mounted, always in DOM when visible. Hole overlay on top. */}
+      {/* Niconico: pre-mounted, always in DOM when visible. Play button overlays it. */}
       {isNiconico && nicoVisible && (
         <div className="relative">
-          <NiconicoPlayer key={nicoKey} ref={nicoRef} videoId={parsed.videoId} {...playerProps} />
+          <NiconicoPlayer
+            ref={nicoRef}
+            videoId={parsed.videoId}
+            onThumbnail={setNicoThumbnail}
+            {...playerProps}
+          />
           {expanded && <Subtitle cues={activeCues} currentTime={currentTime} />}
+          {/* Show the unified Play button whenever playback has not started yet.
+              This is decoupled from `expanded`: a deep-linked (autoExpand) Niconico
+              card is expanded from the start but still needs the button so the
+              user gesture can send seek+play (autoplay is blocked without it). */}
+          {!hasPlayed && (
+            <button
+              onClick={handleNicoPlayClick}
+              aria-label={t.postCard.play}
+              className="absolute inset-0 z-20 w-full hover:opacity-90 transition-opacity
+                         focus-visible:outline-2 focus-visible:outline-neon-blue"
+            >
+              {nicoThumbnail ? (
+                <img
+                  src={nicoThumbnail}
+                  alt=""
+                  className="w-full h-full object-cover rounded-lg"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full bg-black/30 rounded-lg" />
+              )}
+              <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-1 text-white/80 rounded-lg">
+                <Play size={36} />
+                <span className="text-xs text-white/60">
+                  {formatTime(startSec)} 〜 {formatTime(endSec)}
+                </span>
+              </div>
+            </button>
+          )}
         </div>
       )}
 

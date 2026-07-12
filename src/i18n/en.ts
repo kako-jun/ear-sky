@@ -119,6 +119,7 @@ const en = {
   niconico: {
     fallbackLink: "Watch on Niconico",
     playSegment: "Play this part",
+    autoplayHint: "Press the play button to start",
   },
   youtube: {
     playSegment: "Play this part",

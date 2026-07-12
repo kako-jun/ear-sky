@@ -1,12 +1,15 @@
-import { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useRef, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { useI18n } from "@/i18n";
 
 const PRE_MARGIN = 5;
 const POST_MARGIN = 0.3;
+const NICO_ORIGIN = "https://embed.nicovideo.jp";
+const AUTOPLAY_FALLBACK_MS = 3000;
+const HINT_AUTO_HIDE_MS = 6000;
 
 export interface NiconicoPlayerHandle {
+  /** Send seek + play to the embed (must be called inside a user-activation handler). */
   play: () => void;
-  hideOverlay: () => void;
 }
 
 interface Props {
@@ -16,19 +19,41 @@ interface Props {
   onTimeUpdate?: (currentTime: number) => void;
   onPlaying?: () => void;
   onSegmentEnd?: () => void;
+  /** Fired once with the video thumbnail URL from loadComplete. */
+  onThumbnail?: (url: string) => void;
 }
 
 /**
- * Niconico embed player.
+ * Niconico embed player (jsapi handshake).
  *
- * postMessage control and autoplay=1 do not work with the current Niconico
- * embed player. The user must click Niconico's native play button.
+ * The embed URL carries `jsapi=1&playerId=<id>`, and every message we post
+ * includes `sourceConnectorType: 1` + the same `playerId`. Without this
+ * handshake the embed silently ignores postMessage. With it, play / pause /
+ * seek and event reception (loadComplete / playerStatusChange /
+ * playerMetadataChange / error) all work (verified 2026-07 in a real browser).
  *
- * Detection: when the user clicks inside the cross-origin iframe, the parent
- * window loses focus (blur event). VideoSegment detects this and starts the
- * subtitle timer. A "hole overlay" blocks clicks everywhere except the center
- * play button area, preventing unwanted interactions.
+ * Units: URL `from` is seconds (floor). `seek` data.time is milliseconds.
+ * `playerMetadataChange.currentTime` is milliseconds. The app works in seconds
+ * and converts at the boundary.
  */
+
+// Received messages arrive with sourceConnectorType: 0.
+interface NicoMessage {
+  sourceConnectorType: number;
+  playerId: string;
+  eventName: string;
+  data?: unknown;
+}
+interface LoadCompleteData {
+  videoInfo?: { thumbnailUrl?: string };
+}
+interface PlayerStatusChangeData {
+  playerStatus: number;
+}
+interface PlayerMetadataChangeData {
+  currentTime: number;
+}
+
 const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function NiconicoPlayer({
   videoId,
   startSec,
@@ -36,58 +61,123 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
   onTimeUpdate,
   onPlaying,
   onSegmentEnd,
+  onThumbnail,
 }, ref) {
   const t = useI18n();
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const playStartTimeRef = useRef<number>(0);
+
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const startedRef = useRef(false);
+  const endedRef = useRef(false);
+  const thumbSentRef = useRef(false);
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hintHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const onPlayingRef = useRef(onPlaying);
   onPlayingRef.current = onPlaying;
   const onSegmentEndRef = useRef(onSegmentEnd);
   onSegmentEndRef.current = onSegmentEnd;
   const onTimeUpdateRef = useRef(onTimeUpdate);
   onTimeUpdateRef.current = onTimeUpdate;
+  const onThumbnailRef = useRef(onThumbnail);
+  onThumbnailRef.current = onThumbnail;
+
   const [error, setError] = useState(false);
-  const [showOverlay, setShowOverlay] = useState(true);
+  const [showHint, setShowHint] = useState(false);
 
   const playStart = Math.max(0, startSec - PRE_MARGIN);
   const playEnd = endSec + POST_MARGIN;
 
-  const startTimer = useCallback(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    onPlayingRef.current?.();
+  // Component-unique player id (stable for the lifetime of this component).
+  const playerId = useRef(`nico-${Math.random().toString(36).slice(2)}`).current;
+  const embedUrl =
+    `${NICO_ORIGIN}/watch/${videoId}?jsapi=1&playerId=${playerId}&from=${Math.floor(playStart)}`;
 
-    playStartTimeRef.current = Date.now();
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(() => {
-      const elapsed = (Date.now() - playStartTimeRef.current) / 1000;
-      const currentTime = playStart + elapsed;
-      onTimeUpdateRef.current?.(currentTime);
-    }, 100);
-
-    if (timerRef.current) clearTimeout(timerRef.current);
-    const duration = (playEnd - playStart) * 1000;
-    timerRef.current = setTimeout(() => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      onSegmentEndRef.current?.();
-    }, duration);
-  }, [playStart, playEnd]);
+  // --- send ---
+  const sendToNico = (eventName: string, data?: Record<string, unknown>) => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { sourceConnectorType: 1, playerId, eventName, ...(data ? { data } : {}) },
+      NICO_ORIGIN,
+    );
+  };
 
   useImperativeHandle(ref, () => ({
-    play: startTimer,
-    hideOverlay: () => setShowOverlay(false),
-  }), [startTimer]);
+    play: () => {
+      endedRef.current = false;
+      startedRef.current = false;
+      setShowHint(false);
+      // seek is milliseconds; from= already head-starts the first play but a
+      // redundant seek is harmless and is required for replay.
+      sendToNico("seek", { time: Math.floor(playStart * 1000) });
+      sendToNico("play");
+      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+      if (hintHideTimerRef.current) clearTimeout(hintHideTimerRef.current);
+      fallbackTimerRef.current = setTimeout(() => {
+        setShowHint(true);
+        // Auto-fade the hint so it doesn't linger indefinitely.
+        hintHideTimerRef.current = setTimeout(() => setShowHint(false), HINT_AUTO_HIDE_MS);
+      }, AUTOPLAY_FALLBACK_MS);
+    },
+  }), [playStart]);
+
+  // --- receive ---
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== NICO_ORIGIN) return;
+      const d = e.data as NicoMessage;
+      if (!d || d.playerId !== playerId) return;
+      switch (d.eventName) {
+        case "loadComplete": {
+          const url = (d.data as LoadCompleteData)?.videoInfo?.thumbnailUrl;
+          if (url && !thumbSentRef.current) {
+            thumbSentRef.current = true;
+            onThumbnailRef.current?.(url);
+          }
+          break;
+        }
+        case "playerStatusChange": {
+          const s = (d.data as PlayerStatusChangeData)?.playerStatus;
+          if (s === 2) {
+            if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+            if (hintHideTimerRef.current) clearTimeout(hintHideTimerRef.current);
+            setShowHint(false);
+            if (!startedRef.current) {
+              startedRef.current = true;
+              onPlayingRef.current?.();
+            }
+          }
+          break;
+        }
+        case "playerMetadataChange": {
+          const ct = (d.data as PlayerMetadataChangeData)?.currentTime;
+          if (typeof ct !== "number") break;
+          // Ignore metadata that arrives after the segment already ended (a
+          // pause was sent but a late playerMetadataChange can still land).
+          if (endedRef.current) break;
+          const sec = ct / 1000;
+          onTimeUpdateRef.current?.(sec);
+          if (sec >= playEnd) {
+            endedRef.current = true;
+            sendToNico("pause");
+            onSegmentEndRef.current?.();
+          }
+          break;
+        }
+        case "error":
+          setError(true);
+          break;
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerId, playEnd]);
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+      if (hintHideTimerRef.current) clearTimeout(hintHideTimerRef.current);
     };
   }, []);
-
-  const embedUrl = `https://embed.nicovideo.jp/watch/${videoId}?from=${Math.floor(playStart)}`;
 
   if (error) {
     return (
@@ -107,27 +197,18 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
   return (
     <div className="aspect-video w-full rounded-lg overflow-hidden bg-black/50 relative">
       <iframe
+        ref={iframeRef}
         src={embedUrl}
         className="w-full h-full"
-        allow="fullscreen"
+        allow="autoplay; fullscreen"
         title={`${videoId} — Niconico`}
-        onError={() => setError(true)}
       />
-
-      {/* Hole overlay: 4 blocks leave a rectangular gap in the center.
-         Only real DOM absence lets clicks pass through to the iframe. */}
-      {showOverlay && (
-        <>
-          <div className="absolute top-0 left-0 right-0 h-[35%] bg-black/50 z-10" />
-          <div className="absolute bottom-0 left-0 right-0 h-[35%] bg-black/50 z-10" />
-          <div className="absolute top-[35%] left-0 w-[40%] h-[30%] bg-black/50 z-10" />
-          <div className="absolute top-[35%] right-0 w-[40%] h-[30%] bg-black/50 z-10" />
-          <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none text-white/80">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
-              <polygon points="5,3 19,12 5,21" />
-            </svg>
-          </div>
-        </>
+      {showHint && (
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 px-3 py-2 rounded-lg
+                        bg-bar-counter/95 backdrop-blur-md border border-neon-blue/50
+                        text-xs text-white shadow-lg pointer-events-none whitespace-nowrap">
+          {t.niconico.autoplayHint}
+        </div>
       )}
     </div>
   );
