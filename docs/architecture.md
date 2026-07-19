@@ -142,7 +142,8 @@ The header uses `position: fixed` (not sticky) with a spacer div measured once o
 - Wizard flow: URL → song info (oEmbed auto-fill) → cues (DualRangeSlider) → about you
 - Preview via `PostCard(preview=true)` — no direct player usage
 - Delete key: pre-filled from unified storage, type=password
-- Cue editing: changing cue N's start auto-updates cue N-1's end
+- Cue editing lives in `useCueEditor`; changing cue N's start auto-updates cue N-1's end
+- Form sections live under `src/components/post-editor/`; `PostEditor.tsx` orchestrates state, preview, drafts, and submit payloads
 
 ## i18n
 

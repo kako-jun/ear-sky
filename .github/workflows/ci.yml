@@ -21,3 +21,4 @@ jobs:
       - run: npx playwright install chromium
       - run: npm run build
       - run: npm run check:mobile-overflow
+      - run: npm run check:editor-ui
