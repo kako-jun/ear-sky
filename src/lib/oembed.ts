@@ -17,13 +17,8 @@ export async function fetchVideoTitle(
     }
 
     if (platform === "niconico") {
-      const res = await fetch(
-        `https://ext.nicovideo.jp/api/getthumbinfo/${videoId}`
-      );
-      if (!res.ok) return null;
-      const text = await res.text();
-      const match = text.match(/<title>(.*?)<\/title>/);
-      return match?.[1] || null;
+      void videoId;
+      return null;
     }
 
     if (platform === "soundcloud") {

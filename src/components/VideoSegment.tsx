@@ -47,6 +47,7 @@ export default function VideoSegment({
   const [expanded, setExpanded] = useState(autoExpand);
   const [hasPlayed, setHasPlayed] = useState(false);
   const [nicoVisible, setNicoVisible] = useState(autoExpand);
+  const [nicoReady, setNicoReady] = useState(false);
   const [nicoThumbnail, setNicoThumbnail] = useState<string | null>(null);
   const cueReachedRef = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -80,6 +81,10 @@ export default function VideoSegment({
     }
   }, [parsed?.platform]);
 
+  useEffect(() => {
+    setNicoReady(false);
+  }, [parsed?.videoId]);
+
   const handleTimeUpdate = useCallback((t: number) => {
     setCurrentTime(t);
     if (onCueReached && !cueReachedRef.current && cues.length > 0) {
@@ -111,9 +116,10 @@ export default function VideoSegment({
 
   // Niconico: play is sent inside this user-activation handler.
   const handleNicoPlayClick = useCallback(() => {
+    if (!nicoReady) return;
     setExpanded(true);
     nicoRef.current?.play();
-  }, []);
+  }, [nicoReady]);
 
   const activeCues = hasPlayed ? cues : [];
 
@@ -138,6 +144,7 @@ export default function VideoSegment({
             ref={nicoRef}
             videoId={parsed.videoId}
             onThumbnail={setNicoThumbnail}
+            onReady={() => setNicoReady(true)}
             {...playerProps}
           />
           {expanded && <Subtitle cues={activeCues} currentTime={currentTime} />}
@@ -149,7 +156,9 @@ export default function VideoSegment({
             <button
               onClick={handleNicoPlayClick}
               aria-label={t.postCard.play}
+              disabled={!nicoReady}
               className="absolute inset-0 z-20 w-full hover:opacity-90 transition-opacity
+                         disabled:cursor-wait disabled:opacity-80
                          focus-visible:outline-2 focus-visible:outline-neon-blue"
             >
               {nicoThumbnail ? (
@@ -163,7 +172,7 @@ export default function VideoSegment({
                 <div className="w-full h-full bg-black/30 rounded-lg" />
               )}
               <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center gap-1 text-white/80 rounded-lg">
-                <Play size={36} />
+                {nicoReady ? <Play size={36} /> : <Loader2 size={36} className="animate-spin" />}
                 <span className="text-xs text-white/60">
                   {formatTime(startSec)} 〜 {formatTime(endSec)}
                 </span>

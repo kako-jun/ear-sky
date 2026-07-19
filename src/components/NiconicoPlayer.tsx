@@ -21,6 +21,7 @@ interface Props {
   onSegmentEnd?: () => void;
   /** Fired once with the video thumbnail URL from loadComplete. */
   onThumbnail?: (url: string) => void;
+  onReady?: () => void;
 }
 
 /**
@@ -62,6 +63,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
   onPlaying,
   onSegmentEnd,
   onThumbnail,
+  onReady,
 }, ref) {
   const t = useI18n();
 
@@ -80,6 +82,8 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
   onTimeUpdateRef.current = onTimeUpdate;
   const onThumbnailRef = useRef(onThumbnail);
   onThumbnailRef.current = onThumbnail;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
 
   const [error, setError] = useState(false);
   const [showHint, setShowHint] = useState(false);
@@ -202,6 +206,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
         className="w-full h-full"
         allow="autoplay; fullscreen"
         title={`${videoId} — Niconico`}
+        onLoad={() => onReadyRef.current?.()}
       />
       {showHint && (
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 px-3 py-2 rounded-lg
