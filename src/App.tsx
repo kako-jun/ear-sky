@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useLayoutEffect, useRef } from "react";
-import { Post, VALID_TAGS, PAGE_SIZE } from "@/types";
+import { Post } from "@/types";
+import { PAGE_SIZE, VALID_TAGS } from "@/shared/domain";
 import { fetchPosts, fetchPost, createPost, ApiError } from "@/lib/api";
 import { getStorageValue, setStorageValue } from "@/lib/storage";
 import { useI18n, useI18nState, I18nContext, useI18nProvider } from "@/i18n";

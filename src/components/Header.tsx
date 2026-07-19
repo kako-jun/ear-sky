@@ -54,20 +54,20 @@ export default function Header({ shrunk }: { shrunk: boolean }) {
 
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className={`inline-flex items-center justify-center cursor-pointer
+        className={`inline-flex max-w-full min-w-0 items-center justify-center cursor-pointer
                    hover:opacity-80
                    focus-visible:outline-2 focus-visible:outline-neon-blue focus-visible:outline-offset-2
-                   ${shrunk ? "gap-2 mb-0" : "gap-3 mb-2"}`}
+                   ${shrunk ? "gap-2 mb-0" : "gap-2 sm:gap-3 mb-2"}`}
       >
         <img
           src="/icon-192.png"
           alt=""
-          className={`rounded-lg opacity-80 ${shrunk ? "w-6 h-6" : "w-12 h-12"}`}
+          className={`shrink-0 rounded-lg opacity-80 ${shrunk ? "w-6 h-6" : "w-10 h-10 sm:w-12 sm:h-12"}`}
           aria-hidden="true"
         />
         <h1
-          className={`font-bold neon-text tracking-wider
-            ${shrunk ? "text-sm" : "text-2xl md:text-3xl"}`}
+          className={`min-w-0 font-bold neon-text tracking-wider leading-tight
+            ${shrunk ? "text-sm" : "text-xl sm:text-2xl md:text-3xl"}`}
         >
           Ear in the Sky Diamond
         </h1>

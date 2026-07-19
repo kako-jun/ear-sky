@@ -12,7 +12,7 @@ export async function fetchVideoTitle(
         `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`
       );
       if (!res.ok) return null;
-      const data = await res.json();
+      const data = await res.json() as { title?: string };
       return data.title || null;
     }
 
@@ -31,7 +31,7 @@ export async function fetchVideoTitle(
         `https://noembed.com/embed?url=${encodeURIComponent(videoId)}`
       );
       if (!res.ok) return null;
-      const data = await res.json();
+      const data = await res.json() as { title?: string };
       return data.title || null;
     }
   } catch {

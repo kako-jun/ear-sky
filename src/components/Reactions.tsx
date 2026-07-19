@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { CURATED_EMOJI } from "@/types";
+import { CURATED_EMOJI } from "@/shared/domain";
 import { getMyReaction, setMyReaction, clearMyReaction } from "@/lib/storage";
 import { setReaction, removeReaction } from "@/lib/api";
 import { useI18n, getLocale } from "@/i18n";

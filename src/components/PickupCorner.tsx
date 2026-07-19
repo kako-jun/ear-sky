@@ -43,8 +43,8 @@ export default function PickupCorner() {
     if (loadedRef.current.has(id)) return;
     loadedRef.current.add(id);
     fetch(`/pickups/${id}.json`)
-      .then((res) => res.json())
-      .then((data: Pickup) => {
+      .then((res) => res.json() as Promise<Pickup>)
+      .then((data) => {
         setArchivePickups((prev) => new Map(prev).set(id, data));
       })
       .catch(() => {});

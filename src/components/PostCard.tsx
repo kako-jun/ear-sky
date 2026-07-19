@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
-import { Post, VALID_TAGS } from "@/types";
+import { Post } from "@/types";
+import { VALID_TAGS } from "@/shared/domain";
 import { parseVideoUrl } from "@/lib/video";
 import { recordPlay, deletePost } from "@/lib/api";
 import { getStorageValue } from "@/lib/storage";

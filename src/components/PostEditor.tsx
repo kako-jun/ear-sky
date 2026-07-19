@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { LANGUAGES, Post, SubtitleCue, VALID_TAGS, MAX_TAGS } from "@/types";
+import { Post, SubtitleCue } from "@/types";
+import { LANGUAGES, MAX_TAGS, VALID_TAGS } from "@/shared/domain";
 import { parseVideoUrl } from "@/lib/video";
 import { saveDraft, getAllDrafts, deleteDraft, getStorageValue, setStorageValue } from "@/lib/storage";
 import { fetchVideoTitle, splitArtistTitle } from "@/lib/oembed";

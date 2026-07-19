@@ -1,26 +1,22 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { handle } from "hono/cloudflare-pages";
+import {
+  CURATED_EMOJI_SET,
+  MAX_ERA,
+  MAX_NAME,
+  MAX_SEGMENT_SEC,
+  MAX_TAGS,
+  MAX_TEXT,
+  MAX_URL,
+  TAG_ID_SET,
+  VALID_PLATFORMS,
+  type Platform,
+} from "../../src/shared/domain";
 
 type Bindings = {
   DB: D1Database;
 };
-
-const VALID_PLATFORMS = ["youtube", "niconico", "soundcloud", "other"] as const;
-const VALID_TAGS = new Set([
-  "anime", "game", "vocaloid", "movie", "drama", "cm",
-  "rock", "pop", "hiphop", "metal",
-]);
-const MAX_TAGS = 3;
-const VALID_EMOJI = new Set([
-  "👂", "🤣", "😂", "🫠", "🤯", "🥹", "👀",
-  "👏", "✨", "❤️", "🎉", "🎵",
-]);
-const MAX_TEXT = 200;
-const MAX_NAME = 30;
-const MAX_URL = 2000;
-const MAX_ERA = 20;
-const MAX_SEGMENT_SEC = 300;
 
 const app = new Hono<{ Bindings: Bindings }>().basePath("/api");
 
@@ -170,7 +166,7 @@ app.get("/posts", async (c) => {
 
   // Tag filter: comma-separated, e.g. "anime,game"
   if (tagsParam) {
-    const filterTags = tagsParam.split(",").filter((t) => VALID_TAGS.has(t)).slice(0, MAX_TAGS);
+    const filterTags = tagsParam.split(",").filter((t) => TAG_ID_SET.has(t)).slice(0, MAX_TAGS);
     if (filterTags.length > 0) {
       const placeholders = filterTags.map(() => "?").join(",");
       conditions.push(`p.id IN (SELECT post_id FROM post_tags WHERE tag IN (${placeholders}))`);
@@ -268,7 +264,7 @@ app.post("/posts", async (c) => {
   }
 
   // Validate platform
-  if (!VALID_PLATFORMS.includes(platform as typeof VALID_PLATFORMS[number])) {
+  if (!VALID_PLATFORMS.includes(platform as Platform)) {
     return c.json({ error: "invalid platform" }, 400);
   }
 
@@ -350,7 +346,7 @@ app.post("/posts", async (c) => {
   }
 
   // Tags (optional, max MAX_TAGS)
-  const tagsArray = Array.isArray(rawTags) ? rawTags.filter((t): t is string => typeof t === "string" && VALID_TAGS.has(t)).slice(0, MAX_TAGS) : [];
+  const tagsArray = Array.isArray(rawTags) ? rawTags.filter((t): t is string => typeof t === "string" && TAG_ID_SET.has(t)).slice(0, MAX_TAGS) : [];
   for (const tag of tagsArray) {
     statements.push(
       c.env.DB.prepare(
@@ -408,7 +404,7 @@ app.put("/posts/:id/reaction", async (c) => {
   try { body = await c.req.json(); } catch { return c.json({ error: "invalid body" }, 400); }
   const { emoji } = body;
 
-  if (!emoji || !VALID_EMOJI.has(emoji)) {
+  if (!emoji || !CURATED_EMOJI_SET.has(emoji)) {
     return c.json({ error: "invalid emoji" }, 400);
   }
 

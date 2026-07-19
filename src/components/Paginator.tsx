@@ -1,5 +1,5 @@
 import { useI18n } from "@/i18n";
-import { PAGE_SIZE } from "@/types";
+import { PAGE_SIZE } from "@/shared/domain";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function Paginator({ page, total, onPage }: {
