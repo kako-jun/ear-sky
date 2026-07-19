@@ -73,6 +73,8 @@ try {
   await page.locator("#post-editor-delete-key").fill("secret");
   await page.getByRole("button", { name: /Anime|アニメ/ }).click();
   await page.getByRole("button", { name: /Pop|ポップ/ }).click();
+  await page.getByRole("button", { name: /Metal|メタル/ }).click();
+  await page.getByRole("button", { name: /Game|ゲーム/ }).click();
 
   const submit = page.getByRole("button", { name: /Post|投稿する/ }).last();
   await submit.waitFor();
@@ -92,7 +94,13 @@ try {
   await page.getByRole("button", { name: /Save draft|下書き保存/ }).click();
   await page.getByText(/Draft saved|下書き保存しました/).waitFor();
   await page.getByRole("button", { name: /Drafts|下書き一覧/ }).click();
-  await page.getByRole("button", { name: /Never gonna give you soup/ }).waitFor();
+  const draftButton = page.getByRole("button", { name: /Never gonna give you soup/ });
+  await draftButton.waitFor();
+  await draftButton.click();
+  const restoredUrl = await page.locator("#post-editor-url").inputValue();
+  if (restoredUrl !== "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s") {
+    throw new Error(`Draft load did not restore URL: ${restoredUrl}`);
+  }
 
   const overflow = await page.evaluate(() => ({
     viewportWidth: window.innerWidth,
@@ -139,7 +147,7 @@ try {
   if (cue.text !== "Never gonna give you soup" || cue.originalText !== "Never gonna give you up" || cue.showAt !== 42 || cue.duration !== 5) {
     throw new Error(`Submitted cue mismatch: ${JSON.stringify(cue)}`);
   }
-  if (!Array.isArray(submittedPayload.tags) || submittedPayload.tags.join(",") !== "anime,pop") {
+  if (!Array.isArray(submittedPayload.tags) || submittedPayload.tags.join(",") !== "anime,pop,metal") {
     throw new Error(`Submitted tags mismatch: ${JSON.stringify(submittedPayload.tags)}`);
   }
 

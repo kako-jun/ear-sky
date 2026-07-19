@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Post } from "@/types";
 import { parseVideoUrl } from "@/lib/video";
 import { saveDraft, getAllDrafts, deleteDraft, getStorageValue, setStorageValue } from "@/lib/storage";
 import { fetchVideoTitle, splitArtistTitle } from "@/lib/oembed";
 import { useI18n, useI18nState } from "@/i18n";
 import { useCueEditor } from "@/hooks/useCueEditor";
+import { usePostPayload } from "@/hooks/usePostPayload";
 import PostCard from "./PostCard";
 import { AboutYouSection } from "./post-editor/AboutYouSection";
 import { DraftsList } from "./post-editor/DraftsList";
@@ -87,60 +87,21 @@ export default function PostEditor({ onPublished, initialDraftId }: Props) {
     if (draft) applyDraftData(draft.data);
   }, [initialDraftId, applyDraftData]);
 
-  const playStartSec = cues[0].startSec;
-  const playEndSec = cues[cues.length - 1].endSec;
-  const canPreview = parsed !== null && cues[0].endSec > cues[0].startSec;
-  const canSubmit = canPreview && cues.every((cue) => cue.text.trim().length > 0);
-
-  const previewPost: Post = useMemo(() => ({
-    id: "preview",
-    videoUrl: url,
-    platform: parsed?.platform || "other",
-    videoId: parsed?.videoId || "",
-    startSec: playStartSec,
-    endSec: playEndSec,
-    misheardText: cues.map((cue) => cue.text.trim()).join("") || "...",
-    originalText: cues.map((cue) => cue.originalText.trim()).filter(Boolean).join(" ") || undefined,
-    artistName: artistName.trim() || "—",
-    songTitle: songTitle.trim() || "—",
+  const { previewPost, buildData, canSubmit } = usePostPayload({
+    url,
+    parsed,
+    cues,
+    subtitleCues,
+    artistName,
+    songTitle,
     sourceLang,
     targetLang,
-    nickname: nickname.trim() || "Anonymous",
-    likes: 0,
-    createdAt: new Date().toISOString(),
-    reactions: {},
-    totalReactions: 0,
-    playCount: 0,
-    era: era.trim() || undefined,
-    comment: comment.trim() || undefined,
-    cues: subtitleCues,
+    nickname,
+    deleteKey,
+    era,
+    comment,
     tags,
-  }), [url, parsed, playStartSec, playEndSec, cues, subtitleCues, artistName, songTitle, sourceLang, targetLang, nickname, era, comment, tags]);
-
-  const buildData = useCallback((): PostData | null => {
-    if (!parsed) return null;
-    const firstCue = cues[0];
-    const lastCue = cues[cues.length - 1];
-    return {
-      videoUrl: url,
-      platform: parsed.platform,
-      videoId: parsed.videoId,
-      startSec: firstCue.startSec,
-      endSec: lastCue.endSec,
-      misheardText: cues.map((cue) => cue.text.trim()).join(""),
-      originalText: cues.map((cue) => cue.originalText.trim()).filter(Boolean).join(" ") || undefined,
-      artistName: artistName.trim(),
-      songTitle: songTitle.trim(),
-      sourceLang,
-      targetLang,
-      nickname: nickname.trim() || "Anonymous",
-      deleteKey: deleteKey.trim() || undefined,
-      era: era.trim() || undefined,
-      comment: comment.trim() || undefined,
-      cues: subtitleCues,
-      tags,
-    };
-  }, [url, parsed, cues, subtitleCues, artistName, songTitle, sourceLang, targetLang, nickname, deleteKey, era, comment, tags]);
+  });
 
   const handleSaveDraft = useCallback(() => {
     const data = buildData();

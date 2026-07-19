@@ -143,7 +143,15 @@ The header uses `position: fixed` (not sticky) with a spacer div measured once o
 - Preview via `PostCard(preview=true)` — no direct player usage
 - Delete key: pre-filled from unified storage, type=password
 - Cue editing lives in `useCueEditor`; changing cue N's start auto-updates cue N-1's end
-- Form sections live under `src/components/post-editor/`; `PostEditor.tsx` orchestrates state, preview, drafts, and submit payloads
+- Submit/preview payload construction lives in `usePostPayload`
+- Form sections live under `src/components/post-editor/`; `PostEditor.tsx` orchestrates state, drafts, and submission
+
+## Regression Checks
+
+- `npm run test:api`: Hono API validation, platform/URL/time/cue rejection, curated reaction rejection, tag filtering
+- `npm run check:mobile-overflow`: Playwright 390px smoke test for page-level horizontal overflow
+- `npm run check:editor-ui`: Playwright editor workflow at 390px, including labels, draft load, cue add/remove, submit payload, and screenshot capture
+- CI also runs `npm audit --audit-level=high`
 
 ## i18n
 
