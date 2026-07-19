@@ -69,6 +69,7 @@
 - **単位の罠**: URL `from` は秒(floor)、`seek` の `data.time` はミリ秒、受信 `currentTime` もミリ秒。アプリ内部は秒で統一し境界で変換する
 - **autoplay policy**: `play` 送信は必ずユーザークリックのハンドラ内で行う。送信後3秒以内に `playerStatus=2` が来なければ「再生ボタンを押してください」の小トーストを出す（muted 開始はしない）
 - **API は非公式**: 公式ドキュメントなし。将来壊れうるので `playerStatusChange` フォールバックは必須
+- **embed失敗時**: `error` イベント時は `https://www.nicovideo.jp/watch/{videoId}?from={startSec-5}` へ逃がす
 - **弾幕(コメント)の非表示**: `commentVisibilityChange` イベント送信で制御できる可能性あり（本実装のスコープ外）
 
 ### 現在の実装
@@ -148,7 +149,7 @@ The header uses `position: fixed` (not sticky) with a spacer div measured once o
 
 ## Regression Checks
 
-- `npm run test:api`: Hono API validation, platform/URL/time/cue rejection, curated reaction rejection, tag filtering
+- `npm run test:unit`: Hono API validation, platform/URL/time/cue rejection, curated reaction rejection, tag filtering, Niconico timestamped links
 - `npm run check:mobile-overflow`: Playwright 390px smoke test for page-level horizontal overflow
 - `npm run check:editor-ui`: Playwright editor workflow at 390px, including labels, draft load, cue add/remove, submit payload, and screenshot capture
 - CI also runs `npm audit --audit-level=high`

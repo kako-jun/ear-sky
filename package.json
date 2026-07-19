@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "check:mobile-overflow": "node scripts/check-mobile-overflow.mjs",
     "check:editor-ui": "node scripts/check-editor-ui.mjs",
-    "test:api": "vitest run tests/api-validation.test.ts"
+    "test:api": "vitest run tests/api-validation.test.ts",
+    "test:unit": "vitest run tests/*.test.ts"
   },
   "dependencies": {
     "hono": "^4.12.31",

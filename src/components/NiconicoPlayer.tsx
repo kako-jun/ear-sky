@@ -1,9 +1,9 @@
 import { useRef, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { useI18n } from "@/i18n";
+import { getNiconicoEmbedUrl, getNiconicoWatchUrl, NICO_EMBED_ORIGIN } from "@/lib/niconico";
 
 const PRE_MARGIN = 5;
 const POST_MARGIN = 0.3;
-const NICO_ORIGIN = "https://embed.nicovideo.jp";
 const AUTOPLAY_FALLBACK_MS = 3000;
 const HINT_AUTO_HIDE_MS = 6000;
 
@@ -93,14 +93,14 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
 
   // Component-unique player id (stable for the lifetime of this component).
   const playerId = useRef(`nico-${Math.random().toString(36).slice(2)}`).current;
-  const embedUrl =
-    `${NICO_ORIGIN}/watch/${videoId}?jsapi=1&playerId=${playerId}&from=${Math.floor(playStart)}`;
+  const embedUrl = getNiconicoEmbedUrl(videoId, playerId, playStart);
+  const watchUrl = getNiconicoWatchUrl(videoId, playStart);
 
   // --- send ---
   const sendToNico = (eventName: string, data?: Record<string, unknown>) => {
     iframeRef.current?.contentWindow?.postMessage(
       { sourceConnectorType: 1, playerId, eventName, ...(data ? { data } : {}) },
-      NICO_ORIGIN,
+      NICO_EMBED_ORIGIN,
     );
   };
 
@@ -126,7 +126,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
   // --- receive ---
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
-      if (e.origin !== NICO_ORIGIN) return;
+      if (e.origin !== NICO_EMBED_ORIGIN) return;
       const d = e.data as NicoMessage;
       if (!d || d.playerId !== playerId) return;
       switch (d.eventName) {
@@ -187,7 +187,7 @@ const NiconicoPlayer = forwardRef<NiconicoPlayerHandle, Props>(function Niconico
     return (
       <div className="aspect-video w-full rounded-lg bg-black/30 flex items-center justify-center text-white/50 text-sm">
         <a
-          href={`https://www.nicovideo.jp/watch/${videoId}`}
+          href={watchUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="underline hover:text-white/60"
